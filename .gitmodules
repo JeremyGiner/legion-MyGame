@@ -1,0 +1,3 @@
+[submodule "vendor/cloner"]
+	path = vendor/cloner
+	url = https://github.com/JeremyGiner/cloner.git
