@@ -1,0 +1,16 @@
+{
+    "faces":[40,2,1,0,0,1,2,0,0,0],
+    "vertices":[1,0,1,1.5,-2,1,1,-2,1.5],
+    "name":"Grid.001Geometry",
+    "uvs":[[0.256433,0.000103,0.743565,0.0001,0.49906,1.00143]],
+    "normals":[0.69631,0.174078,0.69628],
+    "metadata":{
+        "faces":1,
+        "vertices":3,
+        "uvs":1,
+        "version":3,
+        "normals":1,
+        "generator":"io_three",
+        "type":"Geometry"
+    }
+}

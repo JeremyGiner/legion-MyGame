@@ -1,0 +1,23 @@
+#______________________________________________________________________________
+# Server compilation
+
+#note : haxe\std\php\_std\List.hx:63 fix : replace line with >> untyped __php__("$this->h =& $x"); 
+
+# Select directory
+-cp src
+-cp vendor\cloner\src
+
+# Force inclusion of message
+# Probably not necessary at this point
+--macro haxe.macro.Compiler.include('mygame.connection.message')
+
+# PHP target
+-php out/server/MyServer
+--php-front server.php
+
+-main mygame.server.MyServer
+
+#Example of server run command :
+#D:\wamp\bin\php\php5.4.12\php.exe D:\Workspace\HaxeTest\out\server\MyServer.php\server.php
+
+

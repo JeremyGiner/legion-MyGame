@@ -1,0 +1,5 @@
+package websocket;
+
+interface IMessage {
+
+}

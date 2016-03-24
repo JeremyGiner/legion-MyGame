@@ -1,0 +1,26 @@
+
+
+#______________________________________________________________________________
+Codage norm
+
+Id short for Identity
+
+File naming
+	if it start by the character '_' then it's obsolete 
+
+Variable naming
+
+	b : Bool.
+	i : Int.
+	f : Float.
+	s : String.
+	
+	e : Enum.
+	o : Instance of class.
+	
+
+Function naming
+
+	Verb
+		check : return most likely a Bool.
+		get : return an object that should not be modified.

@@ -1,0 +1,13 @@
+
+#_______________________________________________________________________________
+# Client compilation
+
+# Select directory
+-cp src
+-cp vendor\cloner\src
+
+# JavaScript target
+-js out\MyGame\MyGame.js
+
+-main mygame.client.MyClient
+

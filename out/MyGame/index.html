@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+	<title>MyGame</title>
+	<style>
+		html,body{
+			margin:0; /*required by mouse unproject*/
+			
+			font-family: verdana;
+			font-size: 10px;
+		}
+	
+		.console{
+			border: 1px outset black;
+		}
+		
+		canvas{
+		
+			/*required by mouse unproject*/
+			border-top: 0; 
+			border-left: 0; 
+			margin: 0px;
+		}
+		
+		button:disabled {
+			color: gray;
+		}
+		
+		fieldset {
+			display: inline-block;
+		}
+		
+		ul {
+			margin: 0;
+			padding: 0;
+			list-style-type: none;
+		}
+		
+		/*______________________________________________________________________
+			 */
+		
+		#GameList {
+			padding: 1em;
+			border: 1px inset black;
+		}
+		#GameList:empty:before {
+			content:" -- Empty -- ";
+		}
+		
+		#GameList>* {
+			display: block;
+			width: 100%;
+		}
+		
+		#GameList>div {
+			text-align: center;
+		}
+		#GameList>div>input {
+			display: none;
+		}
+		#GameList>div>input+label {
+			display: inline-block;
+			width: 100%;
+		}
+		#GameList>div>input:checked+label {
+			color: white;
+			background-color: silver;
+		}
+		
+		/*______________________________________________________________________
+			Menu */
+		
+		#Menu {
+			position: absolute;
+			background-color: white;
+			border: 1px outset silver;
+		}
+		#MenuToggle {
+			display: none;
+		}
+		#MenuToggle+label {
+			background-color: buttonface;
+			border: 2px outset buttonface;
+		}
+		#MenuToggle+label:before {
+			content:"^ Menu ^";	/*Fix doubleclick select behavior*/
+		}
+		#MenuToggle:checked+label:before {
+			content:"v Menu v";
+		}
+		#MenuToggle:checked~#MenuContent {
+			display: none;
+		}
+		
+		/*______________________________________________________________________
+			GameMenu */
+			
+		#GameMenu {
+			font-size: 1em;
+			text-align: center;
+			
+			width: 100%;
+			position: absolute;
+			bottom: 0;
+			
+			background-color: rgba(0, 0, 0, 0.32);
+		}
+		#GameMenu>div,
+		#GameMenu>fieldset {
+			/*border: 2px outset silver;*/
+			display: inline-block;
+			padding: 0.2em;
+			border-radius: 0.8em;
+			position: relative;
+			padding-top: 2em;
+			background-color: #EEFFEE;
+			
+			box-sizing: border-box;
+			
+			min-height: 76px;
+		}
+		#GameMenu>fieldset>legend {
+			position: absolute;
+			background-color: silver;
+			top: 0em;
+			padding: 0.3em;
+			left: 0px;
+			width: 100%;
+			box-sizing: border-box;
+		}
+		
+		#GameMenu>fieldset>div {
+			overflow: hidden;
+		}
+		
+		/*______________________________________________________________________
+			Game menu - Selection */
+			
+		#Selection {
+			width: 40%;
+			text-align: left;
+		}
+		#GameMenu button,
+		#Selection>button {
+			display: inline-block;
+			position: relative;
+			width: 5em;
+			height: 5em;
+			font-size: inherit;
+			border-radius: 0.8em;
+			border-width: 0.2em;
+			padding: 0;
+		}
+		
+		#GameMenu button>span,
+		#Selection>button>span {
+			position: absolute;
+			display: inline-block;
+			bottom: 0.3em;
+			left: 0.3em;
+			line-height: 0.8em;
+		}
+		
+		/*______________________________________________________________________
+			Game menu - build */
+		
+		#GameMenu>#Build {
+			width: 40%;
+			text-align: left;
+			border-radius: 0.8em;
+		}
+		
+		/*______________________________________________________________________
+			Game menu - build */
+		
+		#MyCanvas {
+			/*
+			width: 800px;
+			height: 600px;
+			*/
+			position: absolute;
+			z-index: -1;
+			
+			width: 100%;
+		}
+		
+		
+		/*_____________________________________________________________________
+			Dev menu */
+			
+		#DevMenu {
+			position: absolute;
+			top: 0;
+			right: 0;
+		}
+		
+	</style>
+</head>
+<body>
+	<img src="res/texture/worldmap.png" style="display:none;" />
+
+	<div id="Menu">
+		<input id="MenuToggle" type="checkbox" /><label for="MenuToggle"></label>
+		<div id="MenuContent">
+			<fieldset>
+				<legend>Local</legend>
+				<ul>
+					<li>
+						<button id="BtLocalNew">New game</button>
+					</li>
+					<li>
+						<button id="BtLocalSave" disabled="">Save</button>
+					</li>
+					<li>
+						<button id="BtLocalLoad" disabled="">Load</button>
+					</li>
+				</ul>
+			</fieldset>
+			<fieldset>
+				<legend>Online</legend>
+				<div id="LabelStatus">Status: ready when you are.</div>
+				<button id="BtConnect">Connect</button>
+				<fieldset>
+					<legend>Join</legend>
+					<div id="GameList"></div>
+					<button id="BtRefresh" disabled="">Refresh</button>
+					<button id="BtGameJoin" disabled="">Join</button>
+				</fieldset>
+				<fieldset>
+					<legend>New game</legend>
+					<button id="BtRemoteNew" disabled="">New Game</button>
+					<button id="BtShutDown" disabled="">Shut down</button>
+				</fieldset>
+			</fieldset>
+			
+		</div>
+	</div>
+	
+	<canvas id="MyCanvas"></canvas>
+	
+	<div id="GameMenu">
+		<div id="Credit">
+			<span>1200 C</span>&euro;
+		</div
+		><fieldset id="Selection">
+			<legend>Selection</legend>
+			<div id="SelectionList">
+				<button>Soldier<span>5</span></button>
+				<button>Tank<span>2</span></button>
+			</div>
+		</fieldset
+		><fieldset id="Build">
+			<legend>Build unit</legend>
+			<div id="BuildList">
+				<button>Tank<span>-20 C</span></button>
+			</div>
+		</fieldset
+		>
+		
+		<div>
+			<button type="button" 
+				onclick="window.haxe.controller.gameController_get().pause_toggle()"
+			>
+				Pause
+			</button>
+		</div>
+	</div>
+	
+	
+	<div id="MENU-PAUSE"></div>
+	
+	<div id="DevMenu">
+		<div id="MouseXY"></div>
+		<div id="TimeT"></div>
+		<!--
+		<fieldset id="">
+			<legend>Game</legend>
+			<div id="">
+				<label>Speed : 100<input id="GameSpeedInput" type="range" min="0" max="200" step="1"value="100" /></label>
+			</div>
+		</fieldset>
+		-->
+	</div>
+	
+	<script type="text/javascript" src="three.js"></script>
+	<!--<script type="text/javascript" src="three.min.js"></script>-->
+	<!--<script type="text/javascript" src="three_lambertoon_c.js"></script>-->
+	<script type="text/javascript" src="MyGame.js"></script>
+	<script type="text/javascript">
+		
+	</script>
+	
+
+	
+</body>
+</html>

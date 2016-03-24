@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title></title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+</head>
+<body>
+	<button id="start" type="button" onlcick="">Start</button>
+	<button id="logGet" type="button" onlcick="">Get log</button>
+	<div id="out"></div>
+	<script>
+$(document).ready(function(){
+
+	$("#start").click(function(){
+		$.ajax({url: "/serverRemote/serverRemote.php?start=1", success: function(result){
+			$("#out").html( 'Server started at : '+new Date().getTime()+' result : '+ result );
+		}});
+	});
+	
+	$("#logGet").click(function(){
+		$.ajax({url: "/serverRemote/serverRemote.php?log=1", success: function(result){
+			$("#out").html( result );
+		}});
+	});
+});
+	</script>
+
+</body>
+</html>
