@@ -4,6 +4,8 @@ import legion.entity.Entity;
 import mygame.game.ability.Mobility;
 import mygame.game.MyGame;
 import mygame.game.ability.Volume;
+import mygame.game.query.EntityQuery;
+import mygame.game.query.UnitDist;
 
 import trigger.*;
 
@@ -11,19 +13,18 @@ class VolumeEjection implements ITrigger {
 
 	var _oGame :MyGame;
 	
-	var _loVolume :List<Volume>;
+	var _oQueryVolume :EntityQuery;
+	var _oQueryMobility :EntityQuery;
 
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oGame :MyGame ) {
 		_oGame = oGame;
+		_oQueryVolume = new EntityQuery( _oGame, [ 'ability' => Volume ] );
+		_oQueryMobility = new EntityQuery( _oGame, [ 'ability' => Mobility ] );
 		
-		_oGame.onLoop.attach( this );	//TODO : put before or after mobility process
-		_oGame.onEntityNew.attach( this );
-		_oGame.onAbilityDispose.attach( this );
-		
-		_loVolume = new List<Volume>();
+		_oGame.onLoop.attach( this );
 		
 	}
 	
@@ -37,36 +38,49 @@ class VolumeEjection implements ITrigger {
 	function process() {
 		
 		// foreach Mobility
-		for ( oUnit in _oGame.unitList_get() ) {
+		for ( oUnit in _oQueryMobility.data_get(null) ) {
 			
-			var oMobility :Mobility = oUnit.ability_get( Mobility );
+			var oMobility = oUnit.ability_get( Mobility );
 			
+			// Not necessary
 			if ( oMobility == null )
 				continue;
-				
+			
+			// Reset volume ejection
 			oMobility.force_set( 'volume', 0, 0, false );
 			
-			for ( oVolume in _loVolume ) {
+			var oForce = oMobility.force_get( 'volume' );
+			
+			for ( oEntitySource in _oQueryVolume.data_get(null) ) {
 				
-				if ( oVolume.unit_get() == oUnit )
+				// Filter self
+				if ( oEntitySource == oUnit )
 					continue;
 				
-				var fVolumeSecondSize = 0.0;
-				var oVolumeSecond = oUnit.ability_get( Volume );
-				if ( oVolumeSecond != null )
-					fVolumeSecondSize = oVolumeSecond.size_get();
+				// Get source volume
+				var oVolume = oEntitySource.ability_get( Volume );
+					
+				// Get volume size of target
+				var oVolumeTarget = oUnit.ability_get( Volume );
+				var fVolumeTargetSize = ( oVolumeTarget != null ) ? 
+					oVolumeTarget.size_get() : 
+					0.0;
 				
+				// Get position delta between source and target
 				var oVector = _oGame.positionDistance_get().delta_get( 
 					oMobility.position_get(),
 					oVolume.position_get()
 				);
 				
-				if ( oVector.length_get() > ( oVolume.size_get() + fVolumeSecondSize ) )
+				// Case : no contact
+				if ( oVector.length_get() > ( oVolume.size_get() + fVolumeTargetSize ) )
 					continue;
 				
-				oVector.length_set( (( oVolume.size_get() + fVolumeSecondSize ) - oVector.length_get() ) * 0.5  );
+				// Transform vector delta into ejection vector for this collision
+				oVector.length_set( (( oVolume.size_get() + fVolumeTargetSize ) - oVector.length_get() ) / 2  );
 				
-				oMobility.force_set( 'volume', oVector.x, oVector.y, false );
+				// Add to the ejection vector
+				oForce.oVector.vector_add( oVector );
 			}
 			
 		}
@@ -81,22 +95,5 @@ class VolumeEjection implements ITrigger {
 		// on loop
 		if( oSource == _oGame.onLoop )
 			process();
-		
-		// on new mobile entity
-		if ( oSource == _oGame.onEntityNew ) {
-			var oVolume = cast(oSource.event_get(), Entity ).ability_get(Volume);
-			if( oVolume != null ) {
-				_loVolume.push( oVolume );
-			}
-		}
-		
-		// on new mobile entity
-		if ( 
-			oSource == _oGame.onAbilityDispose &&
-			Std.is( oSource.event_get(), Volume)
-		) {
-			var oVolume = cast(oSource.event_get(), Volume );
-			_loVolume.remove( oVolume );
-		}
 	}
 }

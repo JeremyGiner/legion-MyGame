@@ -3,33 +3,30 @@
 class trigger_EventDispatcher2 implements trigger_IEventDispatcher{
 	public function __construct() {
 		if(!php_Boot::$skip_constructor) {
-		$this->_aoTrigger = new _hx_array(array());
+		$this->_lTrigger = new HList();
 	}}
-	public $_aoTrigger;
+	public $_lTrigger;
 	public $_oEventCurrent;
 	public function attach($oITrigger) {
 		if($oITrigger === null) {
 			throw new HException("[ERROR]:trigger is null");
 		}
-		$this->_aoTrigger->push($oITrigger);
+		$this->_lTrigger->push($oITrigger);
 	}
 	public function remove($oITrigger) {
-		$this->_aoTrigger->remove($oITrigger);
+		$this->_lTrigger->remove($oITrigger);
 	}
 	public function event_get() {
 		return $this->_oEventCurrent;
 	}
 	public function dispatch($oEvent = null) {
 		$this->_oEventCurrent = $oEvent;
-		{
-			$_g = 0;
-			$_g1 = $this->_aoTrigger;
-			while($_g < $_g1->length) {
-				$oTrigger = $_g1[$_g];
-				++$_g;
-				$oTrigger->trigger($this);
-				unset($oTrigger);
-			}
+		if(null == $this->_lTrigger) throw new HException('null iterable');
+		$__hx__it = $this->_lTrigger->iterator();
+		while($__hx__it->hasNext()) {
+			unset($oTrigger);
+			$oTrigger = $__hx__it->next();
+			$oTrigger->trigger($this);
 		}
 		return $this;
 	}

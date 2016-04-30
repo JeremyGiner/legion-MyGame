@@ -117,7 +117,7 @@ class Nemesis0 {
 				
 				// Test distance
 				var d = _oGame.query_get(UnitDist).data_get([ oUnit0, oUnit1 ]);
-				if ( d > LoyaltyShift.RANGE )
+				//if ( d > LoyaltyShift.RANGE )
 					continue;
 				
 				bIsClose = true;

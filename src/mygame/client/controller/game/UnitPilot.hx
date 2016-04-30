@@ -150,7 +150,7 @@ class UnitPilot implements ITrigger {
 			return;
 		
 		// POsition corection
-		oVector = Mobility.positionCorrection( oUnit.ability_get(Mobility), oVector );
+		oVector = oUnit.ability_get(Guidance).positionCorrection( oVector );
 		
 		// Create action
 		trace('Order unit to move!');
@@ -217,7 +217,7 @@ class UnitPilot implements ITrigger {
 			// Change cursor
 			var oVector = vector_get( _oMouse.onMove.event_get() );
 			var oTile = _oModel.game_get().map_get().tile_get_byUnitMetric( oVector.x, oVector.y );
-			if ( oPlan.tile_check(oTile) )
+			if ( oPlan.check(oTile) )
 				Browser.document.body.style.cursor = 'default';
 			else
 				Browser.document.body.style.cursor = 'not-allowed';

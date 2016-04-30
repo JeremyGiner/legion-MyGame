@@ -20,10 +20,10 @@ class MenuPause implements ITrigger {
 	public function new( oModel :Model, oDiv :DivElement ) {
 		_oModel = oModel;
 		_oDiv = oDiv;
-		
 		_oRoomInfo = _oModel.roomInfo_get();
+		
 		if ( _oRoomInfo == null )
-			throw 'Invalid room info, null';
+			throw('[ERROR] MenuPause : no room info found');
 		
 		update();
 		
@@ -40,17 +40,26 @@ class MenuPause implements ITrigger {
 		
 		// Print
 		_oDiv.innerHTML = render();
-
+		
 	}
 	
 	function render() :String {
-		var s = '<table><tbody>';
+		
+		// Hide if not paused
+		_oDiv.style.display = ( _oRoomInfo.isPaused() ) ? '' : 'none';
+		
+		var s = '<h1>Paused</h1><table><tbody>';
 		
 		for ( oUserInfo in _oRoomInfo.userInfoList_get() ) {
-			s += '<tr><td>' + oUserInfo.name_get() + '</td>';
-			s += '<td><input type="checkbox" ';
-			if ( oUserInfo.ready_get() ) 
-				s += 'checked';
+			s += '<tr><td>' + oUserInfo.name + '</td>';
+			s += '<td><input '; 
+			if( _oModel.playerLocal_get().playerId_get() == oUserInfo.playerId )
+				s += ' data-haxeAction="' + (( oUserInfo.ready )?'pause':'unpause') + '" ';
+			else
+				s += ' disabled ';
+			s += ' type="checkbox" ';
+			if ( oUserInfo.ready ) 
+				s += ' checked ';
 			s += ' /></td></tr>';
 		}
 		s += '</tbody></table>';

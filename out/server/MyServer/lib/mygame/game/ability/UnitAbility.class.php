@@ -16,7 +16,6 @@ class mygame_game_ability_UnitAbility implements legion_ability_IAbility{
 	}
 	public function dispose() {
 		$this->onDispose->dispatch($this);
-		$this->_oUnit->game_get()->onAbilityDispose->dispatch($this);
 		utils_Disposer::dispose($this);
 	}
 	public function __call($m, $a) {

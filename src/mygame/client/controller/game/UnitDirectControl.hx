@@ -21,7 +21,7 @@ class UnitDirectControl implements ITrigger {
 	var _bModified :Bool;
 	
 	var _oDirection :Vector2i;
-	var _oGameController :IGameController;
+	var _oGameController :GameController;
 	
 //______________________________________________________________________________
 //	Constructor

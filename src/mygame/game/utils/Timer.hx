@@ -1,6 +1,5 @@
 package mygame.game.utils;
 
-//import blackbone.ITimer;
 import mygame.game.MyGame;
 
 class Timer /*implements ITimer*/ {

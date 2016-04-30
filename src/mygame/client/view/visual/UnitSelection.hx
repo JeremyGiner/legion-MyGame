@@ -163,14 +163,21 @@ class UnitSelection implements IVisual implements ITrigger {
 			Math.round( oVector.y * 10000 ) 
 		);
 		
-		oVector = Mobility.positionCorrection( oGuidance.mobility_get(), oVector );
+		oVector = oGuidance.positionCorrection( oVector );
 		oVector = Position.metric_unit_to_map_vector( oVector );
 		
 		// Update volume preview
 		var oVolume = oUnit.ability_get( Volume );
 		if ( oVolume != null ) {
 			var i = Position.metric_unit_to_map( oVolume.size_get() );
-			_oGuidancePreview.position.set( oVector.x, oVector.y, 0.5 );
+			_oGuidancePreview.position.set( oVector.x, oVector.y, 0.25 );
+			_oGuidancePreview.scale.set( i, i, i );
+		}
+		
+		var oPlatoon = oUnit.ability_get(Platoon);
+		if ( oPlatoon != null ) {
+			var i = Position.metric_unit_to_map( oPlatoon.halfSize_get() );
+			_oGuidancePreview.position.set( oVector.x, oVector.y, 0.25 );
 			_oGuidancePreview.scale.set( i, i, i );
 		}
 		
@@ -185,7 +192,7 @@ class UnitSelection implements IVisual implements ITrigger {
 		var scene = _oGuidancePreviewLine.parent;
 		scene.remove(_oGuidancePreviewLine);
 		var oGeometry = new Geometry();
-		oGeometry.vertices.push( new Vector3(oVector.x, oVector.y, 0.5) );
+		oGeometry.vertices.push( new Vector3(oVector.x, oVector.y, 0.25) );
 		oGeometry.vertices.push( 
 			new Vector3(
 				oPosition.x, 

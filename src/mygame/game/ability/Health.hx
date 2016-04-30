@@ -5,6 +5,10 @@ import mygame.game.entity.Unit;
 import mygame.game.misc.weapon.EDamageType;
 import trigger.*;
 
+/**
+ * ...
+ * @author GINER Jérémy
+ */
 class Health extends UnitAbility {
 	var _fCurrent :Float;
 	var _fMax :Float;

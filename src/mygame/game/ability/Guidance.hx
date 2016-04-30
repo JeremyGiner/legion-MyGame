@@ -17,7 +17,7 @@ import utils.IntTool;
 import utils.ListTool;
 
 /**
- * Ability for a unit to walk a path toward a valid position using his Mobility ability
+ * Ability for an entity to walk a path toward a valid position using his Mobility ability
  * @author GINER Jérémy
  */
 
@@ -29,9 +29,6 @@ class Guidance extends UnitAbility {
 	
 	var _oPathfinder :Pathfinder;
 	var _oGoal :Vector2i;	// End of the path
-	
-	// Calculable
-	var _oGoalTile :Tile;
 	
 //______________________________________________________________________________
 //	Constructor
@@ -46,8 +43,7 @@ class Guidance extends UnitAbility {
 		_oPlan = oUnit.ability_get( PositionPlan );
 		
 		_oPathfinder = null;
-		
-		goal_set( null );
+		_oGoal = null;
 	}
 
 //______________________________________________________________________________
@@ -58,18 +54,45 @@ class Guidance extends UnitAbility {
 	public function mobility_get() { return _oMobility; }
 	
 	public function pathfinder_get() { return _oPathfinder; }
+	
+	public function positionCorrection( oPoint :Vector2i ) {
+		
+		// Case no PositionPlan
+		if ( _oMobility.plan_get() == null )
+			return oPoint;
+		
+		// Get map
+		var oMap = _oMobility.position_get().map_get();
+		
+		// Case no volume
+		var oVolume = _oVolume;
+		if ( oVolume == null ) {
+			
+			var oTile = oMap.tile_get_byUnitMetric( oPoint.x, oPoint.y );
+			if( _oMobility.plan_get().check( oTile ) )
+				return oPoint;
+			
+			return null;
+		} else {
+			// Case volume
+			return oVolume.positionCorrection( oPoint );
+		}
+		
+		throw('abnormal case');
+		return null;
+	}
 
 //______________________________________________________________________________
 //	Modifier
 	
 	public function goal_set( oDestination :Vector2i ) {
 		
+		// Reset
+		_oGoal = null;
+		
 		// Case : explicite reset
-		if ( oDestination == null ) {
-			_oGoal = null;
-			_oGoalTile = null;
+		if ( oDestination == null )
 			return;
-		}
 		
 		var oTileDestination = _oMobility.position_get().map_get().tile_get_byUnitMetric( 
 			oDestination.x,
@@ -78,10 +101,9 @@ class Guidance extends UnitAbility {
 		
 		// Check destination tile validity
 		if ( 
-			!_oPlan.tile_check( oTileDestination )
+			!_oPlan.check( oTileDestination )
 		) {
-			_oGoal = null;
-			_oGoalTile = null;
+			trace('[WARNING]:guidance:invalid destination tile');
 			return;
 		}
 		
@@ -100,57 +122,53 @@ class Guidance extends UnitAbility {
 			// For the quick fix
 			lPosition = ListTool.merged_get( lPosition, _oVolume.tileListProject_get( oDestination.x, oDestination.y ) );
 		}
-		// Lauch path process
+		
+		// Lauch pathfinding process
 		_oPathfinder = new Pathfinder( 
 			_oMobility.position_get().map_get(),
-			lPosition, 
+			//lPosition, 
 			lDestination,
-			_oPlan.tile_check
+			_oPlan
 		);
-		if ( 
-			_oPathfinder.success_check()
-		) {
-			_oGoal = oDestination.clone();
-			if( _oVolume != null ) {
-				_oGoal = Mobility.positionCorrection( _oMobility, _oGoal );
-				
-				// Settup tile occupied by the end position volume as end tile
-				for( oTile in _oVolume.tileListProject_get( _oGoal.x, _oGoal.y ) )
-					_oPathfinder.refTile_set( oTile, oTile );
+		
+		// Check pathfincder succcess
+		for ( oTile in lPosition ) {
+			if ( _oPathfinder.refTile_get( oTile ) == null ) {
+				trace( '[ERROR]:Guidance:no path found.' );
+				return;
 			}
-			
-			_oGoalTile = _oMobility.position_get().map_get().tile_get_byUnitMetric( 
-				_oGoal.x,
-				_oGoal.y
-			);
-		} else {
+		}		
+		/*if ( !_oPathfinder.success_check() ) {
 			trace( '[ERROR]:Guidance:no path found.' );
-			_oGoal = null;
-			_oGoalTile = null;
+			return;
+		}*/
+		
+		// Apply new destination
+		_oGoal = oDestination.clone();
+		
+		if( _oVolume != null ) {
+			_oGoal = positionCorrection( _oGoal );
+			
+			// Settup tile occupied by the end position volume as end tile
+			for( oTile in _oVolume.tileListProject_get( _oGoal.x, _oGoal.y ) )
+				_oPathfinder.refTile_set( oTile, oTile );
 		}
 	}
-	
-
-//______________________________________________________________________________
-//	Utils
-
-
 	
 //______________________________________________________________________________
 //	Process
 
 	public function process() :Void {
 		
-		//
+		// Reset if on destination
 		if ( _oGoal != null && _oGoal.equal(_oMobility.position_get()) )
 			_oGoal = null;
 		
-		// Check if a goal is set
+		// Case : no goal
 		if( _oGoal == null ) {
 			_oMobility.force_set( 'Guidance', 0, 0, true ); 
 			return;
 		}
-		// else
 		
 		// Set mobility direction
 		var oVector = _vector_get();
@@ -159,7 +177,7 @@ class Guidance extends UnitAbility {
 	
 	
 //______________________________________________________________________________
-//	Other
+//	Sub-routine
 
 	public function _vector_get() :Vector2i {
 		/*

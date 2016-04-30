@@ -194,6 +194,7 @@ class GameView implements ITrigger {
 	
 		_oRenderer.autoClear = false; // To allow render overlay on top of sprited sphere
 		var render_update = null;
+		
 		render_update = function(f:Float):Bool {
 			
 			// Update animation
@@ -208,15 +209,11 @@ class GameView implements ITrigger {
 			
 			// Render
 			_oRenderer.clear();
-			
 			_oRenderer.render( _oScene, _oCamera, null, null );
 			
 			// Render ortho
 			_oRenderer.clearDepth();
-			
 			_oRenderer.render( _oSceneOrtho, _oCameraOrtho, null, null );
-			
-			
 			
 			return true;
 		}
@@ -328,14 +325,6 @@ class GameView implements ITrigger {
 				oVisual = new SoldierVisual( this, cast oEntity );
 			
 			_aUnitVisual.push( oVisual );
-				
-		
-			// TODO : move ability visual creation into unit visual initialisation
-			// Ability
-			var oGuidance :Guidance = oUnit.ability_get( Guidance );
-			if( oGuidance != null )
-				new GuidanceVisual( this, oUnit.ability_get( Guidance ) );
-			
 			
 			//TEST
 			if( Std.is( oEntity, Tank ) && oEntity.identity_get() == 11 )

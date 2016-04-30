@@ -2,6 +2,7 @@ package mygame.client.view.visual.unit;
 
 import js.three.*;
 import mygame.client.view.visual.unit.UnitVisual;
+import mygame.game.ability.Loyalty;
 import mygame.game.entity.City in Unit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
@@ -10,8 +11,6 @@ import trigger.*;
 class CityVisual extends UnitVisual<Unit> implements ITrigger {
 	
 	var _oMesh :Mesh;
-	
-	var _oBanner :Mesh;	// Player color apply on unit visual body
 	
 //______________________________________________________________________________
 //	Constructor
@@ -37,18 +36,11 @@ class CityVisual extends UnitVisual<Unit> implements ITrigger {
 		
 		//_____
 		
-		// Player colors
-		//_oBanner = _playerColoredMesh_createAdd( _oMesh, true );
-		
-		//_____
-		
 		update();
 		_position_update();
 		
 		
 		//_____
-		
-		unit_get().onUpdate.attach( this );
 
 	}
 	
@@ -60,30 +52,13 @@ class CityVisual extends UnitVisual<Unit> implements ITrigger {
 	
 	//public function object3d_get() :Object3D { return _oMesh; }
 	
-	function banner_update() {
-		
-		// Update player banner
-		//_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
-		cast(_oMesh.material,MeshFaceMaterial).materials[1] = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
-	}
+	
 	
 //______________________________________________________________________________
 //	Update
 
 	override public function update() {
 		return;
-	}
-	
-//______________________________________________________________________________
-//	Trigger
-
-	override public function trigger( oSource :IEventDispatcher ) :Void { 
-		super.trigger( oSource );
-		
-		// On city update
-		if( oSource == unit_get().onUpdate )
-			banner_update();
-	
 	}
 	
 }

@@ -1,6 +1,6 @@
 package mygame.server.misc;
 import mygame.server.model.Client;
-import websocket.php.SocketDistant;
+import websocket.SocketDistant;
 import websocket.SocketDistantFactory;
 
 /**
@@ -13,7 +13,7 @@ class ClientFactory extends SocketDistantFactory {
 		super();
 	}
 	
-	override public function create():SocketDistant {
+	override public function create() :SocketDistant {
 		return new Client( _oResource );
 	}
 	

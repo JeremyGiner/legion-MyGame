@@ -3,7 +3,6 @@ package mygame.game.process;
 import legion.entity.Entity;
 import mygame.game.MyGame;
 import mygame.game.ability.Weapon;
-import mygame.game.collision.WeaponLayer;
 import mygame.game.ability.UnitAbility in Ability;
 
 import trigger.*;

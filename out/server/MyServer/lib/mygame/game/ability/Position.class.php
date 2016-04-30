@@ -3,13 +3,16 @@
 class mygame_game_ability_Position extends space_Vector2i implements legion_ability_IAbility{
 	public function __construct($oUnit, $oWorldMap, $x_, $y_) {
 		if(!php_Boot::$skip_constructor) {
+		$this->onUpdate = new trigger_EventDispatcher2();
 		$this->_oUnit = $oUnit;
 		$this->_oWorldMap = $oWorldMap;
 		parent::__construct($x_,$y_);
+		$this->onUpdate->attach($this->_oUnit->mygame_get()->onPositionAnyUpdate);
 	}}
 	public $_oWorldMap;
 	public $_oUnit;
 	public $_oTile;
+	public $onUpdate;
 	public function set($x_, $y_ = null) {
 		if($y_ === null) {
 			$y_ = 0;
@@ -17,6 +20,7 @@ class mygame_game_ability_Position extends space_Vector2i implements legion_abil
 		$this->x = $x_;
 		$this->y = $y_;
 		$this->_oTile = $this->_oWorldMap->tile_get_byUnitMetric($this->x, $this->y);
+		$this->onUpdate->dispatch($this);
 		return $this;
 	}
 	public function tile_get() {

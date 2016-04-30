@@ -1,14 +1,11 @@
 <?php
 
 class mygame_connection_message_ResGameJoin implements mygame_connection_message_ILobbyMessage{
-	public function __construct($fSpeed) {
-		if(!php_Boot::$skip_constructor) {
-		$this->_fSpeed = $fSpeed;
-	}}
+	public function __construct() {}
 	public $iGameId;
 	public $iSlotId;
 	public $oGame;
-	public $_fSpeed;
+	public $oRoomUpdate;
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

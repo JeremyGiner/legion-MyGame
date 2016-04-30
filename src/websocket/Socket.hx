@@ -1,4 +1,4 @@
-package websocket.php;
+package websocket;
 
 import trigger.eventdispatcher.*;
 import websocket.Resource;

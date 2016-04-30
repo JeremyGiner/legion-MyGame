@@ -30,7 +30,7 @@ class UnitAbilityVisual<CAbility:UnitAbility> implements IVisual implements ITri
 		_oOrigin = new Object3D();
 
 		// Trigger
-		_oAbility.onDispose.attach( this );
+		_oAbility.unit_get().onDispose.attach( this );
 	}
 	
 //______________________________________________________________________________
@@ -43,7 +43,7 @@ class UnitAbilityVisual<CAbility:UnitAbility> implements IVisual implements ITri
 
 	public function trigger( oSource :IEventDispatcher ) :Void { 
 
-		if( oSource == _oAbility.onDispose ) {
+		if( oSource == _oAbility.unit_get().onDispose ) {
 			dispose();
 		}
 	}

@@ -1,6 +1,6 @@
 <?php
 
-class mygame_server_model_Client extends websocket_php_SocketDistant implements trigger_ITrigger{
+class mygame_server_model_Client extends websocket_SocketDistant implements trigger_ITrigger{
 	public function __construct($oResource) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_iSlotId = -1;

@@ -1,6 +1,7 @@
 package mygame.client.view.visual.unit;
 
 import js.three.*;
+import mygame.game.ability.Loyalty;
 
 import mygame.game.entity.Factory in Unit;
 import mygame.client.view.GameView;
@@ -42,7 +43,7 @@ class FactoryVisual extends UnitVisual<Unit> implements ITrigger {
 		
 		//_____
 		
-		unit_get().onUpdate.attach( this );
+		
 
 	}
 	
@@ -62,7 +63,7 @@ class FactoryVisual extends UnitVisual<Unit> implements ITrigger {
 		);
 	}*/
 	
-	function banner_update() {
+	override function banner_update() {
 		
 		// Update player banner
 		_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
@@ -82,10 +83,6 @@ class FactoryVisual extends UnitVisual<Unit> implements ITrigger {
 	override public function trigger( oSource :IEventDispatcher ) :Void { 
 		
 		super.trigger( oSource );
-		
-		// On city update
-		if( oSource == unit_get().onUpdate )
-			banner_update();
 	
 	}
 	

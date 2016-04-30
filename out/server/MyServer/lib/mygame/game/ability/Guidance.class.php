@@ -11,14 +11,13 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 		$this->_oVolume = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Volume"));
 		$this->_oPlan = $oUnit->ability_get(_hx_qtype("mygame.game.ability.PositionPlan"));
 		$this->_oPathfinder = null;
-		$this->goal_set(null);
+		$this->_oGoal = null;
 	}}
 	public $_oMobility;
 	public $_oVolume;
 	public $_oPlan;
 	public $_oPathfinder;
 	public $_oGoal;
-	public $_oGoalTile;
 	public function goal_get() {
 		return $this->_oGoal;
 	}
@@ -28,16 +27,32 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 	public function pathfinder_get() {
 		return $this->_oPathfinder;
 	}
+	public function positionCorrection($oPoint) {
+		if($this->_oMobility->plan_get() === null) {
+			return $oPoint;
+		}
+		$oMap = $this->_oMobility->position_get()->map_get();
+		$oVolume = $this->_oVolume;
+		if($oVolume === null) {
+			$oTile = $oMap->tile_get_byUnitMetric($oPoint->x, $oPoint->y);
+			if($this->_oMobility->plan_get()->check($oTile)) {
+				return $oPoint;
+			}
+			return null;
+		} else {
+			return $oVolume->positionCorrection($oPoint);
+		}
+		throw new HException("abnormal case");
+		return null;
+	}
 	public function goal_set($oDestination) {
+		$this->_oGoal = null;
 		if($oDestination === null) {
-			$this->_oGoal = null;
-			$this->_oGoalTile = null;
 			return;
 		}
 		$oTileDestination = $this->_oMobility->position_get()->map_get()->tile_get_byUnitMetric($oDestination->x, $oDestination->y);
-		if(!$this->_oPlan->tile_check($oTileDestination)) {
-			$this->_oGoal = null;
-			$this->_oGoalTile = null;
+		if(!$this->_oPlan->check($oTileDestination)) {
+			haxe_Log::trace("[WARNING]:guidance:invalid destination tile", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 106, "className" => "mygame.game.ability.Guidance", "methodName" => "goal_set")));
 			return;
 		}
 		$lDestination = new HList();
@@ -49,24 +64,27 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 			$lPosition = $this->_oVolume->tileList_get();
 			$lPosition = utils_ListTool::merged_get($lPosition, $this->_oVolume->tileListProject_get($oDestination->x, $oDestination->y));
 		}
-		$this->_oPathfinder = new mygame_game_utils_PathFinderFlowField($this->_oMobility->position_get()->map_get(), $lPosition, $lDestination, (isset($this->_oPlan->tile_check) ? $this->_oPlan->tile_check: array($this->_oPlan, "tile_check")));
-		if($this->_oPathfinder->success_check()) {
-			$this->_oGoal = $oDestination->hclone();
-			if($this->_oVolume !== null) {
-				$this->_oGoal = mygame_game_ability_Mobility::positionCorrection($this->_oMobility, $this->_oGoal);
-				if(null == $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)) throw new HException('null iterable');
-				$__hx__it = $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)->iterator();
-				while($__hx__it->hasNext()) {
-					unset($oTile);
-					$oTile = $__hx__it->next();
-					$this->_oPathfinder->refTile_set($oTile, $oTile);
-				}
+		$this->_oPathfinder = new mygame_game_utils_PathFinderFlowField($this->_oMobility->position_get()->map_get(), $lDestination, $this->_oPlan);
+		if(null == $lPosition) throw new HException('null iterable');
+		$__hx__it = $lPosition->iterator();
+		while($__hx__it->hasNext()) {
+			unset($oTile);
+			$oTile = $__hx__it->next();
+			if($this->_oPathfinder->refTile_get($oTile) === null) {
+				haxe_Log::trace("[ERROR]:Guidance:no path found.", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 137, "className" => "mygame.game.ability.Guidance", "methodName" => "goal_set")));
+				return;
 			}
-			$this->_oGoalTile = $this->_oMobility->position_get()->map_get()->tile_get_byUnitMetric($this->_oGoal->x, $this->_oGoal->y);
-		} else {
-			haxe_Log::trace("[ERROR]:Guidance:no path found.", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 127, "className" => "mygame.game.ability.Guidance", "methodName" => "goal_set")));
-			$this->_oGoal = null;
-			$this->_oGoalTile = null;
+		}
+		$this->_oGoal = $oDestination->hclone();
+		if($this->_oVolume !== null) {
+			$this->_oGoal = $this->positionCorrection($this->_oGoal);
+			if(null == $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)) throw new HException('null iterable');
+			$__hx__it = $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)->iterator();
+			while($__hx__it->hasNext()) {
+				unset($oTile1);
+				$oTile1 = $__hx__it->next();
+				$this->_oPathfinder->refTile_set($oTile1, $oTile1);
+			}
 		}
 	}
 	public function process() {

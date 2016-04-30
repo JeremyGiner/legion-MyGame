@@ -1,6 +1,7 @@
 package mygame.client.controller.game;
 
 import haxe.Serializer;
+import js.Browser;
 import mygame.connection.MySerializer;
 import haxe.Timer;
 import js.Lib;
@@ -27,7 +28,7 @@ import mygame.client.model.Model;
 class GameControllerLocal extends GameController {
 	
 	var _oGameSpeed :GameSpeed;
-	var _oTimer :Timer;
+	var _iIntervalKey :Int;
 	var _oNemesis :Nemesis0;
 	var _bPaused :Bool;
 	
@@ -35,8 +36,8 @@ class GameControllerLocal extends GameController {
 	
 	public function new( oModel :Model ){
 		super( oModel );
-		_oTimer = new Timer( 45 );
-		_oTimer.run = _game_process;
+		
+		_iIntervalKey = Browser.window.setTimeout( _game_process, 45 );
 		
 		_bPaused = false;
 		
@@ -53,16 +54,19 @@ class GameControllerLocal extends GameController {
 	public function gamespeed_get() { return _oGameSpeed; }
 	
 //______________________________________________________________________________
-//	
+//	Moifier
 
 	override public function pause_toggle() {
 		trace('pausing');
 		_bPaused = !_bPaused;
 	}
 	
+	
 //______________________________________________________________________________
 // Trigger
 
+
+	
 
 	override public function trigger( oSource :IEventDispatcher ) {
 		super.trigger( oSource );
@@ -88,6 +92,9 @@ class GameControllerLocal extends GameController {
 			// Process game
 			_oGame.loop();
 			
+			
+			
+			
 			// Process AI
 			/*
 			var aAction = _oNemesis.action_get();
@@ -99,14 +106,20 @@ class GameControllerLocal extends GameController {
 			
 			// Check end of game			
 			var oWinner = _oGame.winner_get();
-			if ( oWinner == null )
+			if ( oWinner == null ) {
+				_iIntervalKey = Browser.window.setTimeout( _game_process, 45 );
 				return;
-			
-			// Stop game
-			_oTimer.stop();
+			}
 				
 			// Display win screen
-			Lib.alert(oWinner.name_get()+ '(#'+oWinner.playerId_get()+') win the game');
+			Browser.alert(oWinner.name_get()+ '(#'+oWinner.playerId_get()+') win the game');
+	}
+	
+//______________________________________________________________________________
+//	Trigger
+
+	override public function dispose() {
+		Browser.window.clearTimeout( _iIntervalKey );
 	}
 	
 }

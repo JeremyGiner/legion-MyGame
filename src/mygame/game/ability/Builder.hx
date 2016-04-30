@@ -6,24 +6,24 @@ import mygame.game.misc.offer.Offer;
 
 class Builder extends UnitAbility {
 
-	var _oProduct :Array<Offer>;
+	var _oProduct :Array<Offer<String>>;
 	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oUnit :Unit ) {
 		super( oUnit );
-		_oProduct = new Array<Offer>();
+		_oProduct = new Array<Offer<String>>();
 	}
 
 //______________________________________________________________________________
 //	Accessor
-	
+	/*
 	public function product_add( oOffer :Offer ) :Void { 
 		
 	}
 	
-	public function productArray_get() { return _oProduct; };
+	public function productArray_get() { return _oProduct; };*/
 	
 //______________________________________________________________________________
 //	Shortcut

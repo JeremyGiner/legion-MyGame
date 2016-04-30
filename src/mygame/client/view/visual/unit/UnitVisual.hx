@@ -1,11 +1,15 @@
 package mygame.client.view.visual.unit;
 
+import haxe.ds.StringMap;
 import js.three.*;
+import legion.ability.IAbility;
 import Math;
 import mygame.client.view.ob3updater.Follow;
+import mygame.client.view.visual.ability.GuidanceVisual;
 import mygame.client.view.visual.gui.WeaponGauge;
 import mygame.client.view.visual.MapVisual;
 import mygame.game.entity.Player;
+import mygame.game.entity.SubUnit;
 import mygame.game.entity.Unit;
 import mygame.client.view.GameView;
 import mygame.game.ability.Mobility;
@@ -16,6 +20,7 @@ import mygame.client.view.visual.gui.LoyaltyGauge;
 import mygame.client.view.visual.ability.WeaponVisual;
 import trigger.eventdispatcher.EventDispatcher;
 import mygame.client.view.visual.gui.IUnitGauge;
+import utils.IDisposable;
 import utils.three.Coordonate;
 
 import mygame.game.ability.*;
@@ -38,6 +43,12 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 	var _fSelectionScale :Float;
 	
 	var _oClickBox :Box3;
+	
+	/**
+	 * 
+	 */
+	var _mAbilityVisual :StringMap<Array<VisualInfo>>;
+	var _mNode :StringMap<Object3D>;
 	
 	public var onUpdateEnd :EventDispatcher;
 	
@@ -67,9 +78,13 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		//_oScene.position.setZ( 5000 );
 		_oScene.position.setZ( MapVisual.LANDHEIGHT );
 		
+		
 		_oWeaponRange = null;
 		
-		
+		_mAbilityVisual = new StringMap<Array<VisualInfo>>();
+		_mNode = new StringMap<Object3D>();
+		_mNode.set('root',_oScene);
+		_mNode.set('world',_oGameView.scene_get());
 		
 		//____
 		
@@ -123,6 +138,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		//____
 		
 		_oGaugeHolder = new Object3D();
+		_mNode.set('gauge',_oGaugeHolder);
 		//_oGaugeHolder.scale.set(0.01, 0.01, 0.01);
 		_oGameView.sceneOrtho_get().add( _oGaugeHolder );
 		_oGameView.ob3UpdaterManager_get().add( new  Follow( _oGameView, _oGaugeHolder, _oInfoAnchor ) );
@@ -130,38 +146,14 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		
 		//________________
 		// Ability
-		
-		for( oAbility in _oUnit.abilityMap_get() ) {
-			switch( Type.getClass( oAbility ) ) {
-				case Health :
-					_oGaugeHolder.add( new HealthGauge( this, cast oAbility, _oGaugeHolder.children.length ) );
-				case Weapon :
-					var oAbilityW = cast(oAbility,Weapon);
-					new WeaponVisual( this, cast oAbility, null );
-					_oGaugeHolder.add( new WeaponGauge( this, cast oAbility, _oGaugeHolder.children.length ) );
-					
-					_oWeaponRange = new Mesh( 
-						_oGameView.geometry_get('gui_selection_circle'), 
-						_oGameView.material_get('wireframe_red')
-					);
-					
-					_oWeaponRange.scale.set( 
-						oAbilityW.rangeMax_get(), 
-						oAbilityW.rangeMax_get(), 
-						oAbilityW.rangeMax_get() 
-					);
-					//_oWeaponRange.position.set(0,0,0.1);
-					_oWeaponRange.visible = false;
-					//_oWeaponRange.castShadow = true;
-					
-					_oScene.add( _oWeaponRange );
-				case LoyaltyShift :
-					_oGaugeHolder.add( new LoyaltyGauge( this, cast oAbility ) );
-			}
-		}
+		for( oAbility in _oUnit.abilityMap_get() )
+			_abilityVisual_add( oAbility );
 		
 		// Trigger
 		_oUnit.mygame_get().onLoopEnd.attach( this );
+		unit_get().ability_get(Loyalty).onUpdate.attach( this );
+		unit_get().onAbilityAdd.attach( this );
+		unit_get().onAbilityRemove.attach( this );
 		
 		
 		// update cache
@@ -257,7 +249,110 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		_oScene.position.setX( _oPosition.x/10000 );
 		_oScene.position.setY( _oPosition.y/10000 );
 	}
+	
+	function _decay_start() {
+		dispose(); //TODO : do more
+	}
+	
+	function banner_update() {
+		
+		// Update player banner
+		//_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
+		cast(untyped _oScene.children[_oScene.children.length - 1].material,MeshFaceMaterial).materials[1] = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
+	}
 
+//_____________________________________
+//	Ability related
+	
+	function _abilityVisual_add( oAbility :IAbility ) {
+		// Get visual info
+		var aVisualInfo = _abilityVisual_resolve( oAbility );
+		
+		// Case no info
+		if ( aVisualInfo == null ) 
+			return;
+		
+		for ( oInfo in aVisualInfo ) {
+			
+			// Check node name
+			if ( !_mNode.exists( oInfo.nodeName ) )
+				throw('Invalid node name');
+			
+			// Attach ability visual
+			_mNode.get( oInfo.nodeName ).add( oInfo.obj3d );
+		}
+		// TODO : use ability map?
+		_mAbilityVisual.set( Type.getClassName( Type.getClass( oAbility ) ), aVisualInfo );
+	}
+	
+	function _abilityVisual_remove( oAbility :IAbility ) {
+		var sKey = Type.getClassName( Type.getClass( oAbility ) );
+		var oVisualInfo = _mAbilityVisual.get( sKey );
+		for ( oInfo in oVisualInfo ) {
+			oInfo.obj3d.parent.remove( oInfo.obj3d );
+			
+			// Case : disposable
+			if ( Std.is( oInfo.obj3d, IDisposable ) )
+				untyped oInfo.obj3d.dispose();
+			
+		}
+		_mAbilityVisual.remove( sKey );
+	}
+	
+	function _abilityVisual_resolve( oAbility :IAbility ) :Array<VisualInfo> {
+		switch( Type.getClass( oAbility ) ) {
+			case Health :
+				return [
+					{ 
+						nodeName: 'gauge', 
+						obj3d: new HealthGauge( this, cast oAbility, _oGaugeHolder.children.length ) 
+					}
+				];
+			case Weapon :
+				var oAbilityW = cast(oAbility, Weapon);
+				_oWeaponRange = new Mesh( 
+					_oGameView.geometry_get('gui_selection_circle'), 
+					_oGameView.material_get('wireframe_red')
+				);
+				
+				_oWeaponRange.scale.set( 
+					oAbilityW.rangeMax_get(), 
+					oAbilityW.rangeMax_get(), 
+					oAbilityW.rangeMax_get() 
+				);
+				_oWeaponRange.visible = false;
+				return [
+					{
+						nodeName: 'gauge', 
+						obj3d: new WeaponGauge( this, cast oAbility, _oGaugeHolder.children.length )
+					},
+					{
+						nodeName: 'root', 
+						obj3d: _oWeaponRange
+					},
+					{
+						nodeName: 'root', 
+						obj3d: new WeaponVisual( this, cast oAbility )
+					},
+				];
+			case LoyaltyShift :
+				return [
+					{
+						nodeName: 'gauge', 
+						obj3d: new LoyaltyGauge( this, cast oAbility )
+					}
+				];
+			case Guidance, Platoon : 
+				return [
+					{
+						nodeName: 'world', 
+						obj3d: new GuidanceVisual( this, cast oAbility )
+					}
+				];
+		}
+		return null;
+	}
+	
 //______________________________________________________________________________
 //	Utils
 
@@ -315,21 +410,40 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 
 	override public function trigger( oSource :IEventDispatcher ) :Void { 
 		
+		if ( oSource == unit_get().onAbilityAdd ) {
+			_abilityVisual_add( 
+				unit_get().onAbilityAdd.event_get().ability
+			);
+		}
+		if ( oSource == unit_get().onAbilityRemove ) {
+			_abilityVisual_remove( 
+				unit_get().onAbilityRemove.event_get().ability
+			);
+		}
 		if ( oSource == _oUnit.mygame_get().onLoopEnd ) {
 			update();
 			_info_update();
+			return;
 		}
 		
 		if( oSource == _oEntity.onDispose ) {
 			
 			// Starting death effect
 			_decay_start();
+			return;
+		}
+		
+		// Owner update
+		if( oSource == unit_get().ability_get(Loyalty).onUpdate ) {
+			banner_update();
+			return;
 		}
 	}
 	
-	function _decay_start() {
-		dispose(); //TODO : do more
-	}
+//______________________________________________________________________________
+//	Disposer
+	
+
 	
 	override public function dispose() {
 		
@@ -345,4 +459,9 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		super.dispose();
 	}
 	
+}
+
+typedef VisualInfo = {
+	var nodeName :String;
+	var obj3d :Object3D;
 }

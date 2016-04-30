@@ -3,6 +3,8 @@ package mygame.game.tile;
 import math.Limit;
 import mygame.game.entity.WorldMap;
 import space.AlignedAxisBoxAlt;
+import space.AlignedAxisBoxAlti;
+import space.Vector2i;
 
 class Tile{
 	
@@ -13,7 +15,7 @@ class Tile{
 	
 	var _iType :Int;
 	
-	static var _oHitBox = { new AlignedAxisBoxAlt( 1, 1 ); };	// TODO: fix float proximation
+	//static var _oHitBox = { new AlignedAxisBoxAlt( 1, 1 ); };	// TODO: fix float proximation
 	
 //______________________________________________________________________________
 //	Constructor
@@ -51,10 +53,16 @@ class Tile{
 			
 		return loTile;
 	}
-	/*
-	public function geometry_get() { 
-		_oHitBox.bottomLeft_set( _x, _y );
-		return _oHitBox; 
-	}*/
+	
+	static public function tileGeometry_get( oTile :Tile ) {
+		return new AlignedAxisBoxAlti(
+			9999, 
+			9999, 
+			new Vector2i(
+				oTile.x_get() * 10000,
+				oTile.y_get() * 10000
+			) 
+		);
+	}
 
 }

@@ -44,10 +44,7 @@ class cloner_Cloner {
 				return $v;
 			}break;
 			case 4:{
-				if(!$this->cache->exists($v)) {
-					return $this->handleAnonymous($v);
-				}
-				return $this->cache->get($v);
+				return $this->handleAnonymous($v);
 			}break;
 			case 5:{
 				return null;
@@ -74,7 +71,6 @@ class cloner_Cloner {
 	public function handleAnonymous($v) {
 		$properties = Reflect::fields($v);
 		$anonymous = _hx_anonymous(array());
-		$this->cache->set($v, $anonymous);
 		{
 			$_g1 = 0;
 			$_g = $properties->length;

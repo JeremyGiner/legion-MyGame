@@ -4,30 +4,28 @@ class mygame_game_process_WeaponProcess implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
-		$this->_lWeapon = new HList();
-		$this->onTargeting = new trigger_EventDispatcher2();
-		$this->onFiring = new trigger_EventDispatcher2();
+		$this->_oQueryWeapon = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_WeaponProcess_0($this, $oGame));
 		$this->_oGame->onLoop->attach($this);
 	}}
 	public $_oGame;
-	public $_lWeapon;
-	public $onTargeting;
-	public $onFiring;
-	public function entity_add($oEntity) {
-		if(Std::is($oEntity, _hx_qtype("mygame.game.entity.Unit"))) {
-			$oUnit = $oEntity;
-			$oWeapon = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Weapon"));
-			if($oWeapon !== null) {
-				$this->_lWeapon->push($oWeapon);
-			}
-			return true;
-		}
-		return false;
-	}
+	public $_oQueryWeapon;
 	public function trigger($oSource) {
 		if($oSource === $this->_oGame->onLoop) {
-			$this->onTargeting->dispatch($this->_oGame);
-			$this->onFiring->dispatch($this->_oGame);
+			$aEntity = $this->_oQueryWeapon->data_get(null);
+			if(null == $aEntity) throw new HException('null iterable');
+			$__hx__it = $aEntity->iterator();
+			while($__hx__it->hasNext()) {
+				unset($oEntity);
+				$oEntity = $__hx__it->next();
+				$oEntity->ability_get(_hx_qtype("mygame.game.ability.Weapon"))->swipe_target();
+			}
+			if(null == $aEntity) throw new HException('null iterable');
+			$__hx__it = $aEntity->iterator();
+			while($__hx__it->hasNext()) {
+				unset($oEntity1);
+				$oEntity1 = $__hx__it->next();
+				$oEntity1->ability_get(_hx_qtype("mygame.game.ability.Weapon"))->fire();
+			}
 		}
 	}
 	public function __call($m, $a) {
@@ -41,4 +39,11 @@ class mygame_game_process_WeaponProcess implements trigger_ITrigger{
 			throw new HException('Unable to call <'.$m.'>');
 	}
 	function __toString() { return 'mygame.game.process.WeaponProcess'; }
+}
+function mygame_game_process_WeaponProcess_0(&$__hx__this, &$oGame) {
+	{
+		$_g = new haxe_ds_StringMap();
+		$_g->set("ability", _hx_qtype("mygame.game.ability.Weapon"));
+		return $_g;
+	}
 }

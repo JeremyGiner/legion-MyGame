@@ -8,9 +8,11 @@ class mygame_server_controller_Controller implements trigger_ITrigger{
 		$this->_oRoomManager->game_create();
 		$this->_oRoomManager->game_create();
 		$this->_oRoomManager->game_create();
-		$this->_oServer = new websocket_php_Server("localhost", 8000, new mygame_server_misc_ClientFactory());
+		$this->_oServer = new websocket_Server("localhost", 8000, new mygame_server_misc_ClientFactory());
 		$this->_oServer->start();
+		haxe_Log::trace("[NOTICE] Server : up and running.", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 48, "className" => "mygame.server.controller.Controller", "methodName" => "new")));
 		$this->_oServer->onAnyOpen->attach($this);
+		$this->_oServer->onAnyClose->attach($this);
 		$this->_oClientController = new mygame_server_controller_ClientController($this, $this->_oRoomManager);
 		$this->run();
 	}}
@@ -26,11 +28,14 @@ class mygame_server_controller_Controller implements trigger_ITrigger{
 			$this->_oServer->socket_process();
 			$this->_oRoomManager->game_process();
 		}
-		haxe_Log::trace("server terminated", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 72, "className" => "mygame.server.controller.Controller", "methodName" => "run")));
+		haxe_Log::trace("server terminated", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 76, "className" => "mygame.server.controller.Controller", "methodName" => "run")));
 	}
 	public function trigger($oSource) {
 		if($oSource === $this->_oServer->onAnyOpen) {
-			haxe_Log::trace("[NOTICE]:New client.", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 82, "className" => "mygame.server.controller.Controller", "methodName" => "trigger")));
+			haxe_Log::trace("[NOTICE]:New client.", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 86, "className" => "mygame.server.controller.Controller", "methodName" => "trigger")));
+		}
+		if($oSource === $this->_oServer->onAnyClose) {
+			haxe_Log::trace("[NOTICE]:Client close.", _hx_anonymous(array("fileName" => "Controller.hx", "lineNumber" => 89, "className" => "mygame.server.controller.Controller", "methodName" => "trigger")));
 		}
 	}
 	public function __call($m, $a) {

@@ -27,6 +27,7 @@ class mygame_game_misc_PositionDistance {
 		}
 		return $this->_moDelta->get($iId1)->get($iId2);
 	}
+	public function distance_get($oPosition1, $oPosition2) {}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

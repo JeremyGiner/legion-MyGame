@@ -35,6 +35,9 @@ class Math {
 	static function floor($v) {
 		return (int) floor($v);
 	}
+	static function ceil($v) {
+		return (int) ceil($v);
+	}
 	static function isNaN($f) {
 		return is_nan($f);
 	}

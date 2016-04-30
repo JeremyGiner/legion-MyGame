@@ -18,5 +18,5 @@ interface IAbility {
 	
 	public function dispose() :Void;
 	
-	public function mainClassName_get() :String;
+	//public function mainClassName_get() :String;
 }

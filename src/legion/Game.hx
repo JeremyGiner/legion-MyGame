@@ -5,8 +5,14 @@ import legion.ability.IAbility;
 import legion.entity.Entity;
 import legion.entity.Player;
 import trigger.eventdispatcher.EventDispatcher;
+import trigger.eventdispatcher.EventDispatcherFunel;
 import trigger.EventDispatcher2;
+import utils.Disposer;
 
+/**
+ * ...
+ * @author GINER Jérémy
+ */
 class Game {
 	
 	var _aoEntity :Array<Entity>;
@@ -14,10 +20,11 @@ class Game {
 	var _mSingleton :StringMap<Dynamic>;
 	
 	public var onEntityNew :EventDispatcher2<Entity>;
-	public var onEntityUpdate :EventDispatcher2<Entity>;
-	public var onEntityDispose :EventDispatcher2<Entity>;
+	public var onEntityDispose :EventDispatcherFunel<Entity>;
+	public var onEntityAbilityAdd :EventDispatcherFunel<EventEntityAbility>;
+	public var onEntityAbilityRemove :EventDispatcherFunel<EventEntityAbility>;
 	
-	public var onAbilityDispose :EventDispatcher2<IAbility>;
+	//public var onAbilityDispose :EventDispatcher2<IAbility>;
 	
 	public static var onAnyStart :EventDispatcher = {new EventDispatcher();};
 	
@@ -29,10 +36,9 @@ class Game {
 		_mSingleton = new StringMap<Dynamic>();
         
         onEntityNew = new EventDispatcher2<Entity>();
-        onEntityUpdate = new EventDispatcher2<Entity>();
-        onEntityDispose = new EventDispatcher2<Entity>();
-		
-		onAbilityDispose = new EventDispatcher2<IAbility>();
+        onEntityDispose = new EventDispatcherFunel<Entity>();
+        onEntityAbilityAdd = new EventDispatcherFunel<EventEntityAbility>();
+        onEntityAbilityRemove = new EventDispatcherFunel<EventEntityAbility>();
     }
 	
 //______________________________________________________________________________
@@ -66,10 +72,19 @@ class Game {
 		_aoEntity.push( oEntity );
 		_iIdAutoIncrement++;
 		onEntityNew.dispatch( oEntity );
+		
+		// Event funneling
+		oEntity.onAbilityAdd.attach( onEntityAbilityAdd );
+		oEntity.onAbilityRemove.attach( onEntityAbilityRemove );
+		oEntity.onDispose.attach( onEntityDispose );
 	}
 	public function entity_remove( oEntity :Entity ){
+		
 		_aoEntity.remove( oEntity );
-		onEntityDispose.dispatch( oEntity );
+		
+		oEntity.onDispose.dispatch( oEntity );
+		
+		Disposer.dispose( oEntity );
 	}
 	
 //______________________________________________________________________________

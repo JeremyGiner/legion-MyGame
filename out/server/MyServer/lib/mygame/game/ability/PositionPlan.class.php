@@ -1,13 +1,13 @@
 <?php
 
-class mygame_game_ability_PositionPlan extends mygame_game_ability_UnitAbility {
+class mygame_game_ability_PositionPlan extends mygame_game_ability_UnitAbility implements mygame_game_utils_IValidatorTile{
 	public function __construct($oUnit, $iCodePlan) {
 		if(!php_Boot::$skip_constructor) {
 		parent::__construct($oUnit);
 		$this->_iCodePlan = $iCodePlan;
 	}}
 	public $_iCodePlan;
-	public function tile_check($oTile) {
+	public function check($oTile) {
 		{
 			$_g = $this->_iCodePlan;
 			switch($_g) {

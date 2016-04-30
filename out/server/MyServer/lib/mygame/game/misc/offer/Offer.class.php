@@ -1,21 +1,23 @@
 <?php
 
 class mygame_game_misc_offer_Offer {
-	public function __construct($iCost, $sName) {
+	public function __construct($iCost, $sName, $oData = null) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_sName = $sName;
 		$this->_iCost = 10;
+		$this->_oData = $oData;
 	}}
 	public $_sName;
 	public $_iCost;
+	public $_oData;
 	public function cost_get() {
 		return $this->_iCost;
 	}
 	public function name_get() {
 		return $this->_sName;
 	}
-	public function accept($oBuyer, $oSeller) {
-		$oBuyer->credit_add(-$this->_iCost);
+	public function data_get() {
+		return $this->_oData;
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

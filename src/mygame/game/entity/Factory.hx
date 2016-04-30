@@ -1,5 +1,6 @@
 package mygame.game.entity;
 
+import mygame.game.ability.SpawnShield;
 import mygame.game.MyGame;
 
 import mygame.game.entity.Player;
@@ -15,5 +16,6 @@ class Factory extends Building {
 		super( oGame, oPlayer, oTile );
 		
 		_ability_add( new BuilderFactory( this ) );
+		_ability_add( new SpawnShield( this ) );
 	}
 }

@@ -29,7 +29,6 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 			_oUnitVisual.gameView_get().material_get('hud_gauge_bg')
 		);
 		this.renderOrder = 10;
-		//renderDepth = 10;
 		position.setY( _iIndex*2 );
 		
 		// Init Gauge
@@ -53,7 +52,23 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 //	Accessor
 //______________________________________________________________________________
 //	Sub-routine
-
+	
+	/**
+	 * Change size ( displayed value )
+	 * @param	x	new size
+	 */
+	function _value_set( x :Float ) {
+		
+		// Case : value is 0 -> can't set scale at 0 
+		if( x == 0 ) {
+			_oGauge.visible = false;
+			return;
+		}
+		
+		// Cgange size
+		_oGauge.scale.setX( x );
+		_oGauge.visible = true;
+	}
 	
 
 	function _update() {

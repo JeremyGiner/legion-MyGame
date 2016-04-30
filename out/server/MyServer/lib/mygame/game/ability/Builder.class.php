@@ -7,10 +7,6 @@ class mygame_game_ability_Builder extends mygame_game_ability_UnitAbility {
 		$this->_oProduct = new _hx_array(array());
 	}}
 	public $_oProduct;
-	public function product_add($oOffer) {}
-	public function productArray_get() {
-		return $this->_oProduct;
-	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

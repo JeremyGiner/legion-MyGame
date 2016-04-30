@@ -24,3 +24,4 @@ Function naming
 	Verb
 		check : return most likely a Bool.
 		get : return an object that should not be modified.
+

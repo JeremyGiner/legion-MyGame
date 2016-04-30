@@ -10,36 +10,33 @@ import mygame.game.tile.Tile;
 import mygame.game.tile.*;
 import mygame.game.entity.WorldMap;
 
-
+/**
+ * ...
+ * @author GINER Jérémy
+ */
 class PathFinderFlowField {
 
 	var _oWorldMap :WorldMap;
 	
-	//var _oGoal :Vector2;	// End of the path
-
-	//var _oTileStart :Tile;
-	//var _oTileEnd :Tile;
-
 	var _aHeatMap :StringMap<Int>;
 	var _aReferenceMap :StringMap<Tile>;
 
 	var _lTileCurrent :List<Tile>;	//Remain of last computation
 	
-	var _pTest :Tile-> Bool;
+	var _pTest :IValidatorTile;
 	
-	var _bSuccess :Bool;
+	//var _bSuccess :Bool;
 	
 	// Calculable
-	//var _oTileGoal :Tile = null;
 
 //_____________________________________________________________________________
 //	Constructor
 
 	public function new( 
 		oWorldMap :WorldMap,
-		lPosition :List<Tile>, 
+		//lPosition :List<Tile>, 
 		lDestination :List<Tile>, 
-		pTest :Tile-> Bool 
+		pTest :IValidatorTile 
 	) {	
 		_oWorldMap = oWorldMap;
 		
@@ -56,11 +53,11 @@ class PathFinderFlowField {
 			_aHeatMap.set( _key_get( oTile ), 0 );
 			_lTileCurrent.push( oTile );
 			
-			lPosition.remove( oTile );	//TODO modify a copy
+			//lPosition.remove( oTile );	//TODO modify a copy
 		}
 		
 		// 
-		_bSuccess = _referenceMap_update( lPosition );
+		//_bSuccess = _referenceMap_update( lPosition );
 	}
 
 //_____________________________________________________________________________
@@ -68,7 +65,7 @@ class PathFinderFlowField {
 	
 	public function worldmap_get() { return _oWorldMap; }
 
-	public function success_check() { return _bSuccess; }
+	//public function success_check() { return _bSuccess; }
 	
 	public function refTile_getbyCoord( x :Int, y :Int ) {
 		if ( _aReferenceMap == null )
@@ -144,19 +141,10 @@ class PathFinderFlowField {
 		while( !_lTileCurrent.isEmpty() ){
 			oTileParent = _lTileCurrent.pop();
 			
-			// Try to remove current tile from the "must found" list
-			// Using while in case multiple occurence of the same instance exist
-			while( lTileStartRemaining.remove( oTileParent ) ){};
-			
-            if ( lTileStartRemaining.isEmpty() ) {
-				// All found -> Success
-				return true;
-			}
-
-			// Check each oTileParent's children
+			// Create reference for each valid child tile
 			for( oTileChild in _tileChild_get( oTileParent ) ) {
 				if( oTileChild != null && Std.is(oTileChild,Tile ))	// Necessary?
-				if( _pTest( oTileChild ) )
+				if( _pTest.check( oTileChild ) )
 				if( _aReferenceMap.get( _key_get( oTileChild ) ) == null ) {
 				
 					_aReferenceMap.set( _key_get(oTileChild), oTileParent );
@@ -217,7 +205,7 @@ class PathFinderFlowField {
 					// Debug case
 					if ( 
 						t == null ||
-						!_pTest( t ) ||
+						!_pTest.check( t ) ||
 						t == oTileChild	//TODO: debug purpose only, should not occur
 					) {
 						continue;
@@ -231,6 +219,15 @@ class PathFinderFlowField {
 						t
 					);
 				}
+			}
+			
+			// Try to remove current tile from the "must found" list
+			// Using while in case multiple occurence of the same instance exist
+			while( lTileStartRemaining.remove( oTileParent ) ){};
+			
+            if ( lTileStartRemaining.isEmpty() ) {
+				// All found -> Success
+				return true;
 			}
 		}
 		
@@ -257,32 +254,6 @@ class PathFinderFlowField {
 	function heat_get( oTile :Tile ) {
 		return _aHeatMap.get( _key_get( oTile ) );
 	}
-	
-//_____________________________________________________________________________
-//	
-	/*
-	public function pathTile_get(
-		oTileStart :Tile, 
-		oTileEnd :Tile, 
-		fuWalkableTest :Tile->Bool 
-	) {
-		// Building ReferenceMap
-		if( refMap_create( oTileStart, oTileEnd, fuWalkableTest ) == null )
-			return null;
-		
-		// Collect tile by following refmap from start to finish
-		var loTile :List<Tile> = new List<Tile>();
-		var oTile :Tile = oTileStart;
-				
-		while( oTile != oTileEnd ){
-			loTile.add( oTile );
-			oTile = _aReferenceMap.get( oTile.x_get(), oTile.y_get() );
-		}
-		
-		loTile.add( oTile ); //oTileEnd
-				
-		return loTile;
-	}*/
 
 //_____________________________________________________________________________
 //	

@@ -9,7 +9,7 @@ class websocket_SocketDistantFactory {
 		return $this;
 	}}
 	public function create() {
-		return new websocket_php_SocketDistant($this->_oResource);
+		return new websocket_SocketDistant($this->_oResource);
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

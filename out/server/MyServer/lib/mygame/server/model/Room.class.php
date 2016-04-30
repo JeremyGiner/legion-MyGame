@@ -1,12 +1,13 @@
 <?php
 
 class mygame_server_model_Room {
-	public function __construct($oGame) {
+	public function __construct($iId, $oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_fGamePaceLapse = 45;
 		$this->_sPasswordShadow = "";
 		$this->_bPlayerSpontaneous = true;
 		$this->_iSpectatorMax = 0;
+		$this->_iId = $iId;
 		$this->_oGame = $oGame;
 		$this->_aoSlot = new _hx_array(array());
 		$this->_abPause = new _hx_array(array());
@@ -25,6 +26,7 @@ class mygame_server_model_Room {
 		$this->_oGame->onLoop->attach(new mygame_game_process_MobilityProcess($this->_oGame));
 		$this->timer_reset();
 	}}
+	public $_iId;
 	public $_oGame;
 	public $_aoSlot;
 	public $_iSlotQuantityMax;
@@ -36,6 +38,9 @@ class mygame_server_model_Room {
 	public $_fGamePaceLapse;
 	public $_abPause;
 	public $onUpdate;
+	public function id_get() {
+		return $this->_iId;
+	}
 	public function spectatorMax_get() {
 		return $this->_iSpectatorMax;
 	}
@@ -62,8 +67,10 @@ class mygame_server_model_Room {
 		return $loClient;
 	}
 	public function pauseList_get() {
-		haxe_Log::trace($this->_aoSlot, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 73, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
-		haxe_Log::trace($this->_abPause, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 74, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
+		haxe_Log::trace("Slot:", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 77, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
+		haxe_Log::trace($this->_aoSlot, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 78, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
+		haxe_Log::trace("Pause:", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 79, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
+		haxe_Log::trace($this->_abPause, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 80, "className" => "mygame.server.model.Room", "methodName" => "pauseList_get")));
 		return $this->_abPause;
 	}
 	public function paused_get() {
@@ -113,7 +120,7 @@ class mygame_server_model_Room {
 	public function clientReady_update($oClient, $bReady) {
 		$iSlotIndex = $this->slotIndex_get_byClient($oClient);
 		if($iSlotIndex === null) {
-			haxe_Log::trace("invalid client for clientReady_update", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 114, "className" => "mygame.server.model.Room", "methodName" => "clientReady_update")));
+			haxe_Log::trace("invalid client for clientReady_update", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 120, "className" => "mygame.server.model.Room", "methodName" => "clientReady_update")));
 			return null;
 		}
 		$this->_abPause[$iSlotIndex] = $bReady;
@@ -121,7 +128,7 @@ class mygame_server_model_Room {
 		return $this;
 	}
 	public function slot_occupy($oClient, $iSlotId) {
-		haxe_Log::trace("occupying #" . _hx_string_rec($iSlotId, ""), _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 128, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
+		haxe_Log::trace("occupying #" . _hx_string_rec($iSlotId, ""), _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 134, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
 		if(!$this->slotIdInRange_check($iSlotId)) {
 			throw new HException("slot not in range");
 		}
@@ -131,12 +138,12 @@ class mygame_server_model_Room {
 		$oClient->room_set($this, $iSlotId);
 		$this->_aoSlot[$iSlotId] = $oClient;
 		$this->_abPause[$iSlotId] = false;
-		haxe_Log::trace("create", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 145, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
-		haxe_Log::trace($this->_abPause, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 146, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
+		haxe_Log::trace("create", _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 151, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
+		haxe_Log::trace($this->_abPause, _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 152, "className" => "mygame.server.model.Room", "methodName" => "slot_occupy")));
 		return $iSlotId;
 	}
 	public function slot_leave($oClient) {
-		haxe_Log::trace("Client #" . Std::string($oClient->resource_get()) . "leaving slot #" . _hx_string_rec($oClient->slotId_get(), ""), _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 152, "className" => "mygame.server.model.Room", "methodName" => "slot_leave")));
+		haxe_Log::trace("Client #" . Std::string($oClient->resource_get()) . "leaving slot #" . _hx_string_rec($oClient->slotId_get(), ""), _hx_anonymous(array("fileName" => "Room.hx", "lineNumber" => 158, "className" => "mygame.server.model.Room", "methodName" => "slot_leave")));
 		$this->_aoSlot[$oClient->slotId_get()] = null;
 		$i = $oClient->slotId_get();
 		$this->_abPause->slice($i, $i);

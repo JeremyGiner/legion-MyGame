@@ -2,7 +2,7 @@ package mygame.server.model;
 
 import mygame.game.MyGame in Game;
 import legion.entity.Player;
-import websocket.php.SocketDistant in PHPWSClient;
+import websocket.SocketDistant;
 import websocket.IMessage;
 import mygame.connection.*;
 import mygame.connection.message.*;
@@ -21,7 +21,7 @@ import haxe.Unserializer;
  * 
  * @author GINER Jérémy
  */
-class Client extends PHPWSClient implements ITrigger {
+class Client extends SocketDistant implements ITrigger {
 	
 	var _oMessageLast :IMessage;
 	
@@ -52,7 +52,7 @@ class Client extends PHPWSClient implements ITrigger {
 	public function slotId_get() { return _iSlotId; }
 	public function player_get() { return _oRoom.game_get().player_get(_iSlotId); }
 	
-	public function room_get() { return _oRoom; }
+	public function room_get() :Room { return _oRoom; }
 	public function room_set( oRoom :Room, iSlotId :Int ) { 
 		_oRoom = oRoom; 
 		_iSlotId = iSlotId;

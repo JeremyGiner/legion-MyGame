@@ -7,17 +7,17 @@ class legion_Game {
 		$this->_aoEntity = new _hx_array(array());
 		$this->_mSingleton = new haxe_ds_StringMap();
 		$this->onEntityNew = new trigger_EventDispatcher2();
-		$this->onEntityUpdate = new trigger_EventDispatcher2();
-		$this->onEntityDispose = new trigger_EventDispatcher2();
-		$this->onAbilityDispose = new trigger_EventDispatcher2();
+		$this->onEntityDispose = new trigger_eventdispatcher_EventDispatcherFunel();
+		$this->onEntityAbilityAdd = new trigger_eventdispatcher_EventDispatcherFunel();
+		$this->onEntityAbilityRemove = new trigger_eventdispatcher_EventDispatcherFunel();
 	}}
 	public $_aoEntity;
 	public $_iIdAutoIncrement;
 	public $_mSingleton;
 	public $onEntityNew;
-	public $onEntityUpdate;
 	public $onEntityDispose;
-	public $onAbilityDispose;
+	public $onEntityAbilityAdd;
+	public $onEntityAbilityRemove;
 	public function entity_get($i) {
 		{
 			$_g = 0;
@@ -51,10 +51,14 @@ class legion_Game {
 		$this->_aoEntity->push($oEntity);
 		$this->_iIdAutoIncrement++;
 		$this->onEntityNew->dispatch($oEntity);
+		$oEntity->onAbilityAdd->attach($this->onEntityAbilityAdd);
+		$oEntity->onAbilityRemove->attach($this->onEntityAbilityRemove);
+		$oEntity->onDispose->attach($this->onEntityDispose);
 	}
 	public function entity_remove($oEntity) {
 		$this->_aoEntity->remove($oEntity);
-		$this->onEntityDispose->dispatch($oEntity);
+		$oEntity->onDispose->dispatch($oEntity);
+		utils_Disposer::dispose($oEntity);
 	}
 	public function _start() {
 		legion_Game::$onAnyStart->dispatch($this);

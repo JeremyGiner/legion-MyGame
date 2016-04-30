@@ -2,6 +2,7 @@ package mygame.game.entity;
 
 
 import legion.entity.Entity;
+import mygame.game.ability.Loyalty;
 import space.Vector2i;
 
 import mygame.game.MyGame in Game;
@@ -34,16 +35,19 @@ class Unit extends Entity {
 			new Position( this, oGame.map_get(), oPosition.x, oPosition.y ) 
 		);
 		
+		_ability_add( 
+			new Loyalty( this, oOwner ) 
+		);
+		
 	}
 	
 //______________________________________________________________________________
 //	Accessor
 
-	public function owner_get() { return _oPlayer; }
-	public function owner_set( oPlayer :Player ) { 
-		onUpdate.dispatch( this );
-		_oPlayer = oPlayer;
-	}
+	/*
+	 * DEPRECATED
+	 */
+	public function owner_get() { return ability_get(Loyalty).owner_get(); }
 
 	public function mygame_get() {
 		return cast( _oGame, MyGame );

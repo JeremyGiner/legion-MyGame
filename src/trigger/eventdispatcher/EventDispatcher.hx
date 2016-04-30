@@ -12,7 +12,8 @@ class EventDispatcher implements IEventDispatcher {
 //______________________________________________________________________________
 //	Constructor
 
-	public function new(){
+	public function new() {
+		trace('deprecated');
 		_aoTrigger = new Array<ITrigger>();
 	}
 

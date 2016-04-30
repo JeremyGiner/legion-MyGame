@@ -68,6 +68,10 @@ class Mobility extends UnitAbility {
 	
 	public function orientation_get() { return _fOrientation; }
 	
+	public function force_get( sKey :String ) {
+		return _moForce.get( sKey );
+	}
+	
 //______________________________________________________________________________
 //	Modifier
 
@@ -252,7 +256,7 @@ class Mobility extends UnitAbility {
 			// Filter to get only non-walkable tiles
 			var loTmp = new List<Tile>();
 			for ( oTile in loTile ) {
-				if ( !_oPlan.tile_check( oTile ) ) 
+				if ( !_oPlan.check( oTile ) ) 
 					loTmp.push( oTile );
 			}
 			loTile = loTmp;
@@ -370,7 +374,7 @@ class Mobility extends UnitAbility {
 	 * @param	oMobility
 	 * @param	oPoint
 	 */
-	static public function positionCorrection( oMobility :Mobility, oPoint :Vector2i ) {
+	/*static public function positionCorrection( oMobility :Mobility, oPoint :Vector2i ) {
 		
 		// Case no PositionPlan
 		if ( oMobility._oPlan == null )
@@ -384,69 +388,24 @@ class Mobility extends UnitAbility {
 		if ( oVolume == null ) {
 			
 			var oTile = oMap.tile_get_byUnitMetric( oPoint.x, oPoint.y );
-			if( oMobility._oPlan.tile_check( oTile ) )
+			if( oMobility._oPlan.check( oTile ) )
 				return oPoint;
 			
 			return null;
+		} else {
+			// Case volume
+			return oVolume.positionCorrection( oPoint );
 		}
 		
-		// Case volume
-		
-		// Get target and neightbor Tile
-		var lTile = oVolume.tileListProject_get( oPoint.x, oPoint.y );
-		
-		// Clamp on target tile
-		var oResult = oPoint.clone();
-		
-		var oUnitGeometry = new AlignedAxisBox2i( 
-			oMobility._oVolume.size_get(), 
-			oMobility._oVolume.size_get(), 
-			oPoint 
-		);
-		
-		var oTileGeometry :AlignedAxisBoxAlti;
-		for ( oTile in lTile ) {
-			// Filter walkable and non colling tile
-			if ( oMobility._oPlan.tile_check( oTile ) ) 
-				continue;
-			
-			// Build up tile geometry
-			oTileGeometry = tileGeometry_get( oTile );
-			
-			// Filter non colling tile
-			if ( 
-				!CollisionCheckerPostInt.check( 
-					oUnitGeometry,
-					oTileGeometry
-				)
-			) 
-				continue;
-			
-			//_____
-			var iVolumeSize :Int = 0;
-			if ( oVolume != null )
-				iVolumeSize = oVolume.size_get();
-			var dx :Float = oPoint.x/10000 - (oTile.x_get()+0.5);
-			var dy :Float = oPoint.y/10000 - (oTile.y_get()+0.5);
-			if ( Math.abs(dx) > Math.abs(dy) )
-				// Clamp on X axis
-				if ( dx > 0 )
-					// Goal is on the right side
-					oResult.x = oTileGeometry.right_get()+1 + iVolumeSize;
-				else
-					// Goal is on the left side
-					oResult.x = oTileGeometry.left_get()-1 - iVolumeSize;
-			else
-				// Clamp on Y axis
-				if ( dy > 0 )
-					// Goal is on the top
-					oResult.y = oTileGeometry.top_get()+1 + iVolumeSize;
-				else
-					// Goal is on the bottom
-					oResult.y = oTileGeometry.bottom_get()-1 - iVolumeSize;
+		// Case platoon
+		var oPlatoon = oMobility.unit_get().ability_get(Platoon);
+		if ( oPlatoon != null ) {
+			oPlatoon.volume_get();
 		}
-		return oResult;
-	}
+		
+		throw('abnormal case');
+		return null;
+	}*/
 	
 	static public function tileGeometry_get( oTile :Tile ) {
 		return new AlignedAxisBoxAlti(

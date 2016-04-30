@@ -3,12 +3,13 @@ import mygame.game.entity.Unit;
 import mygame.game.tile.Tile;
 import mygame.game.entity.WorldMap;
 import mygame.game.query.CityTile;
+import mygame.game.utils.IValidatorTile;
 
 /**
  * ...
  * @author GINER Jérémy
  */
-class PositionPlan extends UnitAbility {
+class PositionPlan extends UnitAbility implements IValidatorTile {
 
 	var _iCodePlan :Int;
 	
@@ -23,7 +24,7 @@ class PositionPlan extends UnitAbility {
 	 * @param	oTile
 	 * @return	Bool true if walkable
 	 */
-	public function tile_check( oTile :Tile ) :Bool {
+	public function check( oTile :Tile ) :Bool {
 		
 		switch( _iCodePlan ) {
 			case 0 :

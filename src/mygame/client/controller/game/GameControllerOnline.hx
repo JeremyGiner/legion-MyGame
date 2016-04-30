@@ -107,10 +107,10 @@ class GameControllerOnline extends GameController implements ITrigger  {
 	}
 	
 	override public function pause_toggle() {
-		trace('pausing');
+		trace('pause toggle');
 		
-		_oModel.roomInfo_get().userInfoList_get();
-		_oModel.connection_get().send( new ReqReadyUpdate(false) );
+		var b = !_oModel.userInfoCurrent_get().ready;
+		_oModel.connection_get().send( new ReqReadyUpdate(b) );
 	}
 	
 //______________________________________________________________________________
@@ -141,7 +141,7 @@ class GameControllerOnline extends GameController implements ITrigger  {
 					if ( oResGameStepInput.loopId_get() != _oGame.loopId_get() ) {
 						_oModel.disconnect();
 						trace('[ERROR]:Invalid game step distant #'+oResGameStepInput.loopId_get()+' local #'+(_oGame.loopId_get()));
-						Lib.alert('Disconnected due to a desync.');
+						Browser.alert('Disconnected due to a desync.');
 						
 					}
 					

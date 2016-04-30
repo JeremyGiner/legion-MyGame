@@ -9,6 +9,8 @@
 			
 			font-family: verdana;
 			font-size: 10px;
+			
+			overflow: hidden;
 		}
 	
 		.console{
@@ -29,6 +31,7 @@
 		
 		fieldset {
 			display: inline-block;
+			margin: 0;
 		}
 		
 		ul {
@@ -104,22 +107,11 @@
 			position: absolute;
 			bottom: 0;
 			
+			padding: 2em;
+			
 			background-color: rgba(0, 0, 0, 0.32);
 		}
-		#GameMenu>div,
-		#GameMenu>fieldset {
-			/*border: 2px outset silver;*/
-			display: inline-block;
-			padding: 0.2em;
-			border-radius: 0.8em;
-			position: relative;
-			padding-top: 2em;
-			background-color: #EEFFEE;
-			
-			box-sizing: border-box;
-			
-			min-height: 76px;
-		}
+		
 		#GameMenu>fieldset>legend {
 			position: absolute;
 			background-color: silver;
@@ -135,40 +127,32 @@
 		}
 		
 		/*______________________________________________________________________
-			Game menu - Selection */
-			
+			Selection */
+		
+		#selection-wrapper {
+			width: 50%;
+			box-sizing: border-box;
+		}
+		
 		#Selection {
-			width: 40%;
-			text-align: left;
+			width: 50%;
+			box-sizing: border-box;
 		}
-		#GameMenu button,
-		#Selection>button {
-			display: inline-block;
-			position: relative;
-			width: 5em;
-			height: 5em;
-			font-size: inherit;
-			border-radius: 0.8em;
-			border-width: 0.2em;
-			padding: 0;
+		#Build {
+			width: 50%;
+			box-sizing: border-box;
 		}
 		
-		#GameMenu button>span,
-		#Selection>button>span {
+		
+		/*_____________________________________________________________________
+			Pause menu */
+			
+		#PauseMenu {
 			position: absolute;
-			display: inline-block;
-			bottom: 0.3em;
-			left: 0.3em;
-			line-height: 0.8em;
-		}
-		
-		/*______________________________________________________________________
-			Game menu - build */
-		
-		#GameMenu>#Build {
-			width: 40%;
-			text-align: left;
-			border-radius: 0.8em;
+			border: 1px solid red;
+			top: 50%;
+			left: 50%;
+			background-color: white;
 		}
 		
 		/*______________________________________________________________________
@@ -195,19 +179,57 @@
 			right: 0;
 		}
 		
+		/*_____________________________________________________________________
+			Class */
+		
+		.menu-block {
+			background-color: #EEFFEE;
+			border-radius: 0.8em;
+			text-align: left;
+			vertical-align: middle;
+		}
+		.menu-block>header {
+			width: 100%;
+			background-color: silver;
+			font-weight: bold;
+		}
+		
+		.btn-icon {
+			display: inline-block;
+			position: relative;
+			width: 5em;
+			height: 5em;
+			font-size: inherit;
+			border-radius: 0.8em;
+			border-width: 0.2em;
+			padding: 0;
+		}
+		
+		.btn-icon>span {
+			position: absolute;
+			display: inline-block;
+			bottom: 0.3em;
+			left: 0.3em;
+			line-height: 0.8em;
+		}
+		
+		.col {
+			display: inline-block;
+		}
+		
 	</style>
 </head>
 <body>
 	<img src="res/texture/worldmap.png" style="display:none;" />
 
-	<div id="Menu">
+	<nav id="Menu">
 		<input id="MenuToggle" type="checkbox" /><label for="MenuToggle"></label>
 		<div id="MenuContent">
 			<fieldset>
 				<legend>Local</legend>
 				<ul>
 					<li>
-						<button id="BtLocalNew">New game</button>
+						<button id="BtLocalNew" data-haxeaction="solo-newgame">New game</button>
 					</li>
 					<li>
 						<button id="BtLocalSave" disabled="">Save</button>
@@ -220,12 +242,12 @@
 			<fieldset>
 				<legend>Online</legend>
 				<div id="LabelStatus">Status: ready when you are.</div>
-				<button id="BtConnect">Connect</button>
+				<button id="BtConnect" data-haxeaction="lobby-connect">Connect</button>
 				<fieldset>
 					<legend>Join</legend>
 					<div id="GameList"></div>
-					<button id="BtRefresh" disabled="">Refresh</button>
-					<button id="BtGameJoin" disabled="">Join</button>
+					<button id="BtRefresh" data-haxeaction="lobby-refresh" disabled="">Refresh</button>
+					<button id="BtGameJoin" data-haxeaction="lobby-join" disabled="">Join</button>
 				</fieldset>
 				<fieldset>
 					<legend>New game</legend>
@@ -233,32 +255,30 @@
 					<button id="BtShutDown" disabled="">Shut down</button>
 				</fieldset>
 			</fieldset>
-			
 		</div>
-	</div>
+	</nav>
 	
 	<canvas id="MyCanvas"></canvas>
 	
-	<div id="GameMenu">
-		<div id="Credit">
+	<div id="GameMenu" class="row" style="display: none;">
+		<div id="Credit" class="col">
 			<span>1200 C</span>&euro;
-		</div
-		><fieldset id="Selection">
-			<legend>Selection</legend>
-			<div id="SelectionList">
-				<button>Soldier<span>5</span></button>
-				<button>Tank<span>2</span></button>
+		</div>
+		<div id="selection-wrapper" class="col">
+			<div id="Selection" class="menu-block col">
+				<header>Selection</header>
+				<div id="SelectionList">
+					<button class="btn-icon">Soldier<span>5</span></button>
+					<button class="btn-icon">Tank<span>2</span></button>
+				</div>
+			</div
+			><div id="Build" class="menu-block col">
+				<header>Build unit</header>
+				<div id="BuildList">
+				</div>
 			</div>
-		</fieldset
-		><fieldset id="Build">
-			<legend>Build unit</legend>
-			<div id="BuildList">
-				<button>Tank<span>-20 C</span></button>
-			</div>
-		</fieldset
-		>
-		
-		<div>
+		</div>
+		<div class="col">
 			<button type="button" 
 				onclick="window.haxe.controller.gameController_get().pause_toggle()"
 			>
@@ -268,7 +288,7 @@
 	</div>
 	
 	
-	<div id="MENU-PAUSE"></div>
+	<div id="PauseMenu" style="display: none;"></div>
 	
 	<div id="DevMenu">
 		<div id="MouseXY"></div>

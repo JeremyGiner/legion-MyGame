@@ -2,22 +2,22 @@ package mygame.client.view.visual.unit;
 
 import js.three.*;
 import mygame.client.view.visual.unit.UnitVisual;
-import mygame.game.entity.Soldier in Unit;
+import mygame.game.entity.SubUnit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
 import mygame.game.ability.Mobility;
 import mygame.game.ability.Volume;
 
-class SoldierVisual extends UnitVisual<Unit> {
+class SoldierVisual extends SubUnitVisual<SubUnit> {
 	
 	var _oBody :Mesh;
 	
 //______________________________________________________________________________
 //	Constructor
 
-	public function new( oDisplayer :GameView, oUnit :Unit ){
+	public function new( oDisplayer :GameView, oUnit :SubUnit ){
 		
-		super( oDisplayer, oUnit );
+		super( oDisplayer, oUnit, 0.05 );
 	//_____
 		var oMaterial = new MeshFaceMaterial(
 			[
@@ -29,7 +29,7 @@ class SoldierVisual extends UnitVisual<Unit> {
 			oDisplayer.geometry_get( 'soldier' ), 
 			oMaterial
 		);
-		_oBody.scale.set( 0.1, 0.1, 0.1 );
+		_oBody.scale.set( 0.04, 0.04, 0.04 );
 		
 		//_oBody.scale.set( 1, 1, 1 );
 		_oBody.rotation.set( 0, 0, -0.8);

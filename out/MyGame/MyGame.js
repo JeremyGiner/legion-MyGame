@@ -212,9 +212,6 @@ Std["is"] = function(v,t) {
 Std.string = function(s) {
 	return js_Boot.__string_rec(s,"");
 };
-Std["int"] = function(x) {
-	return x | 0;
-};
 Std.parseInt = function(x) {
 	var v = parseInt(x,10);
 	if(v == 0 && (HxOverrides.cca(x,1) == 120 || HxOverrides.cca(x,1) == 88)) v = parseInt(x);
@@ -408,8 +405,7 @@ cloner_Cloner.prototype = {
 			case 3:
 				return v;
 			case 4:
-				if(!(this.cache.h.__keys__[v.__id__] != null)) return this.handleAnonymous(v);
-				return this.cache.h[v.__id__];
+				return this.handleAnonymous(v);
 			case 5:
 				return null;
 			case 6:
@@ -427,7 +423,6 @@ cloner_Cloner.prototype = {
 	,handleAnonymous: function(v) {
 		var properties = Reflect.fields(v);
 		var anonymous = { };
-		this.cache.set(v,anonymous);
 		var _g1 = 0;
 		var _g = properties.length;
 		while(_g1 < _g) {
@@ -996,24 +991,6 @@ haxe_Serializer.prototype = {
 	}
 	,__class__: haxe_Serializer
 };
-var haxe_Timer = function(time_ms) {
-	var me = this;
-	this.id = setInterval(function() {
-		me.run();
-	},time_ms);
-};
-$hxClasses["haxe.Timer"] = haxe_Timer;
-haxe_Timer.__name__ = ["haxe","Timer"];
-haxe_Timer.prototype = {
-	stop: function() {
-		if(this.id == null) return;
-		clearInterval(this.id);
-		this.id = null;
-	}
-	,run: function() {
-	}
-	,__class__: haxe_Timer
-};
 var haxe_Unserializer = function(buf) {
 	this.buf = buf;
 	this.length = buf.length;
@@ -1458,6 +1435,14 @@ haxe_ds_ObjectMap.prototype = {
 		}
 		return HxOverrides.iter(a);
 	}
+	,iterator: function() {
+		return { ref : this.h, it : this.keys(), hasNext : function() {
+			return this.it.hasNext();
+		}, next : function() {
+			var i = this.it.next();
+			return this.ref[i.__id__];
+		}};
+	}
 	,__class__: haxe_ds_ObjectMap
 };
 var haxe_ds__$StringMap_StringMapIterator = function(map,keys) {
@@ -1766,11 +1751,11 @@ js_Boot.__isNativeObj = function(o) {
 js_Boot.__resolveNativeClass = function(name) {
 	return $global[name];
 };
-var js_Lib = function() { };
-$hxClasses["js.Lib"] = js_Lib;
-js_Lib.__name__ = ["js","Lib"];
-js_Lib.alert = function(v) {
-	alert(js_Boot.__string_rec(v,""));
+var js_Browser = function() { };
+$hxClasses["js.Browser"] = js_Browser;
+js_Browser.__name__ = ["js","Browser"];
+js_Browser.alert = function(v) {
+	window.alert(js_Boot.__string_rec(v,""));
 };
 var js_html_compat_ArrayBuffer = function(a) {
 	if((a instanceof Array) && a.__enum__ == null) {
@@ -1964,6 +1949,7 @@ trigger_IEventDispatcher.prototype = {
 	__class__: trigger_IEventDispatcher
 };
 var trigger_eventdispatcher_EventDispatcher = function() {
+	console.log("deprecated");
 	this._aoTrigger = [];
 };
 $hxClasses["trigger.eventdispatcher.EventDispatcher"] = trigger_eventdispatcher_EventDispatcher;
@@ -1997,9 +1983,9 @@ var legion_Game = function() {
 	this._aoEntity = [];
 	this._mSingleton = new haxe_ds_StringMap();
 	this.onEntityNew = new trigger_EventDispatcher2();
-	this.onEntityUpdate = new trigger_EventDispatcher2();
-	this.onEntityDispose = new trigger_EventDispatcher2();
-	this.onAbilityDispose = new trigger_EventDispatcher2();
+	this.onEntityDispose = new trigger_eventdispatcher_EventDispatcherFunel();
+	this.onEntityAbilityAdd = new trigger_eventdispatcher_EventDispatcherFunel();
+	this.onEntityAbilityRemove = new trigger_eventdispatcher_EventDispatcherFunel();
 };
 $hxClasses["legion.Game"] = legion_Game;
 legion_Game.__name__ = ["legion","Game"];
@@ -2032,10 +2018,14 @@ legion_Game.prototype = {
 		this._aoEntity.push(oEntity);
 		this._iIdAutoIncrement++;
 		this.onEntityNew.dispatch(oEntity);
+		oEntity.onAbilityAdd.attach(this.onEntityAbilityAdd);
+		oEntity.onAbilityRemove.attach(this.onEntityAbilityRemove);
+		oEntity.onDispose.attach(this.onEntityDispose);
 	}
 	,entity_remove: function(oEntity) {
 		HxOverrides.remove(this._aoEntity,oEntity);
-		this.onEntityDispose.dispatch(oEntity);
+		oEntity.onDispose.dispatch(oEntity);
+		utils_Disposer.dispose(oEntity);
 	}
 	,_start: function() {
 		legion_Game.onAnyStart.dispatch(this);
@@ -2240,22 +2230,16 @@ legion_device_MegaMouse.prototype = $extend(legion_device_Mouse.prototype,{
 	}
 	,__class__: legion_device_MegaMouse
 });
-var utils_IDisposable = function() { };
-$hxClasses["utils.IDisposable"] = utils_IDisposable;
-utils_IDisposable.__name__ = ["utils","IDisposable"];
-utils_IDisposable.prototype = {
-	__class__: utils_IDisposable
-};
 var legion_entity_Entity = function(oGame) {
 	this._iIdentity = null;
 	this._oGame = oGame;
 	this._moAbility = new haxe_ds_StringMap();
-	this.onUpdate = new trigger_eventdispatcher_EventDispatcher();
-	this.onDispose = new trigger_eventdispatcher_EventDispatcher();
+	this.onAbilityAdd = new trigger_EventDispatcher2();
+	this.onAbilityRemove = new trigger_EventDispatcher2();
+	this.onDispose = new trigger_EventDispatcher2();
 };
 $hxClasses["legion.entity.Entity"] = legion_entity_Entity;
 legion_entity_Entity.__name__ = ["legion","entity","Entity"];
-legion_entity_Entity.__interfaces__ = [utils_IDisposable];
 legion_entity_Entity.get_byKey = function(oGame,iKey) {
 	var _g = 0;
 	var _g1 = oGame.entity_get_all();
@@ -2282,30 +2266,24 @@ legion_entity_Entity.prototype = {
 	,game_get: function() {
 		return this._oGame;
 	}
-	,ability_remove: function(oClass) {
-		this._moAbility.remove(Type.getClassName(oClass));
-	}
-	,_ability_add: function(oAbility) {
-		this._moAbility.set(Type.getClassName(oAbility == null?null:js_Boot.getClass(oAbility)),oAbility);
-	}
 	,ability_get: function(oClass) {
 		return this._moAbility.get(Type.getClassName(oClass));
 	}
 	,abilityMap_get: function() {
 		return this._moAbility;
 	}
-	,dispose: function() {
-		this.onDispose.dispatch(this);
-		var $it0 = this._moAbility.iterator();
-		while( $it0.hasNext() ) {
-			var oAbility = $it0.next();
-			oAbility.dispose();
-		}
-		if(this._oGame != null) {
-			this._oGame.entity_remove(this);
-			this._oGame = null;
-		}
-		utils_Disposer.dispose(this);
+	,ability_add: function(oAbility) {
+		this._ability_add(oAbility);
+		this.onAbilityAdd.dispatch({ ability : oAbility, entity : this});
+	}
+	,ability_remove: function(oClass) {
+		var sClassName = Type.getClassName(oClass);
+		if(!this._moAbility.exists(sClassName)) return;
+		this._moAbility.remove(sClassName);
+		this.onAbilityRemove.dispatch({ ability : this._moAbility.get(sClassName), entity : this});
+	}
+	,_ability_add: function(oAbility) {
+		this._moAbility.set(Type.getClassName(oAbility == null?null:js_Boot.getClass(oAbility)),oAbility);
 	}
 	,__class__: legion_entity_Entity
 };
@@ -2447,7 +2425,7 @@ mygame_ai_Nemesis0.prototype = {
 					return $r;
 				}(this));
 				var d = this._oGame.query_get(mygame_game_query_UnitDist).data_get([oUnit0,oUnit1]);
-				if(d > 10000) continue;
+				continue;
 				bIsClose = true;
 				break;
 			}
@@ -2470,9 +2448,9 @@ var mygame_client_controller_Controller = function(oModel,oView) {
 	this._oGameController = null;
 	this._oModel = oModel;
 	this._oView = oView;
+	this._oMenuPause = null;
 	this._onButtonClick = new trigger_eventdispatcher_EventDispatcherJS("mouseup");
 	this._onButtonClick.attach(this);
-	this._oMenuStartNew = window.document.getElementById("BtLocalNew");
 	this._oMenuOnlineNew = window.document.getElementById("BtRemoteNew");
 	this._oMenuConnect = window.document.getElementById("BtConnect");
 	this._oMenuRefresh = window.document.getElementById("BtRefresh");
@@ -2485,11 +2463,12 @@ $hxClasses["mygame.client.controller.Controller"] = mygame_client_controller_Con
 mygame_client_controller_Controller.__name__ = ["mygame","client","controller","Controller"];
 mygame_client_controller_Controller.__interfaces__ = [trigger_ITrigger];
 mygame_client_controller_Controller.prototype = {
-	game_start: function(oGame,iPlayerSlot,bOnline) {
+	game_start: function(oRoomInfo,oGame,iPlayerSlot,bOnline) {
 		if(bOnline == null) bOnline = false;
 		if(iPlayerSlot == null) iPlayerSlot = 0;
-		if(oGame == null) oGame = new mygame_game_MyGame();
-		this._oModel.game_set(oGame,iPlayerSlot);
+		if(this._oGameController != null) this._oGameController.dispose();
+		this._oModel.game_set(oGame,iPlayerSlot,oRoomInfo);
+		this._oMenuPause = new mygame_client_view_MenuPause(this._oModel,window.document.getElementById("PauseMenu"));
 		if(bOnline) this._oGameController = new mygame_client_controller_game_GameControllerOnline(this._oModel,100); else this._oGameController = new mygame_client_controller_game_GameControllerLocal(this._oModel);
 	}
 	,game_load: function() {
@@ -2548,13 +2527,48 @@ mygame_client_controller_Controller.prototype = {
 		}
 	}
 	,trigger: function(oSource) {
-		if(oSource.event_get().target == this._oMenuStartNew) {
-			console.log("Starting new local game");
-			this.game_start();
-			return;
-		}
-		if(oSource.event_get().target == this._oMenuConnect) {
-			if(this._oModel.connection_get() != null && this._oModel.connection_get().open_check()) this.disconnect(); else this.connect();
+		if(oSource == this._onButtonClick) {
+			var oTarget = oSource.event_get().target;
+			if(oTarget.dataset.haxeaction == null) return;
+			var _g = oTarget.dataset.haxeaction;
+			switch(_g) {
+			case "solo-newgame":
+				console.log("Starting new local game");
+				this.game_start(mygame_client_model_RoomInfo.default_create(),new mygame_game_MyGame(mygame_game_GameConfFactory.gameConfDefault_get()));
+				break;
+			case "lobby-connect":
+				if(this._oModel.connection_get() != null && this._oModel.connection_get().open_check()) this.disconnect(); else this.connect();
+				break;
+			case "lobby-refresh":
+				if(this._oModel.connection_get() == null || !this._oModel.connection_get().open_check()) {
+					console.log("[WARNING]: requesting lobby refresh when disconnected");
+					return;
+				}
+				console.log("Requesting slot list");
+				this._oModel.connection_get().send(new mygame_connection_message_ReqSlotList());
+				break;
+			case "lobby-join":
+				if(this._oModel.connection_get() == null || !this._oModel.connection_get().open_check()) {
+					console.log("[WARNING]: requesting lobby room join when disconnected");
+					return;
+				}
+				var iGameId = -1;
+				var loElement = window.document.getElementsByName("GameSelector");
+				var _g1 = 0;
+				while(_g1 < loElement.length) {
+					var oElement = loElement[_g1];
+					++_g1;
+					if((js_Boot.__cast(oElement , HTMLInputElement)).checked) {
+						iGameId = Std.parseInt((js_Boot.__cast(oElement , HTMLInputElement)).value);
+						break;
+					}
+				}
+				console.log("Requesting an access to game #" + iGameId);
+				this._oModel.connection_get().send(new mygame_connection_message_ReqGameJoin(iGameId));
+				break;
+			default:
+				this._oGameController.haxeAction(oTarget.dataset.haxeaction);
+			}
 			return;
 		}
 		if(this._oModel.connection_get() != null) {
@@ -2574,32 +2588,13 @@ mygame_client_controller_Controller.prototype = {
 				return;
 			}
 			if(this._oModel.connection_get().open_check()) {
-				if(oSource.event_get().target == this._oMenuRefresh) {
-					console.log("Requesting slot list");
-					this._oModel.connection_get().send(new mygame_connection_message_ReqSlotList());
-				}
-				if(oSource.event_get().target == this._oMenuGameJoin) {
-					var iGameId = -1;
-					var loElement = window.document.getElementsByName("GameSelector");
-					var _g = 0;
-					while(_g < loElement.length) {
-						var oElement = loElement[_g];
-						++_g;
-						if((js_Boot.__cast(oElement , HTMLInputElement)).checked) {
-							iGameId = Std.parseInt((js_Boot.__cast(oElement , HTMLInputElement)).value);
-							break;
-						}
-					}
-					console.log("Requesting an access to game #" + iGameId);
-					this._oModel.connection_get().send(new mygame_connection_message_ReqGameJoin(iGameId));
-				}
 				if(oSource.event_get().target == this._oBtShutDown) this._oModel.connection_get().send(new mygame_connection_message_ReqShutDown());
 				if(oSource == this._oModel.connection_get().onMessage) {
 					var oMessage = this._oModel.connection_get().messageLast_get();
 					if(!js_Boot.__instanceof(oMessage,mygame_connection_message_ILobbyMessage)) return;
-					var _g1;
-					if(oMessage == null) _g1 = null; else _g1 = js_Boot.getClass(oMessage);
-					if(_g1 != null) switch(_g1) {
+					var _g2;
+					if(oMessage == null) _g2 = null; else _g2 = js_Boot.getClass(oMessage);
+					if(_g2 != null) switch(_g2) {
 					case mygame_connection_message_ResGameStepInput:
 						break;
 					case mygame_connection_message_ResSlotList:
@@ -2610,15 +2605,15 @@ mygame_client_controller_Controller.prototype = {
 						var oRespond;
 						oRespond = js_Boot.__cast(oMessage , mygame_connection_message_ResGameJoin);
 						console.log("[NOTICE]:game instance receive (step:" + oRespond.oGame.loopId_get() + ").");
-						this.game_start(oRespond.oGame,oRespond.iSlotId,true);
+						this.game_start(mygame_client_model_RoomInfo.online_create(oRespond.oRoomUpdate),oRespond.oGame,oRespond.iSlotId,true);
 						break;
-					case mygame_connection_message_serversent_RoomStatus:
+					case mygame_connection_message_serversent_RoomUpdate:
 						console.log("[NOTICE]:updating room");
-						var oRoomStatus;
-						oRoomStatus = js_Boot.__cast(oMessage , mygame_connection_message_serversent_RoomStatus);
+						var oRoomUpdate;
+						oRoomUpdate = js_Boot.__cast(oMessage , mygame_connection_message_serversent_RoomUpdate);
 						var oRoomInfo = this._oModel.roomInfo_get();
-						if(oRoomInfo == null) this._oModel.roomInfo_set(new mygame_client_model_RoomInfo(oRoomStatus)); else oRoomInfo.update(oRoomStatus);
-						new mygame_client_view_MenuPause(this._oModel,window.document.getElementById("MENU-PAUSE"));
+						if(oRoomInfo == null) throw new js__$Boot_HaxeError("[ERROR] game was not initailised with a room");
+						oRoomInfo.update(oRoomUpdate);
 						break;
 					default:
 						console.log("[ERROR]:unknow command/respond from server:" + Std.string(oMessage));
@@ -2629,11 +2624,11 @@ mygame_client_controller_Controller.prototype = {
 	}
 	,__class__: mygame_client_controller_Controller
 };
-var mygame_client_controller_game_IGameController = function() { };
-$hxClasses["mygame.client.controller.game.IGameController"] = mygame_client_controller_game_IGameController;
-mygame_client_controller_game_IGameController.__name__ = ["mygame","client","controller","game","IGameController"];
-mygame_client_controller_game_IGameController.prototype = {
-	__class__: mygame_client_controller_game_IGameController
+var utils_IDisposable = function() { };
+$hxClasses["utils.IDisposable"] = utils_IDisposable;
+utils_IDisposable.__name__ = ["utils","IDisposable"];
+utils_IDisposable.prototype = {
+	__class__: utils_IDisposable
 };
 var mygame_client_controller_game_GameController = function(oModel) {
 	this._oModel = oModel;
@@ -2651,7 +2646,7 @@ var mygame_client_controller_game_GameController = function(oModel) {
 };
 $hxClasses["mygame.client.controller.game.GameController"] = mygame_client_controller_game_GameController;
 mygame_client_controller_game_GameController.__name__ = ["mygame","client","controller","game","GameController"];
-mygame_client_controller_game_GameController.__interfaces__ = [mygame_client_controller_game_IGameController,trigger_ITrigger];
+mygame_client_controller_game_GameController.__interfaces__ = [utils_IDisposable,trigger_ITrigger];
 mygame_client_controller_game_GameController.prototype = {
 	action_add: function(oAction) {
 		this._oGame.action_run(oAction);
@@ -2662,8 +2657,24 @@ mygame_client_controller_game_GameController.prototype = {
 	,model_get: function() {
 		return this._oModel;
 	}
+	,disposed_check: function() {
+		return this._oModel == null;
+	}
 	,pause_toggle: function() {
 		throw new js__$Boot_HaxeError("Abstract");
+	}
+	,haxeAction: function(sAction) {
+		switch(sAction) {
+		case "pause":
+			this.pause_toggle();
+			break;
+		case "unpause":
+			this.pause_toggle();
+			break;
+		default:
+			console.log("[WARNING]:invalid haxeAction");
+		}
+		return true;
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oKeyboard.onPress) {
@@ -2673,12 +2684,14 @@ mygame_client_controller_game_GameController.prototype = {
 			if(this._oKeyboard.keyTrigger_get() == 16) this._oGUI.mode_set(0);
 		}
 	}
+	,dispose: function() {
+		utils_Disposer.dispose(this);
+	}
 	,__class__: mygame_client_controller_game_GameController
 };
 var mygame_client_controller_game_GameControllerLocal = function(oModel) {
 	mygame_client_controller_game_GameController.call(this,oModel);
-	this._oTimer = new haxe_Timer(45);
-	this._oTimer.run = $bind(this,this._game_process);
+	this._iIntervalKey = window.setTimeout($bind(this,this._game_process),45);
 	this._bPaused = false;
 	this._oNemesis = new mygame_ai_Nemesis0(oModel.game_get(),this._oGame.player_get(1));
 };
@@ -2707,9 +2720,14 @@ mygame_client_controller_game_GameControllerLocal.prototype = $extend(mygame_cli
 		if(this._bPaused) return;
 		this._oGame.loop();
 		var oWinner = this._oGame.winner_get();
-		if(oWinner == null) return;
-		this._oTimer.stop();
-		js_Lib.alert(oWinner.name_get() + "(#" + oWinner.playerId_get() + ") win the game");
+		if(oWinner == null) {
+			this._iIntervalKey = window.setTimeout($bind(this,this._game_process),45);
+			return;
+		}
+		js_Browser.alert(oWinner.name_get() + "(#" + oWinner.playerId_get() + ") win the game");
+	}
+	,dispose: function() {
+		window.clearTimeout(this._iIntervalKey);
 	}
 	,__class__: mygame_client_controller_game_GameControllerLocal
 });
@@ -2749,9 +2767,9 @@ mygame_client_controller_game_GameControllerOnline.prototype = $extend(mygame_cl
 		this._oElement.innerHTML = "Latency:" + (this._iLatency - 45);
 	}
 	,pause_toggle: function() {
-		console.log("pausing");
-		this._oModel.roomInfo_get().userInfoList_get();
-		this._oModel.connection_get().send(new mygame_connection_message_clientsent_ReqReadyUpdate(false));
+		console.log("pause toggle");
+		var b = !this._oModel.userInfoCurrent_get().ready;
+		this._oModel.connection_get().send(new mygame_connection_message_clientsent_ReqReadyUpdate(b));
 	}
 	,trigger: function(oSource) {
 		mygame_client_controller_game_GameController.prototype.trigger.call(this,oSource);
@@ -2768,7 +2786,7 @@ mygame_client_controller_game_GameControllerOnline.prototype = $extend(mygame_cl
 				if(oResGameStepInput.loopId_get() != this._oGame.loopId_get()) {
 					this._oModel.disconnect();
 					console.log("[ERROR]:Invalid game step distant #" + oResGameStepInput.loopId_get() + " local #" + this._oGame.loopId_get());
-					js_Lib.alert("Disconnected due to a desync.");
+					js_Browser.alert("Disconnected due to a desync.");
 				}
 				var _g1 = oResGameStepInput.inputList_get().iterator();
 				while(_g1.head != null) {
@@ -2946,7 +2964,7 @@ mygame_client_controller_game_UnitPilot.prototype = {
 			return;
 		}
 		if(oUnit.ability_get(mygame_game_ability_Guidance) == null) return;
-		oVector = mygame_game_ability_Mobility.positionCorrection(oUnit.ability_get(mygame_game_ability_Mobility),oVector);
+		oVector = oUnit.ability_get(mygame_game_ability_Guidance).positionCorrection(oVector);
 		console.log("Order unit to move!");
 		this._oGameController.action_add(new mygame_game_action_UnitOrderMove(oUnit,oVector));
 		var oGuidance = oUnit.ability_get(mygame_game_ability_Guidance);
@@ -2972,7 +2990,7 @@ mygame_client_controller_game_UnitPilot.prototype = {
 			if(oPlan == null) return;
 			var oVector1 = this.vector_get(this._oMouse.onMove.event_get());
 			var oTile = this._oModel.game_get().map_get().tile_get_byUnitMetric(oVector1.x,oVector1.y);
-			if(oPlan.tile_check(oTile)) window.document.body.style.cursor = "default"; else window.document.body.style.cursor = "not-allowed";
+			if(oPlan.check(oTile)) window.document.body.style.cursor = "default"; else window.document.body.style.cursor = "not-allowed";
 		}
 	}
 	,__class__: mygame_client_controller_game_UnitPilot
@@ -3141,8 +3159,19 @@ mygame_client_model_Model.prototype = {
 	,roomInfo_get: function() {
 		return this._oRoomInfo;
 	}
-	,game_set: function(oGame,iPlayerKey) {
+	,userInfoCurrent_get: function() {
+		var _g = 0;
+		var _g1 = this._oRoomInfo.userInfoList_get();
+		while(_g < _g1.length) {
+			var oUserInfo = _g1[_g];
+			++_g;
+			if(oUserInfo.playerId == this._oPlayer.playerId_get()) return oUserInfo;
+		}
+		throw new js__$Boot_HaxeError("Weird");
+	}
+	,game_set: function(oGame,iPlayerKey,oRoomInfo) {
 		this._oGame = oGame;
+		this._oRoomInfo = oRoomInfo;
 		this._oPlayer = this._oGame.player_get(iPlayerKey);
 		if(this._oPlayer == null) console.log("[ERROR]:invalid player id");
 		this._oGUI = new mygame_client_model_GUI(this._oGame);
@@ -3160,24 +3189,38 @@ mygame_client_model_Model.prototype = {
 	}
 	,__class__: mygame_client_model_Model
 };
-var mygame_client_model_RoomInfo = function(oMessage) {
+var mygame_client_model_RoomInfo = function() {
+	this._aUserInfo = null;
 	this.onUpdate = new trigger_eventdispatcher_EventDispatcher();
-	this.update(oMessage);
 };
 $hxClasses["mygame.client.model.RoomInfo"] = mygame_client_model_RoomInfo;
 mygame_client_model_RoomInfo.__name__ = ["mygame","client","model","RoomInfo"];
+mygame_client_model_RoomInfo.default_create = function() {
+	var o = new mygame_client_model_RoomInfo();
+	o._aUserInfo = [{ name : "Player 0", ready : true, ai : false, playerId : 0},{ name : "Nemesis", ready : true, ai : true, playerId : 1}];
+	return o;
+};
+mygame_client_model_RoomInfo.online_create = function(oMessage) {
+	var o = new mygame_client_model_RoomInfo();
+	o._aUserInfo = oMessage.aUser;
+	return o;
+};
 mygame_client_model_RoomInfo.prototype = {
 	userInfoList_get: function() {
 		return this._aUserInfo;
 	}
-	,update: function(oMessage) {
-		this._aUserInfo = [];
-		var _g1 = 0;
-		var _g = oMessage.aUser.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			this._aUserInfo.push(new mygame_client_model_UserInfo(oMessage,i));
+	,isPaused: function() {
+		var _g = 0;
+		var _g1 = this._aUserInfo;
+		while(_g < _g1.length) {
+			var oUserInfo = _g1[_g];
+			++_g;
+			if(oUserInfo.ready == false) return true;
 		}
+		return false;
+	}
+	,update: function(oMessage) {
+		this._aUserInfo = oMessage.aUser;
 		this.onUpdate.dispatch(this);
 	}
 	,__class__: mygame_client_model_RoomInfo
@@ -3252,29 +3295,10 @@ mygame_client_model_UnitSelection.prototype = {
 	}
 	,__class__: mygame_client_model_UnitSelection
 };
-var mygame_client_model_UserInfo = function(oMessage,iIndex) {
-	var msInfo = oMessage.aUser[iIndex];
-	this._sName = __map_reserved.name != null?msInfo.getReserved("name"):msInfo.h["name"];
-	this._bReady = __map_reserved.ready != null?msInfo.getReserved("ready"):msInfo.h["ready"];
-	this._iPlayerIndex = __map_reserved.playerindex != null?msInfo.getReserved("playerindex"):msInfo.h["playerindex"];
-};
-$hxClasses["mygame.client.model.UserInfo"] = mygame_client_model_UserInfo;
-mygame_client_model_UserInfo.__name__ = ["mygame","client","model","UserInfo"];
-mygame_client_model_UserInfo.prototype = {
-	ready_get: function() {
-		return this._bReady;
-	}
-	,name_get: function() {
-		return this._sName;
-	}
-	,playerIndex_id: function() {
-		return this._iPlayerIndex;
-	}
-	,__class__: mygame_client_model_UserInfo
-};
 var mygame_client_view_GameMenu = function(oModel) {
 	this._oModel = oModel;
 	this._oContainer = window.document.getElementById("GameMenu");
+	this._oContainer.style.removeProperty("display");
 	this._oCreditLabel = window.document.getElementById("Credit");
 	this._oBuildContainer = window.document.getElementById("Build");
 	this._oSelectionList = window.document.getElementById("SelectionList");
@@ -3283,7 +3307,7 @@ var mygame_client_view_GameMenu = function(oModel) {
 	this.selectionList_update();
 	this._oSelection = this._oModel.GUI_get().unitSelection_get();
 	this._oSelection.onUpdate.attach(this);
-	this._oModel.playerLocal_get().onUpdate.attach(this);
+	this._oBlockUnitSelection = new mygame_client_view_html_BlockUnitSelection(this._oModel,window.document.getElementById("selection-wrapper"));
 };
 $hxClasses["mygame.client.view.GameMenu"] = mygame_client_view_GameMenu;
 mygame_client_view_GameMenu.__name__ = ["mygame","client","view","GameMenu"];
@@ -3296,6 +3320,7 @@ mygame_client_view_GameMenu.prototype = {
 		this._oBuildContainer.style.removeProperty("visibility");
 	}
 	,selectionList_update: function() {
+		return;
 		this._oSelectionList.innerHTML = "";
 		var s = "";
 		var oSelection = this._oModel.GUI_get().unitSelection_get().unitSelection_get();
@@ -3326,10 +3351,10 @@ mygame_client_view_GameMenu.prototype = {
 		this._oBuildList.innerHTML = s;
 	}
 	,pattern_selectButton: function(sName,iQuantity) {
-		return "<button>" + sName + "<span>" + iQuantity + "</span></button>";
+		return "<button class=\"btn-icon\">" + sName + "<span>" + iQuantity + "</span></button>";
 	}
 	,pattern_buildButton: function(iId,sName,iCost) {
-		return "<button class=\"Sale\" data-sale=\"" + iId + "\">" + sName + "<span>-" + iCost + " C</span></button>";
+		return "<button class=\"btn-icon Sale\" data-sale=\"" + iId + "\">" + sName + "<span>-" + iCost + " C</span></button>";
 	}
 	,className_get_fromFullName: function(s) {
 		var a = s.split(".");
@@ -3344,7 +3369,6 @@ mygame_client_view_GameMenu.prototype = {
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oSelection.onUpdate) this.selectionList_update();
-		if(oSource == this._oModel.playerLocal_get().onUpdate) this.selectionList_update();
 	}
 	,__class__: mygame_client_view_GameMenu
 };
@@ -3449,8 +3473,6 @@ mygame_client_view_GameView.prototype = {
 			if(js_Boot.__instanceof(oEntity,mygame_game_entity_PlatoonUnit)) oVisual = new mygame_client_view_visual_unit_PlatoonVisual(this,oEntity);
 			if(js_Boot.__instanceof(oEntity,mygame_game_entity_SubUnit)) oVisual = new mygame_client_view_visual_unit_SoldierVisual(this,oEntity);
 			this._aUnitVisual.push(oVisual);
-			var oGuidance = oUnit.ability_get(mygame_game_ability_Guidance);
-			if(oGuidance != null) new mygame_client_view_visual_ability_GuidanceVisual(this,oUnit.ability_get(mygame_game_ability_Guidance));
 			if(js_Boot.__instanceof(oEntity,mygame_game_entity_Tank) && oEntity.identity_get() == 11) this._oOb3UpdaterManager.add(new ob3updater_Transistion(oVisual.object3d_get(),45));
 			return oVisual;
 		}
@@ -3682,7 +3704,6 @@ var mygame_client_view_MenuCredit = function(oModel,oDiv) {
 	this._oModel = oModel;
 	this._oDiv = oDiv;
 	this.update();
-	this._oModel.playerLocal_get().onUpdate.attach(this);
 };
 $hxClasses["mygame.client.view.MenuCredit"] = mygame_client_view_MenuCredit;
 mygame_client_view_MenuCredit.__name__ = ["mygame","client","view","MenuCredit"];
@@ -3704,7 +3725,7 @@ var mygame_client_view_MenuPause = function(oModel,oDiv) {
 	this._oModel = oModel;
 	this._oDiv = oDiv;
 	this._oRoomInfo = this._oModel.roomInfo_get();
-	if(this._oRoomInfo == null) throw new js__$Boot_HaxeError("Invalid room info, null");
+	if(this._oRoomInfo == null) throw new js__$Boot_HaxeError("[ERROR] MenuPause : no room info found");
 	this.update();
 	this._oRoomInfo.onUpdate.attach(this);
 };
@@ -3717,15 +3738,18 @@ mygame_client_view_MenuPause.prototype = {
 		this._oDiv.innerHTML = this.render();
 	}
 	,render: function() {
-		var s = "<table><tbody>";
+		if(this._oRoomInfo.isPaused()) this._oDiv.style.display = ""; else this._oDiv.style.display = "none";
+		var s = "<h1>Paused</h1><table><tbody>";
 		var _g = 0;
 		var _g1 = this._oRoomInfo.userInfoList_get();
 		while(_g < _g1.length) {
 			var oUserInfo = _g1[_g];
 			++_g;
-			s += "<tr><td>" + oUserInfo.name_get() + "</td>";
-			s += "<td><input type=\"checkbox\" ";
-			if(oUserInfo.ready_get()) s += "checked";
+			s += "<tr><td>" + oUserInfo.name + "</td>";
+			s += "<td><input ";
+			if(this._oModel.playerLocal_get().playerId_get() == oUserInfo.playerId) s += " data-haxeAction=\"" + (oUserInfo.ready?"pause":"unpause") + "\" "; else s += " disabled ";
+			s += " type=\"checkbox\" ";
+			if(oUserInfo.ready) s += " checked ";
 			s += " /></td></tr>";
 		}
 		s += "</tbody></table>";
@@ -3798,6 +3822,79 @@ mygame_client_view_View.prototype = {
 	,trigger: function(oSource) {
 	}
 	,__class__: mygame_client_view_View
+};
+var mygame_client_view_html_BlockUnitSelection = function(oModel,oDiv) {
+	this._oModel = oModel;
+	this._oDiv = oDiv;
+	this._oBuildContainer = window.document.getElementById("Build");
+	this._oBuildList = window.document.getElementById("BuildList");
+	this._oSelectionList = window.document.getElementById("SelectionList");
+	this._oModel.GUI_get().unitSelection_get().onUpdate.attach(this);
+	this.update();
+};
+$hxClasses["mygame.client.view.html.BlockUnitSelection"] = mygame_client_view_html_BlockUnitSelection;
+mygame_client_view_html_BlockUnitSelection.__name__ = ["mygame","client","view","html","BlockUnitSelection"];
+mygame_client_view_html_BlockUnitSelection.__interfaces__ = [trigger_ITrigger];
+mygame_client_view_html_BlockUnitSelection.prototype = {
+	update: function() {
+		this._oSelectionList.innerHTML = this._render();
+	}
+	,_render: function() {
+		var oSelection = this._oModel.GUI_get().unitSelection_get().unitSelection_get();
+		if(utils_MapTool.getLength(oSelection) == 0) return "";
+		var s = "";
+		var $it0 = oSelection.keys();
+		while( $it0.hasNext() ) {
+			var sUnitType = $it0.next();
+			if((__map_reserved[sUnitType] != null?oSelection.getReserved(sUnitType):oSelection.h[sUnitType]).length > 0) {
+				s += this.pattern_selectButton(this.className_get_fromFullName(sUnitType),(__map_reserved[sUnitType] != null?oSelection.getReserved(sUnitType):oSelection.h[sUnitType]).length);
+				var oBuilder = (__map_reserved[sUnitType] != null?oSelection.getReserved(sUnitType):oSelection.h[sUnitType]).first().ability_get(mygame_game_ability_BuilderFactory);
+				if(oBuilder != null) {
+					this.build_show();
+					this.buildList_update(oBuilder);
+				} else this.build_hide();
+			}
+		}
+		return s;
+	}
+	,_menuSelection_render: function() {
+		return "<fieldset id=\"Selection\">\n\t\t\t<legend>Selection</legend>\n\t\t\t<div id=\"SelectionList\"></div>\n\t\t</fieldset>";
+	}
+	,_menuBUild_render: function() {
+		return "<fieldset id=\"Build\">\n\t\t\t<legend>Build unit</legend>\n\t\t\t<div id=\"BuildList\"></div>\n\t\t</fieldset>";
+	}
+	,pattern_selectButton: function(sName,iQuantity) {
+		return "<button class=\"btn-icon\">" + sName + "<span>" + iQuantity + "</span></button>";
+	}
+	,pattern_buildButton: function(iId,sName,iCost) {
+		return "<button class=\"btn-icon Sale\" data-sale=\"" + iId + "\">" + sName + "<span>-" + iCost + " C</span></button>";
+	}
+	,buildList_update: function(oBuilder) {
+		this._oBuildList.innerHTML = "";
+		var s = "";
+		var aOffer = oBuilder.offerArray_get();
+		var _g1 = 0;
+		var _g = aOffer.length;
+		while(_g1 < _g) {
+			var iOfferId = _g1++;
+			s += this.pattern_buildButton(iOfferId,aOffer[iOfferId].name_get(),aOffer[iOfferId].cost_get());
+		}
+		this._oBuildList.innerHTML = s;
+	}
+	,build_hide: function() {
+		this._oBuildContainer.style.visibility = "hidden";
+	}
+	,build_show: function() {
+		this._oBuildContainer.style.removeProperty("visibility");
+	}
+	,trigger: function(oSource) {
+		this.update();
+	}
+	,className_get_fromFullName: function(s) {
+		var a = s.split(".");
+		return a[a.length - 1];
+	}
+	,__class__: mygame_client_view_html_BlockUnitSelection
 };
 var ob3updater_IOb3Updater = function() { };
 $hxClasses["ob3updater.IOb3Updater"] = ob3updater_IOb3Updater;
@@ -4170,13 +4267,19 @@ mygame_client_view_visual_UnitSelection.prototype = {
 		var oVector;
 		oVector = utils_three_Coordonate.screen_to_worldGround(this._oModel.mouse_get().x_get(),this._oModel.mouse_get().y_get(),this._oGameView.renderer_get(),this._oGameView.camera_get());
 		oVector = new space_Vector2i(Math.round(oVector.x * 10000),Math.round(oVector.y * 10000));
-		oVector = mygame_game_ability_Mobility.positionCorrection(oGuidance.mobility_get(),oVector);
+		oVector = oGuidance.positionCorrection(oVector);
 		oVector = mygame_game_ability_Position.metric_unit_to_map_vector(oVector);
 		var oVolume = oUnit.ability_get(mygame_game_ability_Volume);
 		if(oVolume != null) {
 			var i = mygame_game_ability_Position.metric_unit_to_map(oVolume.size_get());
-			this._oGuidancePreview.position.set(oVector.x,oVector.y,0.5);
+			this._oGuidancePreview.position.set(oVector.x,oVector.y,0.25);
 			this._oGuidancePreview.scale.set(i,i,i);
+		}
+		var oPlatoon = oUnit.ability_get(mygame_game_ability_Platoon);
+		if(oPlatoon != null) {
+			var i1 = mygame_game_ability_Position.metric_unit_to_map(oPlatoon.halfSize_get());
+			this._oGuidancePreview.position.set(oVector.x,oVector.y,0.25);
+			this._oGuidancePreview.scale.set(i1,i1,i1);
 		}
 		if(oVector == null) return;
 		var oVisual = mygame_client_view_visual_EntityVisual.get_byEntity(oUnit);
@@ -4184,7 +4287,7 @@ mygame_client_view_visual_UnitSelection.prototype = {
 		var scene = this._oGuidancePreviewLine.parent;
 		scene.remove(this._oGuidancePreviewLine);
 		var oGeometry = new THREE.Geometry();
-		oGeometry.vertices.push(new THREE.Vector3(oVector.x,oVector.y,0.5));
+		oGeometry.vertices.push(new THREE.Vector3(oVector.x,oVector.y,0.25));
 		oGeometry.vertices.push(new THREE.Vector3(oPosition.x,oPosition.y,0.5));
 		this._oGuidancePreviewLine = new THREE.Line(oGeometry,this._oGameView.material_get("gui_guidancePreviewLine"));
 		scene.add(this._oGuidancePreviewLine);
@@ -4198,50 +4301,62 @@ mygame_client_view_visual_UnitSelection.prototype = {
 	}
 	,__class__: mygame_client_view_visual_UnitSelection
 };
-var mygame_client_view_visual_ability_GuidanceVisual = function(oGameView,oGuidance) {
+var mygame_client_view_visual_ability_GuidanceVisual = function(oUnitVisual,oGuidance) {
 	this._oLine = null;
-	this._oGameView = oGameView;
+	THREE.Object3D.call(this);
+	this._oUnitVisual = oUnitVisual;
 	this._oGuidance = oGuidance;
 	this._oLine = new THREE.Line(new THREE.Geometry(),mygame_client_view_visual_ability_GuidanceVisual._oMaterial);
-	this._oGameView.scene_get().add(this.object3d_get());
-	this.update();
-	this._oGameView.model_get().game_get().onLoopEnd.attach(this);
+	this.add(this.object3d_get());
+	this._update();
+	this._oUnit = this._oUnitVisual.unit_get();
+	this._oUnit.mygame_get().onLoopEnd.attach(this);
+	this._oUnit.onDispose.attach(this);
 };
 $hxClasses["mygame.client.view.visual.ability.GuidanceVisual"] = mygame_client_view_visual_ability_GuidanceVisual;
 mygame_client_view_visual_ability_GuidanceVisual.__name__ = ["mygame","client","view","visual","ability","GuidanceVisual"];
-mygame_client_view_visual_ability_GuidanceVisual.__interfaces__ = [trigger_ITrigger,mygame_client_view_visual_IVisual];
-mygame_client_view_visual_ability_GuidanceVisual.prototype = {
+mygame_client_view_visual_ability_GuidanceVisual.__interfaces__ = [trigger_ITrigger];
+mygame_client_view_visual_ability_GuidanceVisual.__super__ = THREE.Object3D;
+mygame_client_view_visual_ability_GuidanceVisual.prototype = $extend(THREE.Object3D.prototype,{
 	object3d_get: function() {
 		return this._oLine;
 	}
-	,update: function() {
+	,_update: function() {
 		if(this._oGuidance.goal_get() == null) {
 			if(this._oLine == null) return; else this._oLine.visible = false;
 		}
-		var geometry = new THREE.Geometry();
 		var destination = this._oGuidance.goal_get();
-		if(destination != null) {
-			var oPosition = this._oGuidance.mobility_get().position_get();
-			geometry.vertices.push(new THREE.Vector3(mygame_game_ability_Position.metric_unit_to_map(destination.x),mygame_game_ability_Position.metric_unit_to_map(destination.y),0.51));
-			geometry.vertices.push(new THREE.Vector3(mygame_game_ability_Position.metric_unit_to_map(oPosition.x),mygame_game_ability_Position.metric_unit_to_map(oPosition.y),0.51));
-		}
+		if(destination == null) return;
+		var oPosition = this._oGuidance.mobility_get().position_get();
+		var geometry = new THREE.Geometry();
+		geometry.vertices = [new THREE.Vector3(this._oUnitVisual.object3d_get().position.x,this._oUnitVisual.object3d_get().position.y,0.251),new THREE.Vector3(mygame_game_ability_Position.metric_unit_to_map(destination.x),mygame_game_ability_Position.metric_unit_to_map(destination.y),0.251)];
 		var scene = this._oLine.parent;
 		scene.remove(this._oLine);
 		this._oLine = new THREE.Line(geometry,mygame_client_view_visual_ability_GuidanceVisual._oMaterial);
 		scene.add(this._oLine);
 	}
-	,_update: function() {
-	}
 	,trigger: function(oSource) {
-		if(oSource == this._oGameView.model_get().game_get().onLoopEnd) this.update();
+		if(oSource == this._oUnit.mygame_get().onLoopEnd) {
+			this._update();
+			return;
+		}
+		if(oSource == this._oUnit.onDispose) {
+			this.dispose();
+			return;
+		}
+	}
+	,dispose: function() {
+		this._oLine.parent.remove(this._oLine);
+		this._oUnit.mygame_get().onLoopEnd.remove(this);
+		this._oUnit.onDispose.remove(this);
 	}
 	,__class__: mygame_client_view_visual_ability_GuidanceVisual
-};
+});
 var mygame_client_view_visual_ability_UnitAbilityVisual = function(oAbility) {
 	this._bDisposed = false;
 	this._oAbility = oAbility;
 	this._oOrigin = new THREE.Object3D();
-	this._oAbility.onDispose.attach(this);
+	this._oAbility.unit_get().onDispose.attach(this);
 };
 $hxClasses["mygame.client.view.visual.ability.UnitAbilityVisual"] = mygame_client_view_visual_ability_UnitAbilityVisual;
 mygame_client_view_visual_ability_UnitAbilityVisual.__name__ = ["mygame","client","view","visual","ability","UnitAbilityVisual"];
@@ -4251,7 +4366,7 @@ mygame_client_view_visual_ability_UnitAbilityVisual.prototype = {
 		return this._oOrigin;
 	}
 	,trigger: function(oSource) {
-		if(oSource == this._oAbility.onDispose) this.dispose();
+		if(oSource == this._oAbility.unit_get().onDispose) this.dispose();
 	}
 	,dispose: function() {
 		if(this._oOrigin.parent != null) this._oOrigin.parent.remove(this._oOrigin);
@@ -4260,68 +4375,65 @@ mygame_client_view_visual_ability_UnitAbilityVisual.prototype = {
 	}
 	,__class__: mygame_client_view_visual_ability_UnitAbilityVisual
 };
-var mygame_client_view_visual_ability_WeaponVisual = function(oUnitVisual,oWeapon,oGUI) {
+var mygame_client_view_visual_ability_WeaponVisual = function(oUnitVisual,oWeapon) {
 	this._oLine = null;
-	mygame_client_view_visual_ability_UnitAbilityVisual.call(this,oWeapon);
+	THREE.Object3D.call(this);
 	this._oUnitVisual = oUnitVisual;
 	this._oGameView = this._oUnitVisual.gameView_get();
 	this._oAbility = oWeapon;
-	this._oGUI = oGUI;
-	this.update();
-	this._oGameView.model_get().game_get().oWeaponProcess.onTargeting.attach(this);
+	this._oAbility.unit_get().mygame_get().onLoopEnd.attach(this);
+	this._oAbility.unit_get().onDispose.attach(this);
 	this._oAbility.onFire.attach(this);
 };
 $hxClasses["mygame.client.view.visual.ability.WeaponVisual"] = mygame_client_view_visual_ability_WeaponVisual;
 mygame_client_view_visual_ability_WeaponVisual.__name__ = ["mygame","client","view","visual","ability","WeaponVisual"];
-mygame_client_view_visual_ability_WeaponVisual.__interfaces__ = [trigger_ITrigger,mygame_client_view_visual_IVisual];
-mygame_client_view_visual_ability_WeaponVisual.__super__ = mygame_client_view_visual_ability_UnitAbilityVisual;
-mygame_client_view_visual_ability_WeaponVisual.prototype = $extend(mygame_client_view_visual_ability_UnitAbilityVisual.prototype,{
+mygame_client_view_visual_ability_WeaponVisual.__interfaces__ = [utils_IDisposable,trigger_ITrigger];
+mygame_client_view_visual_ability_WeaponVisual.__super__ = THREE.Object3D;
+mygame_client_view_visual_ability_WeaponVisual.prototype = $extend(THREE.Object3D.prototype,{
 	update: function() {
-		if(this._oAbility.target_get() != null && this._oLine == null) {
-			var oTargetVisual = mygame_client_view_visual_EntityVisual.get_byEntity(this._oAbility.target_get());
-			if(oTargetVisual != null) {
-				var geometry = new THREE.Geometry();
-				geometry.vertices.push(new THREE.Vector3(0,0.1,0));
-				geometry.vertices.push(new THREE.Vector3(0,0,0));
-				this._oLine = new THREE.Line(geometry,mygame_client_view_visual_ability_WeaponVisual._oMaterial);
-				this._oUnitVisual.object3d_get().add(this._oLine);
-			}
-		} else if(this._oAbility.target_get() == null && this._oLine != null) {
-			this._oUnitVisual.object3d_get().remove(this._oLine);
-			this._oLine = null;
+		if(this.parent == null) {
+			console.log("notice : disposed ");
+			this.dispose();
 		}
-		if(this._oLine != null) {
-			var oTargetVisual1 = mygame_client_view_visual_EntityVisual.get_byEntity(this._oAbility.target_get());
-			var v = this._oUnitVisual.object3d_get().worldToLocal(oTargetVisual1.object3d_get().localToWorld(new THREE.Vector3(0,0,0)));
-			this._oLine.geometry.verticesNeedUpdate = true;
-			this._oLine.geometry.vertices[1] = v;
-			this._oLine.updateMatrix();
-			if(this._oAbility.cooldown_get().expirePercent_get() > 0.5) this._oLine.visible = false;
-		}
+		if(this._oLine == null) return;
+		if(this._oAbility.cooldown_get().expirePercent_get() > 0.5) this._fireLine_dispose();
 	}
-	,update_visibility: function() {
-		if(this._oGUI.mode_get() == 0) this.hide(); else this.show();
+	,disposed_check: function() {
+		return true;
 	}
-	,hide: function() {
-		console.log(this._oSprite.material.visible);
-		mygame_client_view_visual_ability_WeaponVisual._oMatBackground.visible = false;
-		mygame_client_view_visual_ability_WeaponVisual._oMatForeground.visible = false;
+	,_fireLine_create: function() {
+		if(this._oLine != null) this._fireLine_dispose();
+		if(this._oAbility.target_get() == null) throw new js__$Boot_HaxeError("something is wrong");
+		var oTargetVisual = mygame_client_view_visual_EntityVisual.get_byEntity(this._oAbility.target_get());
+		if(oTargetVisual == null) throw new js__$Boot_HaxeError("something is wrong");
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push(this._oUnitVisual.object3d_get().localToWorld(new THREE.Vector3(0,0.1,0)));
+		geometry.vertices.push(oTargetVisual.object3d_get().localToWorld(new THREE.Vector3(0,0.1,0)));
+		this._oLine = new THREE.Line(geometry,mygame_client_view_visual_ability_WeaponVisual._oMaterial);
+		this._oUnitVisual.gameView_get().scene_get().add(this._oLine);
 	}
-	,show: function() {
-		console.log(this._oSprite.material.visible);
-		mygame_client_view_visual_ability_WeaponVisual._oMatBackground.visible = true;
-		mygame_client_view_visual_ability_WeaponVisual._oMatForeground.visible = true;
+	,_fireLine_dispose: function() {
+		if(this._oLine == null) return;
+		this._oLine.parent.remove(this._oLine);
+		this._oLine = null;
 	}
 	,trigger: function(oSource) {
-		if(oSource == this._oGameView.model_get().game_get().oWeaponProcess.onTargeting) this.update();
 		if(oSource == this._oAbility.onFire) {
-			if(this._oLine != null) this._oLine.visible = true;
+			this._fireLine_create();
+			return;
 		}
-		mygame_client_view_visual_ability_UnitAbilityVisual.prototype.trigger.call(this,oSource);
+		if(oSource == this._oAbility.unit_get().onDispose) {
+			this.dispose();
+			return;
+		}
+		if(oSource == this._oAbility.unit_get().mygame_get().onLoopEnd) {
+			this.update();
+			return;
+		}
 	}
 	,dispose: function() {
-		this._oGameView.model_get().game_get().oWeaponProcess.onTargeting.remove(this);
-		mygame_client_view_visual_ability_UnitAbilityVisual.prototype.dispose.call(this);
+		this._fireLine_dispose();
+		this._oAbility.unit_get().mygame_get().onLoopEnd.remove(this);
 	}
 	,__class__: mygame_client_view_visual_ability_WeaponVisual
 });
@@ -4345,6 +4457,10 @@ var mygame_client_view_visual_debug_PathfinderVisual = function(oGameView,oPathf
 	this._oLine = null;
 	this._oGameView = oGameView;
 	this._oPathfinder = oPathfinder;
+	if(oPathfinder == null) {
+		console.log("[DEBUG]:PathfinderVisual:oPathfinder is null");
+		return;
+	}
 	this.update();
 	mygame_client_view_visual_debug_PathfinderVisual.oInstance = this;
 	this._oGameView.scene_get().add(this.object3d_get());
@@ -4381,12 +4497,12 @@ mygame_client_view_visual_debug_PathfinderVisual.prototype = {
 			var scene = this._oLine.parent;
 			scene.remove(this._oLine);
 			this._oLine = new THREE.Line(geometry,material);
-			this._oLine.position.set(5000,5000,5001);
+			this._oLine.position.set(2500,2500,2501);
 			this._oLine.scale.set(10000,10000,10000);
 			scene.add(this._oLine);
 		} else {
 			this._oLine = new THREE.Line(geometry,material);
-			this._oLine.position.set(5000,5000,5001);
+			this._oLine.position.set(2500,2500,2501);
 			this._oLine.scale.set(10000,10000,10000);
 		}
 	}
@@ -4419,7 +4535,15 @@ mygame_client_view_visual_gui_UnitGauge.__name__ = ["mygame","client","view","vi
 mygame_client_view_visual_gui_UnitGauge.__interfaces__ = [trigger_ITrigger,mygame_client_view_visual_gui_IUnitGauge];
 mygame_client_view_visual_gui_UnitGauge.__super__ = THREE.Mesh;
 mygame_client_view_visual_gui_UnitGauge.prototype = $extend(THREE.Mesh.prototype,{
-	_update: function() {
+	_value_set: function(x) {
+		if(x == 0) {
+			this._oGauge.visible = false;
+			return;
+		}
+		this._oGauge.scale.setX(x);
+		this._oGauge.visible = true;
+	}
+	,_update: function() {
 		throw new js__$Boot_HaxeError("Abstract");
 		this._oGauge.scale.setX(0.5);
 	}
@@ -4439,11 +4563,7 @@ mygame_client_view_visual_gui_HealthGauge.__name__ = ["mygame","client","view","
 mygame_client_view_visual_gui_HealthGauge.__super__ = mygame_client_view_visual_gui_UnitGauge;
 mygame_client_view_visual_gui_HealthGauge.prototype = $extend(mygame_client_view_visual_gui_UnitGauge.prototype,{
 	_update: function() {
-		var x = this._oHealth.percent_get();
-		if(x != 0) {
-			this._oGauge.scale.setX(x);
-			this._oGauge.visible = true;
-		} else this._oGauge.visible = false;
+		this._value_set(this._oHealth.percent_get());
 	}
 	,__class__: mygame_client_view_visual_gui_HealthGauge
 });
@@ -4571,7 +4691,8 @@ mygame_client_view_visual_gui_WeaponGauge.__interfaces__ = [trigger_ITrigger];
 mygame_client_view_visual_gui_WeaponGauge.__super__ = mygame_client_view_visual_gui_UnitGauge;
 mygame_client_view_visual_gui_WeaponGauge.prototype = $extend(mygame_client_view_visual_gui_UnitGauge.prototype,{
 	_update: function() {
-		this._oGauge.scale.setX(Math.min(1,this._oWeapon.cooldown_get().expirePercent_get()));
+		var fValue = Math.min(1,this._oWeapon.cooldown_get().expirePercent_get());
+		this._value_set(fValue);
 	}
 	,__class__: mygame_client_view_visual_gui_WeaponGauge
 });
@@ -4587,6 +4708,10 @@ var mygame_client_view_visual_unit_UnitVisual = function(oGameView,oUnit,fSelect
 	this._oScene = new THREE.Group();
 	this._oScene.position.setZ(0.25);
 	this._oWeaponRange = null;
+	this._mAbilityVisual = new haxe_ds_StringMap();
+	this._mNode = new haxe_ds_StringMap();
+	this._mNode.set("root",this._oScene);
+	this._mNode.set("world",this._oGameView.scene_get());
 	mygame_client_view_visual_EntityVisual.call(this,this._oUnit);
 	this._oSelection = new THREE.Mesh(this._oGameView.geometry_get("gui_selection_circle"),this._oGameView.material_get("wireframe_white"));
 	this._oSelection.scale.set(this._fSelectionScale,this._fSelectionScale,this._fSelectionScale);
@@ -4605,34 +4730,19 @@ var mygame_client_view_visual_unit_UnitVisual = function(oGameView,oUnit,fSelect
 	this._info_update();
 	this._oGameView.scene_get().add(this.object3d_get());
 	this._oGaugeHolder = new THREE.Object3D();
+	this._mNode.set("gauge",this._oGaugeHolder);
 	this._oGameView.sceneOrtho_get().add(this._oGaugeHolder);
 	this._oGameView.ob3UpdaterManager_get().add(new mygame_client_view_ob3updater_Follow(this._oGameView,this._oGaugeHolder,this._oInfoAnchor));
 	this.onUpdateEnd = new trigger_eventdispatcher_EventDispatcher();
 	var $it0 = this._oUnit.abilityMap_get().iterator();
 	while( $it0.hasNext() ) {
 		var oAbility = $it0.next();
-		var _g;
-		if(oAbility == null) _g = null; else _g = js_Boot.getClass(oAbility);
-		if(_g != null) switch(_g) {
-		case mygame_game_ability_Health:
-			this._oGaugeHolder.add(new mygame_client_view_visual_gui_HealthGauge(this,oAbility,this._oGaugeHolder.children.length));
-			break;
-		case mygame_game_ability_Weapon:
-			var oAbilityW;
-			oAbilityW = js_Boot.__cast(oAbility , mygame_game_ability_Weapon);
-			new mygame_client_view_visual_ability_WeaponVisual(this,oAbility,null);
-			this._oGaugeHolder.add(new mygame_client_view_visual_gui_WeaponGauge(this,oAbility,this._oGaugeHolder.children.length));
-			this._oWeaponRange = new THREE.Mesh(this._oGameView.geometry_get("gui_selection_circle"),this._oGameView.material_get("wireframe_red"));
-			this._oWeaponRange.scale.set(oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get());
-			this._oWeaponRange.visible = false;
-			this._oScene.add(this._oWeaponRange);
-			break;
-		case mygame_game_ability_LoyaltyShift:
-			this._oGaugeHolder.add(new mygame_client_view_visual_gui_LoyaltyGauge(this,oAbility));
-			break;
-		}
+		this._abilityVisual_add(oAbility);
 	}
 	this._oUnit.mygame_get().onLoopEnd.attach(this);
+	this.unit_get().ability_get(mygame_game_ability_Loyalty).onUpdate.attach(this);
+	this.unit_get().onAbilityAdd.attach(this);
+	this.unit_get().onAbilityRemove.attach(this);
 	this._oPosition = this._oUnit.ability_get(mygame_game_ability_Position);
 };
 $hxClasses["mygame.client.view.visual.unit.UnitVisual"] = mygame_client_view_visual_unit_UnitVisual;
@@ -4706,6 +4816,56 @@ mygame_client_view_visual_unit_UnitVisual.prototype = $extend(mygame_client_view
 		this._oScene.position.setX(this._oPosition.x / 10000);
 		this._oScene.position.setY(this._oPosition.y / 10000);
 	}
+	,_decay_start: function() {
+		this.dispose();
+	}
+	,banner_update: function() {
+		(js_Boot.__cast(this._oScene.children[this._oScene.children.length - 1].material , THREE.MeshFaceMaterial)).materials[1] = this._oGameView.material_get_byPlayer("player_flat",this.unit_get().owner_get());
+	}
+	,_abilityVisual_add: function(oAbility) {
+		var aVisualInfo = this._abilityVisual_resolve(oAbility);
+		if(aVisualInfo == null) return;
+		var _g = 0;
+		while(_g < aVisualInfo.length) {
+			var oInfo = aVisualInfo[_g];
+			++_g;
+			if(!this._mNode.exists(oInfo.nodeName)) throw new js__$Boot_HaxeError("Invalid node name");
+			this._mNode.get(oInfo.nodeName).add(oInfo.obj3d);
+		}
+		this._mAbilityVisual.set(Type.getClassName(oAbility == null?null:js_Boot.getClass(oAbility)),aVisualInfo);
+	}
+	,_abilityVisual_remove: function(oAbility) {
+		var sKey = Type.getClassName(oAbility == null?null:js_Boot.getClass(oAbility));
+		var oVisualInfo = this._mAbilityVisual.get(sKey);
+		var _g = 0;
+		while(_g < oVisualInfo.length) {
+			var oInfo = oVisualInfo[_g];
+			++_g;
+			oInfo.obj3d.parent.remove(oInfo.obj3d);
+			if(js_Boot.__instanceof(oInfo.obj3d,utils_IDisposable)) oInfo.obj3d.dispose();
+		}
+		this._mAbilityVisual.remove(sKey);
+	}
+	,_abilityVisual_resolve: function(oAbility) {
+		var _g;
+		if(oAbility == null) _g = null; else _g = js_Boot.getClass(oAbility);
+		if(_g != null) switch(_g) {
+		case mygame_game_ability_Health:
+			return [{ nodeName : "gauge", obj3d : new mygame_client_view_visual_gui_HealthGauge(this,oAbility,this._oGaugeHolder.children.length)}];
+		case mygame_game_ability_Weapon:
+			var oAbilityW;
+			oAbilityW = js_Boot.__cast(oAbility , mygame_game_ability_Weapon);
+			this._oWeaponRange = new THREE.Mesh(this._oGameView.geometry_get("gui_selection_circle"),this._oGameView.material_get("wireframe_red"));
+			this._oWeaponRange.scale.set(oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get());
+			this._oWeaponRange.visible = false;
+			return [{ nodeName : "gauge", obj3d : new mygame_client_view_visual_gui_WeaponGauge(this,oAbility,this._oGaugeHolder.children.length)},{ nodeName : "root", obj3d : this._oWeaponRange},{ nodeName : "root", obj3d : new mygame_client_view_visual_ability_WeaponVisual(this,oAbility)}];
+		case mygame_game_ability_LoyaltyShift:
+			return [{ nodeName : "gauge", obj3d : new mygame_client_view_visual_gui_LoyaltyGauge(this,oAbility)}];
+		case mygame_game_ability_Guidance:case mygame_game_ability_Platoon:
+			return [{ nodeName : "world", obj3d : new mygame_client_view_visual_ability_GuidanceVisual(this,oAbility)}];
+		}
+		return null;
+	}
 	,_playerColoredMesh_createAdd: function(oParent,bFlat) {
 		if(bFlat == null) bFlat = false;
 		var oMesh;
@@ -4719,14 +4879,21 @@ mygame_client_view_visual_unit_UnitVisual.prototype = $extend(mygame_client_view
 		this._oInfoAnchor.updateMatrix();
 	}
 	,trigger: function(oSource) {
+		if(oSource == this.unit_get().onAbilityAdd) this._abilityVisual_add(this.unit_get().onAbilityAdd.event_get().ability);
+		if(oSource == this.unit_get().onAbilityRemove) this._abilityVisual_remove(this.unit_get().onAbilityRemove.event_get().ability);
 		if(oSource == this._oUnit.mygame_get().onLoopEnd) {
 			this.update();
 			this._info_update();
+			return;
 		}
-		if(oSource == this._oEntity.onDispose) this._decay_start();
-	}
-	,_decay_start: function() {
-		this.dispose();
+		if(oSource == this._oEntity.onDispose) {
+			this._decay_start();
+			return;
+		}
+		if(oSource == this.unit_get().ability_get(mygame_game_ability_Loyalty).onUpdate) {
+			this.banner_update();
+			return;
+		}
 	}
 	,dispose: function() {
 		this._oUnit.mygame_get().onLoopEnd.remove(this);
@@ -4774,7 +4941,6 @@ var mygame_client_view_visual_unit_CityVisual = function(oDisplayer,oUnit) {
 	this._oScene.add(this._oMesh);
 	this.update();
 	this._position_update();
-	this.unit_get().onUpdate.attach(this);
 };
 $hxClasses["mygame.client.view.visual.unit.CityVisual"] = mygame_client_view_visual_unit_CityVisual;
 mygame_client_view_visual_unit_CityVisual.__name__ = ["mygame","client","view","visual","unit","CityVisual"];
@@ -4784,15 +4950,8 @@ mygame_client_view_visual_unit_CityVisual.prototype = $extend(mygame_client_view
 	entity_get: function() {
 		return this._oUnit;
 	}
-	,banner_update: function() {
-		(js_Boot.__cast(this._oMesh.material , THREE.MeshFaceMaterial)).materials[1] = this._oGameView.material_get_byPlayer("player_flat",this.unit_get().owner_get());
-	}
 	,update: function() {
 		return;
-	}
-	,trigger: function(oSource) {
-		mygame_client_view_visual_unit_UnitVisual.prototype.trigger.call(this,oSource);
-		if(oSource == this.unit_get().onUpdate) this.banner_update();
 	}
 	,__class__: mygame_client_view_visual_unit_CityVisual
 });
@@ -4835,7 +4994,6 @@ var mygame_client_view_visual_unit_FactoryVisual = function(oDisplayer,oUnit) {
 	this._oScene.add(this._oMesh);
 	this._oBanner = this._playerColoredMesh_createAdd(this._oMesh,true);
 	this.update();
-	this.unit_get().onUpdate.attach(this);
 };
 $hxClasses["mygame.client.view.visual.unit.FactoryVisual"] = mygame_client_view_visual_unit_FactoryVisual;
 mygame_client_view_visual_unit_FactoryVisual.__name__ = ["mygame","client","view","visual","unit","FactoryVisual"];
@@ -4854,7 +5012,6 @@ mygame_client_view_visual_unit_FactoryVisual.prototype = $extend(mygame_client_v
 	}
 	,trigger: function(oSource) {
 		mygame_client_view_visual_unit_UnitVisual.prototype.trigger.call(this,oSource);
-		if(oSource == this.unit_get().onUpdate) this.banner_update();
 	}
 	,__class__: mygame_client_view_visual_unit_FactoryVisual
 });
@@ -4876,8 +5033,8 @@ mygame_client_view_visual_unit_PlatoonVisual.prototype = $extend(mygame_client_v
 	}
 	,update: function() {
 		var v = this._subUnitPositionAvr_get();
-		this._oScene.position.setX(v.x);
-		this._oScene.position.setY(v.y);
+		this._oScene.position.setX(v.x / 10000);
+		this._oScene.position.setY(v.y / 10000);
 		this.onUpdateEnd.dispatch(this);
 	}
 	,_subUnitPositionAvr_get: function() {
@@ -4895,11 +5052,36 @@ mygame_client_view_visual_unit_PlatoonVisual.prototype = $extend(mygame_client_v
 	}
 	,__class__: mygame_client_view_visual_unit_PlatoonVisual
 });
+var mygame_client_view_visual_unit_SubUnitVisual = function(oGameView,oUnit,fSelectionScale) {
+	mygame_client_view_visual_unit_UnitVisual.call(this,oGameView,oUnit,fSelectionScale);
+};
+$hxClasses["mygame.client.view.visual.unit.SubUnitVisual"] = mygame_client_view_visual_unit_SubUnitVisual;
+mygame_client_view_visual_unit_SubUnitVisual.__name__ = ["mygame","client","view","visual","unit","SubUnitVisual"];
+mygame_client_view_visual_unit_SubUnitVisual.__super__ = mygame_client_view_visual_unit_UnitVisual;
+mygame_client_view_visual_unit_SubUnitVisual.prototype = $extend(mygame_client_view_visual_unit_UnitVisual.prototype,{
+	_abilityVisual_resolve: function(oAbility) {
+		var _g;
+		if(oAbility == null) _g = null; else _g = js_Boot.getClass(oAbility);
+		if(_g != null) switch(_g) {
+		case mygame_game_ability_Health:case mygame_game_ability_Guidance:case mygame_game_ability_Platoon:
+			return [];
+		case mygame_game_ability_Weapon:
+			var oAbilityW;
+			oAbilityW = js_Boot.__cast(oAbility , mygame_game_ability_Weapon);
+			this._oWeaponRange = new THREE.Mesh(this._oGameView.geometry_get("gui_selection_circle"),this._oGameView.material_get("wireframe_red"));
+			this._oWeaponRange.scale.set(oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get(),oAbilityW.rangeMax_get());
+			this._oWeaponRange.visible = false;
+			return [{ nodeName : "root", obj3d : this._oWeaponRange},{ nodeName : "root", obj3d : new mygame_client_view_visual_ability_WeaponVisual(this,oAbility)}];
+		}
+		return mygame_client_view_visual_unit_UnitVisual.prototype._abilityVisual_resolve.call(this,oAbility);
+	}
+	,__class__: mygame_client_view_visual_unit_SubUnitVisual
+});
 var mygame_client_view_visual_unit_SoldierVisual = function(oDisplayer,oUnit) {
-	mygame_client_view_visual_unit_UnitVisual.call(this,oDisplayer,oUnit);
+	mygame_client_view_visual_unit_SubUnitVisual.call(this,oDisplayer,oUnit,0.05);
 	var oMaterial = new THREE.MeshFaceMaterial([oDisplayer.material_get("soldier"),this._oGameView.material_get_byPlayer("player",this.unit_get().owner_get())]);
 	this._oBody = new THREE.Mesh(oDisplayer.geometry_get("soldier"),oMaterial);
-	this._oBody.scale.set(0.1,0.1,0.1);
+	this._oBody.scale.set(0.04,0.04,0.04);
 	this._oBody.rotation.set(0,0,-0.8);
 	this._oBody.castShadow = true;
 	this._oBody.updateMatrix();
@@ -4908,13 +5090,13 @@ var mygame_client_view_visual_unit_SoldierVisual = function(oDisplayer,oUnit) {
 };
 $hxClasses["mygame.client.view.visual.unit.SoldierVisual"] = mygame_client_view_visual_unit_SoldierVisual;
 mygame_client_view_visual_unit_SoldierVisual.__name__ = ["mygame","client","view","visual","unit","SoldierVisual"];
-mygame_client_view_visual_unit_SoldierVisual.__super__ = mygame_client_view_visual_unit_UnitVisual;
-mygame_client_view_visual_unit_SoldierVisual.prototype = $extend(mygame_client_view_visual_unit_UnitVisual.prototype,{
+mygame_client_view_visual_unit_SoldierVisual.__super__ = mygame_client_view_visual_unit_SubUnitVisual;
+mygame_client_view_visual_unit_SoldierVisual.prototype = $extend(mygame_client_view_visual_unit_SubUnitVisual.prototype,{
 	entity_get: function() {
 		return this._oUnit;
 	}
 	,update: function() {
-		mygame_client_view_visual_unit_UnitVisual.prototype.update.call(this);
+		mygame_client_view_visual_unit_SubUnitVisual.prototype.update.call(this);
 		var oMobility = this._oUnit.ability_get(mygame_game_ability_Mobility);
 		if(oMobility != null) this._oBody.rotation.set(0,0,oMobility.orientation_get());
 	}
@@ -5070,8 +5252,7 @@ mygame_connection_message_ReqSlotList.__interfaces__ = [mygame_connection_messag
 mygame_connection_message_ReqSlotList.prototype = {
 	__class__: mygame_connection_message_ReqSlotList
 };
-var mygame_connection_message_ResGameJoin = function(fSpeed) {
-	this._fSpeed = fSpeed;
+var mygame_connection_message_ResGameJoin = function() {
 };
 $hxClasses["mygame.connection.message.ResGameJoin"] = mygame_connection_message_ResGameJoin;
 mygame_connection_message_ResGameJoin.__name__ = ["mygame","connection","message","ResGameJoin"];
@@ -5116,35 +5297,40 @@ mygame_connection_message_clientsent_ReqReadyUpdate.prototype = {
 	}
 	,__class__: mygame_connection_message_clientsent_ReqReadyUpdate
 };
-var mygame_connection_message_serversent_RoomStatus = function(oRoom) {
-	this.aUser = [];
-	this.iGameSpeed = Std["int"](oRoom.gameSpeed_get());
-	var aPause = oRoom.pauseList_get();
-	var _g1 = 0;
-	var _g = aPause.length;
-	while(_g1 < _g) {
-		var i = _g1++;
-		this.aUser[i] = new haxe_ds_StringMap();
-		this.aUser[i].set("name","player" + i);
-		this.aUser[i].set("ready",aPause[i]);
-		this.aUser[i].set("playerindex",i);
-	}
+var mygame_connection_message_serversent_RoomUpdate = function() {
 };
-$hxClasses["mygame.connection.message.serversent.RoomStatus"] = mygame_connection_message_serversent_RoomStatus;
-mygame_connection_message_serversent_RoomStatus.__name__ = ["mygame","connection","message","serversent","RoomStatus"];
-mygame_connection_message_serversent_RoomStatus.__interfaces__ = [mygame_connection_message_ILobbyMessage];
-mygame_connection_message_serversent_RoomStatus.prototype = {
-	__class__: mygame_connection_message_serversent_RoomStatus
+$hxClasses["mygame.connection.message.serversent.RoomUpdate"] = mygame_connection_message_serversent_RoomUpdate;
+mygame_connection_message_serversent_RoomUpdate.__name__ = ["mygame","connection","message","serversent","RoomUpdate"];
+mygame_connection_message_serversent_RoomUpdate.__interfaces__ = [mygame_connection_message_ILobbyMessage];
+mygame_connection_message_serversent_RoomUpdate.prototype = {
+	__class__: mygame_connection_message_serversent_RoomUpdate
 };
-var mygame_game_MyGame = function() {
+var mygame_game_GameConfMapModifier = $hxClasses["mygame.game.GameConfMapModifier"] = { __ename__ : ["mygame","game","GameConfMapModifier"], __constructs__ : ["None","MirrorX","MirrorY"] };
+mygame_game_GameConfMapModifier.None = ["None",0];
+mygame_game_GameConfMapModifier.None.toString = $estr;
+mygame_game_GameConfMapModifier.None.__enum__ = mygame_game_GameConfMapModifier;
+mygame_game_GameConfMapModifier.MirrorX = ["MirrorX",1];
+mygame_game_GameConfMapModifier.MirrorX.toString = $estr;
+mygame_game_GameConfMapModifier.MirrorX.__enum__ = mygame_game_GameConfMapModifier;
+mygame_game_GameConfMapModifier.MirrorY = ["MirrorY",2];
+mygame_game_GameConfMapModifier.MirrorY.toString = $estr;
+mygame_game_GameConfMapModifier.MirrorY.__enum__ = mygame_game_GameConfMapModifier;
+var mygame_game_GameConfFactory = function() { };
+$hxClasses["mygame.game.GameConfFactory"] = mygame_game_GameConfFactory;
+mygame_game_GameConfFactory.__name__ = ["mygame","game","GameConfFactory"];
+mygame_game_GameConfFactory.gameConfDefault_get = function() {
+	return { playerArr : [{ name : "Player 0 (blue)"},{ name : "Player 1 (yellow)"}], map : { sizeX : 15, sizeY : 10, tileArr : [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,2,4,4,4,4,4,1,2,1,1,1,0],[0,1,1,2,4,2,0,1,4,1,1,1,1,1,0],[0,1,1,4,4,0,0,0,4,1,3,1,4,1,0],[0,1,1,4,1,0,0,0,4,1,3,1,4,1,0],[0,1,4,4,1,0,0,2,4,4,4,4,4,1,0],[0,1,1,1,1,1,1,2,2,1,0,0,4,0,0],[0,0,1,1,1,1,1,1,1,1,0,0,1,1,0],[0,0,0,1,3,1,3,2,1,1,4,1,1,1,0],[0,0,0,1,1,1,1,0,0,0,0,0,0,4,0]], unitArr : [], modifier : mygame_game_GameConfMapModifier.MirrorX}};
+};
+var mygame_game_MyGame = function(oConf) {
 	this._oMap = null;
 	this._iLoop = 0;
 	legion_Game.call(this);
 	this.onLoop = new trigger_eventdispatcher_EventDispatcher();
 	this.onLoopEnd = new trigger_eventdispatcher_EventDispatcher();
 	this.onHealthAnyUpdate = new trigger_EventDispatcher2();
+	this.onLoyaltyAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
+	this.onPositionAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
 	this._aoHero = [];
-	this._loUnit = new List();
 	this._aoPlayer = [];
 	this._oPositionDistance = new mygame_game_misc_PositionDistance();
 	this._oWinner = null;
@@ -5154,15 +5340,14 @@ var mygame_game_MyGame = function() {
 	this._singleton_add(new mygame_game_query_CityTile(this));
 	this._singleton_add(new mygame_game_query_UnitDist(this));
 	this._singleton_add(new mygame_game_query_UnitQuery(this));
-	new mygame_game_process_VolumeEjection(this);
-	new mygame_game_process_MobilityProcess(this);
-	this.oWeaponProcess = new mygame_game_process_WeaponProcess(this);
-	new mygame_game_process_LoyaltyShiftProcess(this);
-	new mygame_game_process_Death(this);
-	this.oVictoryCondition = new mygame_game_process_VictoryCondition(this);
-	this._oMap = mygame_game_entity_WorldMap.load({ iSizeX : 15, iSizeY : 10, aoTile : [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,1,2,4,4,4,4,4,1,2,1,1,1,0],[0,1,1,2,4,2,0,1,4,1,1,1,1,1,0],[0,1,1,4,4,0,0,0,4,1,3,1,4,1,0],[0,1,1,4,1,0,0,0,4,1,3,1,4,1,0],[0,1,4,4,1,0,0,2,4,4,4,4,4,1,0],[0,1,1,1,1,1,1,2,2,1,0,0,4,0,0],[0,0,1,1,1,1,1,1,1,1,0,0,1,1,0],[0,0,0,1,3,1,3,2,1,1,4,1,1,1,0],[0,0,0,1,1,1,1,0,0,0,0,0,0,4,0]]},this);
-	this.player_add(new mygame_game_entity_Player(this,"Blue"));
-	this.player_add(new mygame_game_entity_Player(this,"Yellow"));
+	this._oMap = mygame_game_entity_WorldMap.load({ iSizeX : oConf.map.sizeX, iSizeY : oConf.map.sizeY, aoTile : oConf.map.tileArr},this);
+	var _g = 0;
+	var _g1 = oConf.playerArr;
+	while(_g < _g1.length) {
+		var oConfPlayer = _g1[_g];
+		++_g;
+		this.player_add(new mygame_game_entity_Player(this,oConfPlayer.name));
+	}
 	this.entity_add(this._oMap);
 	this.entity_add(new mygame_game_entity_City(this,null,this._oMap.tile_get(2,6)));
 	this.entity_add(new mygame_game_entity_City(this,null,this._oMap.tile_get(2,13)));
@@ -5172,9 +5357,15 @@ var mygame_game_MyGame = function() {
 	this.entity_add(new mygame_game_entity_City(this,null,this._oMap.tile_get(13,12)));
 	this.entity_add(new mygame_game_entity_Factory(this,this.player_get(0),this._oMap.tile_get(3,2)));
 	this.entity_add(new mygame_game_entity_Factory(this,this.player_get(1),this._oMap.tile_get(3,17)));
-	this.entity_add(new mygame_game_entity_Tank(this,this.player_get(1),new space_Vector2i(35000,35000)));
 	this._aoHero[0] = this._aoEntity[this._aoEntity.length - 1];
 	this._aoHero[1] = this._aoEntity[this._aoEntity.length - 1];
+	new mygame_game_process_VolumeEjection(this);
+	new mygame_game_process_MobilityProcess(this);
+	this.oWeaponProcess = new mygame_game_process_WeaponProcess(this);
+	new mygame_game_process_LoyaltyShiftProcess(this);
+	new mygame_game_process_Death(this);
+	new mygame_game_process_DeathPlatoon(this);
+	this.oVictoryCondition = new mygame_game_process_VictoryCondition(this);
 };
 $hxClasses["mygame.game.MyGame"] = mygame_game_MyGame;
 mygame_game_MyGame.__name__ = ["mygame","game","MyGame"];
@@ -5187,7 +5378,9 @@ mygame_game_MyGame.__super__ = legion_Game;
 mygame_game_MyGame.prototype = $extend(legion_Game.prototype,{
 	loop: function() {
 		this._iLoop++;
+		var iTime = new Date().getTime();
 		this.onLoop.dispatch(this);
+		iTime = new Date().getTime();
 		this.onLoopEnd.dispatch(this);
 	}
 	,log_get: function() {
@@ -5214,30 +5407,25 @@ mygame_game_MyGame.prototype = $extend(legion_Game.prototype,{
 	}
 	,entity_add: function(oEntity) {
 		legion_Game.prototype.entity_add.call(this,oEntity);
-		if(js_Boot.__instanceof(oEntity,mygame_game_entity_Unit)) {
-			var oUnit = oEntity;
-			this._loUnit.push(oUnit);
-			var oPlatoon = oUnit.ability_get(mygame_game_ability_Platoon);
-			if(oPlatoon != null) {
-				var aUnit = oPlatoon.subUnit_get();
-				var _g = 0;
-				while(_g < aUnit.length) {
-					var oSubUnit = aUnit[_g];
-					++_g;
-					this.entity_add(oSubUnit);
-				}
+		var oPlatoon = oEntity.ability_get(mygame_game_ability_Platoon);
+		if(oPlatoon != null) {
+			var aUnit = oPlatoon.subUnit_get();
+			var _g = 0;
+			while(_g < aUnit.length) {
+				var oSubUnit = aUnit[_g];
+				++_g;
+				this.entity_add(oSubUnit);
 			}
 		}
 	}
 	,entity_remove: function(oEntity) {
 		legion_Game.prototype.entity_remove.call(this,oEntity);
-		if(js_Boot.__instanceof(oEntity,mygame_game_entity_Unit)) this._loUnit.remove(oEntity);
-	}
-	,unitList_get: function() {
-		return this._loUnit;
 	}
 	,player_get: function(iKey) {
 		return this._aoPlayer[iKey];
+	}
+	,player_get_all: function() {
+		return this._aoPlayer;
 	}
 	,positionDistance_get: function() {
 		return this._oPositionDistance;
@@ -5274,7 +5462,6 @@ mygame_game_ability_UnitAbility.prototype = {
 	}
 	,dispose: function() {
 		this.onDispose.dispatch(this);
-		this._oUnit.game_get().onAbilityDispose.dispatch(this);
 		utils_Disposer.dispose(this);
 	}
 	,__class__: mygame_game_ability_UnitAbility
@@ -5287,16 +5474,12 @@ $hxClasses["mygame.game.ability.Builder"] = mygame_game_ability_Builder;
 mygame_game_ability_Builder.__name__ = ["mygame","game","ability","Builder"];
 mygame_game_ability_Builder.__super__ = mygame_game_ability_UnitAbility;
 mygame_game_ability_Builder.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
-	product_add: function(oOffer) {
-	}
-	,productArray_get: function() {
-		return this._oProduct;
-	}
-	,__class__: mygame_game_ability_Builder
+	__class__: mygame_game_ability_Builder
 });
-var mygame_game_misc_offer_Offer = function(iCost,sName) {
+var mygame_game_misc_offer_Offer = function(iCost,sName,oData) {
 	this._sName = sName;
 	this._iCost = 10;
+	this._oData = oData;
 };
 $hxClasses["mygame.game.misc.offer.Offer"] = mygame_game_misc_offer_Offer;
 mygame_game_misc_offer_Offer.__name__ = ["mygame","game","misc","offer","Offer"];
@@ -5307,8 +5490,8 @@ mygame_game_misc_offer_Offer.prototype = {
 	,name_get: function() {
 		return this._sName;
 	}
-	,accept: function(oBuyer,oSeller) {
-		oBuyer.credit_add(-this._iCost);
+	,data_get: function() {
+		return this._oData;
 	}
 	,__class__: mygame_game_misc_offer_Offer
 };
@@ -5331,35 +5514,34 @@ mygame_game_ability_BuilderFactory.prototype = $extend(mygame_game_ability_Build
 		if(iOfferIndex < 0 || iOfferIndex >= mygame_game_ability_BuilderFactory._aOffer.length) throw new js__$Boot_HaxeError("[ERROR]:" + iOfferIndex + " is an invalide offer index.");
 		if(this._oUnit.owner_get() == null) throw new js__$Boot_HaxeError("[ERROR]:neutral unit can not sell.");
 		this._oUnit.owner_get().credit_add(-mygame_game_ability_BuilderFactory._aOffer[iOfferIndex].cost_get());
-		var oProduct = this.unit_create(iOfferIndex);
+		var oProduct = this.unit_create(mygame_game_ability_BuilderFactory._aOffer[iOfferIndex]);
 		var oGuidance = oProduct.ability_get(mygame_game_ability_Guidance);
 		if(oGuidance == null) throw new js__$Boot_HaxeError("[ERROR]:buy:product must have Guidance ability.");
 		oGuidance.goal_set(this._oRallyPoint);
 	}
-	,unit_create: function(i) {
-		switch(i) {
-		case 99:
-			var u = new mygame_game_entity_Soldier(this._oUnit.game_get(),this._oUnit.owner_get(),this._oPosition);
-			this._oUnit.game_get().entity_add(u);
-			return u;
-		case 98:
-			var u1 = new mygame_game_entity_Bazoo(this._oUnit.game_get(),this._oUnit.owner_get(),this._oPosition);
-			this._oUnit.game_get().entity_add(u1);
-			return u1;
-		case 1:
-			var u2 = new mygame_game_entity_Tank(this._oUnit.game_get(),this._oUnit.owner_get(),this._oPosition);
-			this._oUnit.game_get().entity_add(u2);
-			return u2;
-		case 0:
-			var u3 = new mygame_game_entity_PlatoonUnit(this._oUnit.game_get(),this._oUnit.owner_get(),this._oPosition);
-			this._oUnit.game_get().entity_add(u3);
-			return u3;
-		default:
-			throw new js__$Boot_HaxeError("wooops");
-		}
-		return null;
+	,unit_create: function(oOffer) {
+		var oUnit = Type.createInstance(Type.resolveClass(oOffer.data_get()),[this._oUnit.game_get(),this._oUnit.owner_get(),this._oPosition]);
+		this._oUnit.game_get().entity_add(oUnit);
+		return oUnit;
 	}
 	,__class__: mygame_game_ability_BuilderFactory
+});
+var mygame_game_ability_DivineShield = function(oUnit,oSource) {
+	this._oSource = oSource;
+	mygame_game_ability_UnitAbility.call(this,oUnit);
+};
+$hxClasses["mygame.game.ability.DivineShield"] = mygame_game_ability_DivineShield;
+mygame_game_ability_DivineShield.__name__ = ["mygame","game","ability","DivineShield"];
+mygame_game_ability_DivineShield.__super__ = mygame_game_ability_UnitAbility;
+mygame_game_ability_DivineShield.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
+	source_get: function() {
+		return this._oSource;
+	}
+	,expired_check: function() {
+		var fDistance = this._oUnit.mygame_get().singleton_get(mygame_game_query_UnitDist).data_get([this._oUnit,this._oSource.unit_get()]);
+		return fDistance > this._oSource.radius_get();
+	}
+	,__class__: mygame_game_ability_DivineShield
 });
 var mygame_game_ability_Guidance = function(oUnit) {
 	mygame_game_ability_UnitAbility.call(this,oUnit);
@@ -5368,7 +5550,7 @@ var mygame_game_ability_Guidance = function(oUnit) {
 	this._oVolume = oUnit.ability_get(mygame_game_ability_Volume);
 	this._oPlan = oUnit.ability_get(mygame_game_ability_PositionPlan);
 	this._oPathfinder = null;
-	this.goal_set(null);
+	this._oGoal = null;
 };
 $hxClasses["mygame.game.ability.Guidance"] = mygame_game_ability_Guidance;
 mygame_game_ability_Guidance.__name__ = ["mygame","game","ability","Guidance"];
@@ -5383,16 +5565,24 @@ mygame_game_ability_Guidance.prototype = $extend(mygame_game_ability_UnitAbility
 	,pathfinder_get: function() {
 		return this._oPathfinder;
 	}
+	,positionCorrection: function(oPoint) {
+		if(this._oMobility.plan_get() == null) return oPoint;
+		var oMap = this._oMobility.position_get().map_get();
+		var oVolume = this._oVolume;
+		if(oVolume == null) {
+			var oTile = oMap.tile_get_byUnitMetric(oPoint.x,oPoint.y);
+			if(this._oMobility.plan_get().check(oTile)) return oPoint;
+			return null;
+		} else return oVolume.positionCorrection(oPoint);
+		throw new js__$Boot_HaxeError("abnormal case");
+		return null;
+	}
 	,goal_set: function(oDestination) {
-		if(oDestination == null) {
-			this._oGoal = null;
-			this._oGoalTile = null;
-			return;
-		}
+		this._oGoal = null;
+		if(oDestination == null) return;
 		var oTileDestination = this._oMobility.position_get().map_get().tile_get_byUnitMetric(oDestination.x,oDestination.y);
-		if(!this._oPlan.tile_check(oTileDestination)) {
-			this._oGoal = null;
-			this._oGoalTile = null;
+		if(!this._oPlan.check(oTileDestination)) {
+			console.log("[WARNING]:guidance:invalid destination tile");
 			return;
 		}
 		var lDestination = new List();
@@ -5402,29 +5592,38 @@ mygame_game_ability_Guidance.prototype = $extend(mygame_game_ability_UnitAbility
 			lPosition = this._oVolume.tileList_get();
 			lPosition = utils_ListTool.merged_get(lPosition,this._oVolume.tileListProject_get(oDestination.x,oDestination.y));
 		}
-		this._oPathfinder = new mygame_game_utils_PathFinderFlowField(this._oMobility.position_get().map_get(),lPosition,lDestination,($_=this._oPlan,$bind($_,$_.tile_check)));
-		if(this._oPathfinder.success_check()) {
-			this._oGoal = oDestination.clone();
-			if(this._oVolume != null) {
-				this._oGoal = mygame_game_ability_Mobility.positionCorrection(this._oMobility,this._oGoal);
-				var _g = this._oVolume.tileListProject_get(this._oGoal.x,this._oGoal.y).iterator();
-				while(_g.head != null) {
-					var oTile;
-					oTile = (function($this) {
-						var $r;
-						_g.val = _g.head[0];
-						_g.head = _g.head[1];
-						$r = _g.val;
-						return $r;
-					}(this));
-					this._oPathfinder.refTile_set(oTile,oTile);
-				}
+		this._oPathfinder = new mygame_game_utils_PathFinderFlowField(this._oMobility.position_get().map_get(),lDestination,this._oPlan);
+		var _g_head = lPosition.h;
+		var _g_val = null;
+		while(_g_head != null) {
+			var oTile;
+			oTile = (function($this) {
+				var $r;
+				_g_val = _g_head[0];
+				_g_head = _g_head[1];
+				$r = _g_val;
+				return $r;
+			}(this));
+			if(this._oPathfinder.refTile_get(oTile) == null) {
+				console.log("[ERROR]:Guidance:no path found.");
+				return;
 			}
-			this._oGoalTile = this._oMobility.position_get().map_get().tile_get_byUnitMetric(this._oGoal.x,this._oGoal.y);
-		} else {
-			console.log("[ERROR]:Guidance:no path found.");
-			this._oGoal = null;
-			this._oGoalTile = null;
+		}
+		this._oGoal = oDestination.clone();
+		if(this._oVolume != null) {
+			this._oGoal = this.positionCorrection(this._oGoal);
+			var _g = this._oVolume.tileListProject_get(this._oGoal.x,this._oGoal.y).iterator();
+			while(_g.head != null) {
+				var oTile1;
+				oTile1 = (function($this) {
+					var $r;
+					_g.val = _g.head[0];
+					_g.head = _g.head[1];
+					$r = _g.val;
+					return $r;
+				}(this));
+				this._oPathfinder.refTile_set(oTile1,oTile1);
+			}
 		}
 	}
 	,process: function() {
@@ -5569,39 +5768,6 @@ mygame_game_ability_Guidance.prototype = $extend(mygame_game_ability_UnitAbility
 	}
 	,__class__: mygame_game_ability_Guidance
 });
-var mygame_game_ability_GuidancePlatoon = function(oUnit) {
-	mygame_game_ability_Guidance.call(this,oUnit);
-};
-$hxClasses["mygame.game.ability.GuidancePlatoon"] = mygame_game_ability_GuidancePlatoon;
-mygame_game_ability_GuidancePlatoon.__name__ = ["mygame","game","ability","GuidancePlatoon"];
-mygame_game_ability_GuidancePlatoon.__super__ = mygame_game_ability_Guidance;
-mygame_game_ability_GuidancePlatoon.prototype = $extend(mygame_game_ability_Guidance.prototype,{
-	goal_set: function(oDestination) {
-		mygame_game_ability_Guidance.prototype.goal_set.call(this,oDestination);
-		if(this._oGoal == null) return;
-		var oPlatoon = this._oUnit.ability_get(mygame_game_ability_Platoon);
-		if(oPlatoon == null) throw new js__$Boot_HaxeError("Error");
-		var oVolume = this._oUnit.ability_get(mygame_game_ability_Volume);
-		if(oVolume == null) throw new js__$Boot_HaxeError("Error");
-		var aUnit = oPlatoon.subUnit_get();
-		var _g1 = 0;
-		var _g = aUnit.length;
-		while(_g1 < _g) {
-			var i = _g1++;
-			var oGuidance = aUnit[i].ability_get(mygame_game_ability_Guidance);
-			if(oGuidance == null) continue;
-			var oOffset = oPlatoon.offset_get(i);
-			if(this._oGoal != null) {
-				oOffset = oPlatoon.offset_get(i);
-				oOffset.mult(oVolume.size_get());
-				oOffset.vector_add(this._oGoal);
-				oOffset.add(-oVolume.size_get(),-oVolume.size_get());
-			}
-			oGuidance.goal_set(oOffset);
-		}
-	}
-	,__class__: mygame_game_ability_GuidancePlatoon
-});
 var mygame_game_ability_Health = function(oUnit,bArmored,fMax,fCurrent) {
 	if(fCurrent == null) fCurrent = 100;
 	if(fMax == null) fMax = 100;
@@ -5645,105 +5811,26 @@ mygame_game_ability_Health.prototype = $extend(mygame_game_ability_UnitAbility.p
 	}
 	,__class__: mygame_game_ability_Health
 });
-var space_Vector2i = function(x_,y_) {
-	if(y_ == null) y_ = 0;
-	if(x_ == null) x_ = 0;
-	this.set(x_,y_);
+var mygame_game_ability_Loyalty = function(oUnit,oPlayer) {
+	mygame_game_ability_UnitAbility.call(this,oUnit);
+	this._oOwner = oPlayer;
+	this.onUpdate = new trigger_EventDispatcher2();
+	this.onUpdate.attach(this._oUnit.mygame_get().onLoyaltyAnyUpdate);
 };
-$hxClasses["space.Vector2i"] = space_Vector2i;
-space_Vector2i.__name__ = ["space","Vector2i"];
-space_Vector2i.distance = function(v1,v2) {
-	var dx = v1.x - v2.x;
-	var dy = v1.y - v2.y;
-	return Math.round(Math.sqrt(dx * dx + dy * dy));
-};
-space_Vector2i.prototype = {
-	clone: function() {
-		return new space_Vector2i(this.x,this.y);
+$hxClasses["mygame.game.ability.Loyalty"] = mygame_game_ability_Loyalty;
+mygame_game_ability_Loyalty.__name__ = ["mygame","game","ability","Loyalty"];
+mygame_game_ability_Loyalty.__super__ = mygame_game_ability_UnitAbility;
+mygame_game_ability_Loyalty.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
+	owner_get: function() {
+		return this._oOwner;
 	}
-	,copy: function(oVector) {
-		return this.set(oVector.x,oVector.y);
-	}
-	,length_get: function() {
-		return Math.sqrt(this.x * this.x + this.y * this.y);
-	}
-	,dotProduct: function(v) {
-		return this.x * v.x + this.y * v.y;
-	}
-	,set: function(x_,y_) {
-		if(y_ == null) y_ = 0;
-		this.x = x_;
-		this.y = y_;
+	,owner_set: function(oPlayer) {
+		this._oOwner = oPlayer;
+		this.onUpdate.dispatch(this);
 		return this;
 	}
-	,add: function(x_,y_) {
-		if(y_ == null) y_ = 0;
-		this.x += x_;
-		this.y += y_;
-		return this;
-	}
-	,vector_add: function(oVector) {
-		return this.add(oVector.x,oVector.y);
-	}
-	,mult: function(fMultiplicator) {
-		this.x = Math.round(this.x * fMultiplicator);
-		this.y = Math.round(this.y * fMultiplicator);
-		return this;
-	}
-	,divide: function(fDivisor) {
-		if(fDivisor == 0) throw new js__$Boot_HaxeError("[ERROR] Vector3 : can not divide by 0.");
-		return this.mult(Math.round(1 / fDivisor));
-	}
-	,normalize: function() {
-		this.divide(this.length_get());
-		return this;
-	}
-	,length_set: function(fLength) {
-		if(fLength < 0) throw new js__$Boot_HaxeError("Invalid length : " + fLength);
-		var length = this.length_get();
-		if(length == 0) this.x = Math.round(fLength); else this.mult(fLength / length);
-		return this;
-	}
-	,project: function(oVector) {
-		var fDotprod = oVector.dotProduct(this);
-		this.copy(oVector).length_set(Math.abs(fDotprod) / oVector.length_get());
-		return this;
-	}
-	,equal: function(oVector) {
-		return oVector.x == this.x && oVector.y == this.y;
-	}
-	,angleAxisXY: function() {
-		if(this.x == 0 && this.y == 0) return null;
-		return Math.atan2(this.y,this.x);
-	}
-	,__class__: space_Vector2i
-};
-var space_Circlei = function(oPosition,iRadius) {
-	if(oPosition == null) this._oPosition = new space_Vector2i(); else this._oPosition = oPosition;
-	this._fRadius = utils_IntTool.max(iRadius,0);
-};
-$hxClasses["space.Circlei"] = space_Circlei;
-space_Circlei.__name__ = ["space","Circlei"];
-space_Circlei.prototype = {
-	radius_get: function() {
-		return this._fRadius;
-	}
-	,position_get: function() {
-		return this._oPosition;
-	}
-	,__class__: space_Circlei
-};
-var utils_IntTool = function() { };
-$hxClasses["utils.IntTool"] = utils_IntTool;
-utils_IntTool.__name__ = ["utils","IntTool"];
-utils_IntTool.min = function(a,b) {
-	if(a > b) return b;
-	return a;
-};
-utils_IntTool.max = function(a,b) {
-	if(a < b) return b;
-	return a;
-};
+	,__class__: mygame_game_ability_Loyalty
+});
 var mygame_game_ability_LoyaltyShift = function(oUnit) {
 	mygame_game_ability_UnitAbility.call(this,oUnit);
 	this._fLoyalty = 1;
@@ -5754,9 +5841,8 @@ $hxClasses["mygame.game.ability.LoyaltyShift"] = mygame_game_ability_LoyaltyShif
 mygame_game_ability_LoyaltyShift.__name__ = ["mygame","game","ability","LoyaltyShift"];
 mygame_game_ability_LoyaltyShift.__super__ = mygame_game_ability_UnitAbility;
 mygame_game_ability_LoyaltyShift.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
-	area_get: function() {
-		mygame_game_ability_LoyaltyShift._oArea.position_get().copy(this._oUnit.ability_get(mygame_game_ability_Position));
-		return mygame_game_ability_LoyaltyShift._oArea;
+	radius_get: function() {
+		return 10000;
 	}
 	,loyalty_get: function() {
 		return this._fLoyalty;
@@ -5764,72 +5850,17 @@ mygame_game_ability_LoyaltyShift.prototype = $extend(mygame_game_ability_UnitAbi
 	,challenger_get: function() {
 		return this._oChallenger;
 	}
-	,test: function() {
-		var mCount = new haxe_ds_IntMap();
-		var oGame = this._oUnit.game_get();
-		var _g = oGame.unitList_get().iterator();
-		while(_g.head != null) {
-			var oUnit;
-			oUnit = (function($this) {
-				var $r;
-				_g.val = _g.head[0];
-				_g.head = _g.head[1];
-				$r = _g.val;
-				return $r;
-			}(this));
-			if(this._oUnit == oUnit) continue;
-			if(oUnit.ability_get(mygame_game_ability_LoyaltyShifter) == null) continue;
-			var oPlayer = oUnit.owner_get();
-			if(oPlayer != null) {
-				if(this.unit_check(oUnit)) {
-					if(mCount.exists(oPlayer.playerId_get())) mCount.set(oPlayer.playerId_get(),mCount.get(oPlayer.playerId_get()) + 1); else mCount.set(oPlayer.playerId_get(),1);
-				}
-			}
-		}
-		return mCount;
-	}
-	,unit_check: function(oUnit) {
-		var oPosition = oUnit.ability_get(mygame_game_ability_Position);
-		if(oPosition == null) return false;
-		if(!collider_CollisionCheckerPostInt.check(this.area_get(),oPosition)) return false;
-		return true;
-	}
-	,process: function() {
-		var oGame = this._oUnit.mygame_get();
-		if(this._fLoyalty == 0) {
-			var mCount = this.test();
-			if(!mCount.keys().hasNext()) return;
-			var oChallenger = null;
-			var oChallengerSecond = null;
-			var $it0 = mCount.keys();
-			while( $it0.hasNext() ) {
-				var iPlayerId = $it0.next();
-				if(oChallenger == null) oChallenger = oGame.player_get(iPlayerId); else if(mCount.get(oChallenger.playerId_get()) < mCount.h[iPlayerId]) oChallenger = oGame.player_get(iPlayerId); else if(oChallengerSecond == null) oChallengerSecond = oGame.player_get(iPlayerId); else if(mCount.get(oChallengerSecond.playerId_get()) < mCount.h[iPlayerId]) oChallengerSecond = oGame.player_get(iPlayerId);
-			}
-			if(oChallenger != null && (oChallengerSecond == null || oChallengerSecond != null && mCount.get(oChallenger.playerId_get()) > mCount.get(oChallengerSecond.playerId_get()))) {
-				this._oChallenger = oChallenger;
-				if(this._oChallenger != null) this.loyalty_increase();
-			}
-		} else {
-			var mCount1 = this.test();
-			if(!mCount1.keys().hasNext()) return;
-			var oChallenger1 = null;
-			var $it1 = mCount1.keys();
-			while( $it1.hasNext() ) {
-				var oPlayer = $it1.next();
-				if(oChallenger1 == null) oChallenger1 = oGame.player_get(oPlayer); else if(mCount1.get(oChallenger1.playerId_get()) < mCount1.h[oPlayer]) oChallenger1 = oGame.player_get(oPlayer);
-			}
-			if(oChallenger1 == this._oChallenger) this.loyalty_increase(); else this.loyalty_decrease();
-		}
+	,challenger_set: function(oPlayer) {
+		this._oChallenger = oPlayer;
 	}
 	,loyalty_increase: function() {
 		this._fLoyalty += mygame_game_ability_LoyaltyShift._fStep;
-		if(this._fLoyalty >= 0.5) this._oUnit.owner_set(this._oChallenger);
+		if(this._fLoyalty >= 0.5) this._oUnit.ability_get(mygame_game_ability_Loyalty).owner_set(this._oChallenger);
 		this._fLoyalty = Math.min(this._fLoyalty,1);
 	}
 	,loyalty_decrease: function() {
 		this._fLoyalty -= mygame_game_ability_LoyaltyShift._fStep;
-		if(this._fLoyalty < 0.5) this._oUnit.owner_set(null);
+		if(this._fLoyalty < 0.5) this._oUnit.ability_get(mygame_game_ability_Loyalty).owner_set(null);
 		this._fLoyalty = Math.max(this._fLoyalty,0);
 	}
 	,__class__: mygame_game_ability_LoyaltyShift
@@ -5857,43 +5888,6 @@ var mygame_game_ability_Mobility = function(oUnit,fSpeed) {
 };
 $hxClasses["mygame.game.ability.Mobility"] = mygame_game_ability_Mobility;
 mygame_game_ability_Mobility.__name__ = ["mygame","game","ability","Mobility"];
-mygame_game_ability_Mobility.positionCorrection = function(oMobility,oPoint) {
-	if(oMobility._oPlan == null) return oPoint;
-	var oMap = oMobility.position_get().map_get();
-	var oVolume = oMobility._oVolume;
-	if(oVolume == null) {
-		var oTile = oMap.tile_get_byUnitMetric(oPoint.x,oPoint.y);
-		if(oMobility._oPlan.tile_check(oTile)) return oPoint;
-		return null;
-	}
-	var lTile = oVolume.tileListProject_get(oPoint.x,oPoint.y);
-	var oResult = oPoint.clone();
-	var oUnitGeometry = new space_AlignedAxisBox2i(oMobility._oVolume.size_get(),oMobility._oVolume.size_get(),oPoint);
-	var oTileGeometry;
-	var _g_head = lTile.h;
-	var _g_val = null;
-	while(_g_head != null) {
-		var oTile1;
-		oTile1 = (function($this) {
-			var $r;
-			_g_val = _g_head[0];
-			_g_head = _g_head[1];
-			$r = _g_val;
-			return $r;
-		}(this));
-		if(oMobility._oPlan.tile_check(oTile1)) continue;
-		oTileGeometry = mygame_game_ability_Mobility.tileGeometry_get(oTile1);
-		if(!collider_CollisionCheckerPostInt.check(oUnitGeometry,oTileGeometry)) continue;
-		var iVolumeSize = 0;
-		if(oVolume != null) iVolumeSize = oVolume.size_get();
-		var dx = oPoint.x / 10000 - (oTile1.x_get() + 0.5);
-		var dy = oPoint.y / 10000 - (oTile1.y_get() + 0.5);
-		if(Math.abs(dx) > Math.abs(dy)) {
-			if(dx > 0) oResult.x = oTileGeometry.right_get() + 1 + iVolumeSize; else oResult.x = oTileGeometry.left_get() - 1 - iVolumeSize;
-		} else if(dy > 0) oResult.y = oTileGeometry.top_get() + 1 + iVolumeSize; else oResult.y = oTileGeometry.bottom_get() - 1 - iVolumeSize;
-	}
-	return oResult;
-};
 mygame_game_ability_Mobility.tileGeometry_get = function(oTile) {
 	return new space_AlignedAxisBoxAlti(9999,9999,new space_Vector2i(oTile.x_get() * 10000,oTile.y_get() * 10000));
 };
@@ -5907,6 +5901,9 @@ mygame_game_ability_Mobility.prototype = $extend(mygame_game_ability_UnitAbility
 	}
 	,orientation_get: function() {
 		return this._fOrientation;
+	}
+	,force_get: function(sKey) {
+		return this._moForce.get(sKey);
 	}
 	,speed_set: function(fSpeed) {
 		this._fSpeed = fSpeed;
@@ -6020,7 +6017,7 @@ mygame_game_ability_Mobility.prototype = $extend(mygame_game_ability_UnitAbility
 				$r = _g_val;
 				return $r;
 			}(this));
-			if(!this._oPlan.tile_check(oTile)) loTmp.push(oTile);
+			if(!this._oPlan.check(oTile)) loTmp.push(oTile);
 		}
 		loTile = loTmp;
 		var oCollisionMin = null;
@@ -6075,51 +6072,23 @@ mygame_game_ability__$Mobility_Force.__name__ = ["mygame","game","ability","_Mob
 mygame_game_ability__$Mobility_Force.prototype = {
 	__class__: mygame_game_ability__$Mobility_Force
 };
-var mygame_game_ability_Platoon = function(oUnit) {
-	mygame_game_ability_UnitAbility.call(this,oUnit);
+var mygame_game_ability_Platoon = function(oUnit,oPosition) {
+	this._iUnitQ = 20;
+	this._iVolume = 4000;
 	this._aSubUnit = [];
-	var _g = 0;
-	while(_g < 9) {
-		var i = _g++;
-		var oSubPosition = this._oUnit.ability_get(mygame_game_ability_Position).clone();
-		switch(i) {
-		case 0:
-			oSubPosition.add(0,0);
-			break;
-		case 1:
-			oSubPosition.add(-4000,0);
-			break;
-		case 2:
-			oSubPosition.add(4000,0);
-			break;
-		case 3:
-			oSubPosition.add(4000,4000);
-			break;
-		case 4:
-			oSubPosition.add(-4000,-4000);
-			break;
-		case 5:
-			oSubPosition.add(4000,-4000);
-			break;
-		case 6:
-			oSubPosition.add(-4000,4000);
-			break;
-		case 7:
-			oSubPosition.add(0,4000);
-			break;
-		case 8:
-			oSubPosition.add(0,-4000);
-			break;
-		}
-		this._aSubUnit.push(new mygame_game_entity_SubUnit(oUnit,oSubPosition));
+	var _g1 = 0;
+	var _g = this._iUnitQ;
+	while(_g1 < _g) {
+		var i = _g1++;
+		this._aSubUnit.push(new mygame_game_entity_SubUnit(oUnit,this.offset_get(oPosition,i)));
 	}
-	this._oPlatoonGuidance = this._oUnit.ability_get(mygame_game_ability_Guidance);
-	if(this._oPlatoonGuidance == null) console.log("[ERROR] unit with platoon ability require GuidancePlatoon");
+	mygame_game_ability_Guidance.call(this,this._aSubUnit[0]);
+	this._oUnit = oUnit;
 };
 $hxClasses["mygame.game.ability.Platoon"] = mygame_game_ability_Platoon;
 mygame_game_ability_Platoon.__name__ = ["mygame","game","ability","Platoon"];
-mygame_game_ability_Platoon.__super__ = mygame_game_ability_UnitAbility;
-mygame_game_ability_Platoon.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
+mygame_game_ability_Platoon.__super__ = mygame_game_ability_Guidance;
+mygame_game_ability_Platoon.prototype = $extend(mygame_game_ability_Guidance.prototype,{
 	subUnit_get: function() {
 		var a = this._aSubUnit.slice();
 		var _g = 0;
@@ -6130,16 +6099,157 @@ mygame_game_ability_Platoon.prototype = $extend(mygame_game_ability_UnitAbility.
 		}
 		return this._aSubUnit;
 	}
-	,offset_get: function(iKey) {
-		var iPitch = 3 % this._aSubUnit.length;
-		return new space_Vector2i(iKey % iPitch,Math.floor(iKey / iPitch));
+	,offset_get: function(oPosition,iKey) {
+		var iPitch = Math.ceil(Math.sqrt(this._iUnitQ));
+		return new space_Vector2i(oPosition.x + iKey % iPitch * this.positionPading_get() - Math.floor(this._iVolume / 2),oPosition.y + Math.floor(iKey / iPitch) * this.positionPading_get() - Math.floor(this._iVolume / 2));
+	}
+	,positionPading_get: function() {
+		return Math.floor(this._iVolume / (Math.ceil(Math.sqrt(this._iUnitQ)) - 1));
+	}
+	,halfSize_get: function() {
+		return Math.ceil(this._iVolume / 2);
+	}
+	,tileListProject_get: function(x,y) {
+		var iHalfSize = this._iVolume / 2;
+		var loTile = this.unit_get().mygame_get().map_get().tileList_get_byArea(Math.floor((x - iHalfSize) / 10000),Math.floor((x + iHalfSize) / 10000),Math.floor((y - iHalfSize) / 10000),Math.floor((y + iHalfSize) / 10000));
+		return loTile;
+	}
+	,positionCorrection: function(oPoint) {
+		var oPlan = this._oMobility.plan_get();
+		if(oPlan == null) return oPoint;
+		var oMap = this._oMobility.position_get().map_get();
+		var lTile = this.tileListProject_get(oPoint.x,oPoint.y);
+		var oResult = oPoint.clone();
+		var _iHalfSize = this.halfSize_get();
+		var oUnitGeometry = new space_AlignedAxisBox2i(_iHalfSize,_iHalfSize,oPoint);
+		var oTileGeometry;
+		var _g_head = lTile.h;
+		var _g_val = null;
+		while(_g_head != null) {
+			var oTile;
+			oTile = (function($this) {
+				var $r;
+				_g_val = _g_head[0];
+				_g_head = _g_head[1];
+				$r = _g_val;
+				return $r;
+			}(this));
+			if(oPlan.check(oTile)) continue;
+			oTileGeometry = mygame_game_tile_Tile.tileGeometry_get(oTile);
+			if(!collider_CollisionCheckerPostInt.check(oUnitGeometry,oTileGeometry)) continue;
+			var iVolumeSize = _iHalfSize;
+			var dx = oPoint.x / 10000 - (oTile.x_get() + 0.5);
+			var dy = oPoint.y / 10000 - (oTile.y_get() + 0.5);
+			if(Math.abs(dx) > Math.abs(dy)) if(dx > 0) oResult.x = oTileGeometry.right_get() + 1 + iVolumeSize; else oResult.x = oTileGeometry.left_get() - 1 - iVolumeSize; else if(dy > 0) oResult.y = oTileGeometry.top_get() + 1 + iVolumeSize; else oResult.y = oTileGeometry.bottom_get() - 1 - iVolumeSize;
+		}
+		return oResult;
+		throw new js__$Boot_HaxeError("abnormal case");
+		return null;
+	}
+	,goal_set: function(oDestination) {
+		if(oDestination == null) {
+			this._oGoal = null;
+			return;
+		}
+		this._oGoal = oDestination.clone();
+		if(this._oGoal == null) return;
+		var aUnit = this.subUnit_get();
+		var _g1 = 0;
+		var _g = aUnit.length;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var oGuidance = aUnit[i].ability_get(mygame_game_ability_Guidance);
+			if(oGuidance == null) throw new js__$Boot_HaxeError("Expected a guidance");
+			var oOffset = this.offset_get(this._oGoal,i);
+			oGuidance.goal_set(oOffset);
+		}
+	}
+	,process: function() {
 	}
 	,__class__: mygame_game_ability_Platoon
 });
+var space_Vector2i = function(x_,y_) {
+	if(y_ == null) y_ = 0;
+	if(x_ == null) x_ = 0;
+	this.set(x_,y_);
+};
+$hxClasses["space.Vector2i"] = space_Vector2i;
+space_Vector2i.__name__ = ["space","Vector2i"];
+space_Vector2i.distance = function(v1,v2) {
+	var dx = v1.x - v2.x;
+	var dy = v1.y - v2.y;
+	return Math.sqrt(dx * dx + dy * dy);
+};
+space_Vector2i.prototype = {
+	clone: function() {
+		return new space_Vector2i(this.x,this.y);
+	}
+	,copy: function(oVector) {
+		return this.set(oVector.x,oVector.y);
+	}
+	,length_get: function() {
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+	,dotProduct: function(v) {
+		return this.x * v.x + this.y * v.y;
+	}
+	,distance_get: function(oVector) {
+		return space_Vector2i.distance(this,oVector);
+	}
+	,set: function(x_,y_) {
+		if(y_ == null) y_ = 0;
+		this.x = x_;
+		this.y = y_;
+		return this;
+	}
+	,add: function(x_,y_) {
+		if(y_ == null) y_ = 0;
+		this.x += x_;
+		this.y += y_;
+		return this;
+	}
+	,vector_add: function(oVector) {
+		return this.add(oVector.x,oVector.y);
+	}
+	,mult: function(fMultiplicator) {
+		this.x = Math.round(this.x * fMultiplicator);
+		this.y = Math.round(this.y * fMultiplicator);
+		return this;
+	}
+	,divide: function(fDivisor) {
+		if(fDivisor == 0) throw new js__$Boot_HaxeError("[ERROR] Vector3 : can not divide by 0.");
+		return this.mult(Math.round(1 / fDivisor));
+	}
+	,normalize: function() {
+		this.divide(this.length_get());
+		return this;
+	}
+	,length_set: function(fLength) {
+		if(fLength < 0) throw new js__$Boot_HaxeError("Invalid length : " + fLength);
+		var length = this.length_get();
+		if(length == 0) this.x = Math.round(fLength); else this.mult(fLength / length);
+		return this;
+	}
+	,project: function(oVector) {
+		var fDotprod = oVector.dotProduct(this);
+		this.copy(oVector).length_set(Math.abs(fDotprod) / oVector.length_get());
+		return this;
+	}
+	,equal: function(oVector) {
+		return oVector.x == this.x && oVector.y == this.y;
+	}
+	,angleAxisXY: function() {
+		if(this.x == 0 && this.y == 0) return null;
+		return Math.atan2(this.y,this.x);
+	}
+	,__class__: space_Vector2i
+};
 var mygame_game_ability_Position = function(oUnit,oWorldMap,x_,y_) {
+	this.onUpdate = new trigger_EventDispatcher2();
 	this._oUnit = oUnit;
 	this._oWorldMap = oWorldMap;
 	space_Vector2i.call(this,x_,y_);
+	this.onUpdate.attach(this._oUnit.mygame_get().onPositionAnyUpdate);
 };
 $hxClasses["mygame.game.ability.Position"] = mygame_game_ability_Position;
 mygame_game_ability_Position.__name__ = ["mygame","game","ability","Position"];
@@ -6166,6 +6276,7 @@ mygame_game_ability_Position.prototype = $extend(space_Vector2i.prototype,{
 		this.x = x_;
 		this.y = y_;
 		this._oTile = this._oWorldMap.tile_get_byUnitMetric(this.x,this.y);
+		this.onUpdate.dispatch(this);
 		return this;
 	}
 	,tile_get: function() {
@@ -6184,12 +6295,23 @@ mygame_game_ability_Position.prototype = $extend(space_Vector2i.prototype,{
 	}
 	,__class__: mygame_game_ability_Position
 });
+var utils_IValidator = function() { };
+$hxClasses["utils.IValidator"] = utils_IValidator;
+utils_IValidator.__name__ = ["utils","IValidator"];
+utils_IValidator.prototype = {
+	__class__: utils_IValidator
+};
+var mygame_game_utils_IValidatorTile = function() { };
+$hxClasses["mygame.game.utils.IValidatorTile"] = mygame_game_utils_IValidatorTile;
+mygame_game_utils_IValidatorTile.__name__ = ["mygame","game","utils","IValidatorTile"];
+mygame_game_utils_IValidatorTile.__interfaces__ = [utils_IValidator];
 var mygame_game_ability_PositionPlan = function(oUnit,iCodePlan) {
 	mygame_game_ability_UnitAbility.call(this,oUnit);
 	this._iCodePlan = iCodePlan;
 };
 $hxClasses["mygame.game.ability.PositionPlan"] = mygame_game_ability_PositionPlan;
 mygame_game_ability_PositionPlan.__name__ = ["mygame","game","ability","PositionPlan"];
+mygame_game_ability_PositionPlan.__interfaces__ = [mygame_game_utils_IValidatorTile];
 mygame_game_ability_PositionPlan.isLandWalkable = function(oTile) {
 	if(oTile == null) return false;
 	if(oTile.type_get() == 0) return false;
@@ -6206,7 +6328,7 @@ mygame_game_ability_PositionPlan.isFootWalkable = function(oTile) {
 };
 mygame_game_ability_PositionPlan.__super__ = mygame_game_ability_UnitAbility;
 mygame_game_ability_PositionPlan.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
-	tile_check: function(oTile) {
+	check: function(oTile) {
 		var _g = this._iCodePlan;
 		switch(_g) {
 		case 0:
@@ -6220,6 +6342,27 @@ mygame_game_ability_PositionPlan.prototype = $extend(mygame_game_ability_UnitAbi
 		return false;
 	}
 	,__class__: mygame_game_ability_PositionPlan
+});
+var mygame_game_ability_SpawnShield = function(oUnit,iRadius) {
+	if(iRadius == null) iRadius = 20000;
+	mygame_game_ability_UnitAbility.call(this,oUnit);
+	this._oPosition = oUnit.ability_get(mygame_game_ability_Position);
+	if(this._oPosition == null) console.log("[ERROR]:ability dependency not respected.");
+	this._iRadius = iRadius;
+	if(this._iRadius < 0) throw new js__$Boot_HaxeError("invalid radius.");
+};
+$hxClasses["mygame.game.ability.SpawnShield"] = mygame_game_ability_SpawnShield;
+mygame_game_ability_SpawnShield.__name__ = ["mygame","game","ability","SpawnShield"];
+mygame_game_ability_SpawnShield.__super__ = mygame_game_ability_UnitAbility;
+mygame_game_ability_SpawnShield.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
+	radius_get: function() {
+		return this._iRadius;
+	}
+	,effect_apply: function(oEntity) {
+		if(oEntity.ability_get(mygame_game_ability_DivineShield) != null) return;
+		oEntity.ability_add(new mygame_game_ability_DivineShield(oEntity,this));
+	}
+	,__class__: mygame_game_ability_SpawnShield
 });
 var mygame_game_ability_Volume = function(oUnit,fHalfSize,fWeight) {
 	if(fWeight == null) fWeight = 1;
@@ -6262,7 +6405,31 @@ mygame_game_ability_Volume.prototype = $extend(mygame_game_ability_UnitAbility.p
 		var loTile = this._oPosition.map_get().tileList_get_byArea(Math.floor(oHitBox.left_get() / 10000),Math.floor(oHitBox.right_get() / 10000),Math.floor(oHitBox.bottom_get() / 10000),Math.floor(oHitBox.top_get() / 10000));
 		return loTile;
 	}
-	,move: function() {
+	,positionCorrection: function(oPoint) {
+		var lTile = this.tileListProject_get(oPoint.x,oPoint.y);
+		var oResult = oPoint.clone();
+		var oUnitGeometry = new space_AlignedAxisBox2i(this.size_get(),this.size_get(),oPoint);
+		var oTileGeometry;
+		var _g_head = lTile.h;
+		var _g_val = null;
+		while(_g_head != null) {
+			var oTile;
+			oTile = (function($this) {
+				var $r;
+				_g_val = _g_head[0];
+				_g_head = _g_head[1];
+				$r = _g_val;
+				return $r;
+			}(this));
+			if(this.unit_get().ability_get(mygame_game_ability_PositionPlan).check(oTile)) continue;
+			oTileGeometry = mygame_game_tile_Tile.tileGeometry_get(oTile);
+			if(!collider_CollisionCheckerPostInt.check(oUnitGeometry,oTileGeometry)) continue;
+			var iVolumeSize = this.size_get();
+			var dx = oPoint.x / 10000 - (oTile.x_get() + 0.5);
+			var dy = oPoint.y / 10000 - (oTile.y_get() + 0.5);
+			if(Math.abs(dx) > Math.abs(dy)) if(dx > 0) oResult.x = oTileGeometry.right_get() + 1 + iVolumeSize; else oResult.x = oTileGeometry.left_get() - 1 - iVolumeSize; else if(dy > 0) oResult.y = oTileGeometry.top_get() + 1 + iVolumeSize; else oResult.y = oTileGeometry.bottom_get() - 1 - iVolumeSize;
+		}
+		return oResult;
 	}
 	,__class__: mygame_game_ability_Volume
 });
@@ -6273,13 +6440,9 @@ var mygame_game_ability_Weapon = function(oOwner,oType) {
 	this._oCooldown = new mygame_game_utils_Timer(this._oUnit.game_get(),this._oType.speed_get(),false);
 	this._oCooldown.reset();
 	this.onFire = new trigger_EventDispatcher2();
-	this._oProcess = this._oUnit.mygame_get().oWeaponProcess;
-	this._oProcess.onTargeting.attach(this);
-	this._oProcess.onFiring.attach(this);
 };
 $hxClasses["mygame.game.ability.Weapon"] = mygame_game_ability_Weapon;
 mygame_game_ability_Weapon.__name__ = ["mygame","game","ability","Weapon"];
-mygame_game_ability_Weapon.__interfaces__ = [trigger_ITrigger];
 mygame_game_ability_Weapon.__super__ = mygame_game_ability_UnitAbility;
 mygame_game_ability_Weapon.prototype = $extend(mygame_game_ability_UnitAbility.prototype,{
 	rangeMax_get: function() {
@@ -6288,29 +6451,30 @@ mygame_game_ability_Weapon.prototype = $extend(mygame_game_ability_UnitAbility.p
 	,cooldown_get: function() {
 		return this._oCooldown;
 	}
-	,target_set: function(oTarget) {
-		this._oTarget = oTarget;
+	,target_get: function() {
+		this._target_update();
+		return this._oTarget;
 	}
 	,target_suggest: function(oTarget) {
 		if(this._oTarget != null || !this.target_check(oTarget)) return false;
-		this.target_set(oTarget);
+		this._oTarget = oTarget;
 		return true;
-	}
-	,target_get: function() {
-		return this._oTarget;
 	}
 	,_fire: function() {
 		this.onFire.dispatch(this);
-		if(this._oTarget == null) return;
 		this._oCooldown.reset();
 		var oHealth = this._oTarget.ability_get(mygame_game_ability_Health);
 		oHealth.damage(this._oType.power_get(),this._oType.damageType_get());
 	}
-	,target_update: function() {
-		if(!this.target_check(this._oTarget)) this.target_set(null);
+	,_target_update: function() {
+		if(!this.target_check(this._oTarget)) this._oTarget = null;
+	}
+	,target_check: function(oTarget) {
+		return this._oType.target_check(this,oTarget);
 	}
 	,swipe_target: function() {
-		this.target_update();
+		this._target_update();
+		if(this._oTarget != null) return;
 		var _g = 0;
 		var _g1 = this._oUnit.mygame_get().entity_get_all();
 		while(_g < _g1.length) {
@@ -6319,19 +6483,8 @@ mygame_game_ability_Weapon.prototype = $extend(mygame_game_ability_UnitAbility.p
 			if(js_Boot.__instanceof(oTarget,mygame_game_entity_Unit)) this.target_suggest(oTarget);
 		}
 	}
-	,target_check: function(oTarget) {
-		return this._oType.target_check(this,oTarget);
-	}
-	,trigger: function(oSource) {
-		if(oSource == this._oProcess.onTargeting) this.swipe_target();
-		if(oSource == this._oProcess.onFiring) {
-			if(this._oCooldown.expired_check()) this._fire();
-		}
-	}
-	,dispose: function() {
-		this._oProcess.onTargeting.remove(this);
-		this._oProcess.onFiring.remove(this);
-		mygame_game_ability_UnitAbility.prototype.dispose.call(this);
+	,fire: function() {
+		if(this._oCooldown.expired_check() && this._oTarget != null) this._fire();
 	}
 	,__class__: mygame_game_ability_Weapon
 });
@@ -6400,81 +6553,32 @@ mygame_game_action_UnitOrderMove.prototype = {
 	}
 	,exec: function(oGame) {
 		if(!this.check(oGame)) throw new js__$Boot_HaxeError("invalid input");
-		this._oUnit.ability_get(mygame_game_ability_Guidance).goal_set(this._oDestination);
-		if(js_Boot.__instanceof(this._oUnit,mygame_game_entity_PlatoonUnit)) {
+		var oPlatoon = this._oUnit.ability_get(mygame_game_ability_Platoon);
+		if(oPlatoon != null) {
+			this._oUnit.ability_get(mygame_game_ability_Platoon).goal_set(this._oDestination);
+			return;
 		}
+		this._oUnit.ability_get(mygame_game_ability_Guidance).goal_set(this._oDestination);
 	}
 	,check: function(oGame) {
-		if(this._oUnit.ability_get(mygame_game_ability_Guidance) == null) return false;
+		if(this._oUnit.ability_get(mygame_game_ability_Guidance) == null && this._oUnit.ability_get(mygame_game_ability_Platoon) == null) return false;
+		if(js_Boot.__instanceof(this._oUnit,mygame_game_entity_SubUnit)) return false;
 		return true;
 	}
 	,__class__: mygame_game_action_UnitOrderMove
-};
-var mygame_game_collision_WeaponLayer = function() {
-	this._oCollisionEvent = null;
-	this._loUnit = new List();
-	this.onCollision = new trigger_eventdispatcher_EventDispatcher();
-};
-$hxClasses["mygame.game.collision.WeaponLayer"] = mygame_game_collision_WeaponLayer;
-mygame_game_collision_WeaponLayer.__name__ = ["mygame","game","collision","WeaponLayer"];
-mygame_game_collision_WeaponLayer.prototype = {
-	add: function(oUnit) {
-		this._loUnit.add(oUnit);
-	}
-	,remove: function(oUnit) {
-		this._loUnit.remove(oUnit);
-	}
-	,collisionEventLast_get: function() {
-		return this._oCollisionEvent;
-	}
-	,collision_check: function() {
-		var iCollisionQuantity = 0;
-		var _g_head = this._loUnit.h;
-		var _g_val = null;
-		while(_g_head != null) {
-			var oUnit;
-			oUnit = (function($this) {
-				var $r;
-				_g_val = _g_head[0];
-				_g_head = _g_head[1];
-				$r = _g_val;
-				return $r;
-			}(this));
-			var _g_head1 = this._loUnit.h;
-			var _g_val1 = null;
-			while(_g_head1 != null) {
-				var oTarget;
-				oTarget = (function($this) {
-					var $r;
-					_g_val1 = _g_head1[0];
-					_g_head1 = _g_head1[1];
-					$r = _g_val1;
-					return $r;
-				}(this));
-				var oWeapon = oUnit.ability_get(mygame_game_ability_Weapon);
-				if(oWeapon == null) continue;
-				oWeapon.target_suggest(oTarget);
-			}
-		}
-		return iCollisionQuantity;
-	}
-	,__class__: mygame_game_collision_WeaponLayer
 };
 var mygame_game_entity_Unit = function(oGame,oOwner,oPosition) {
 	legion_entity_Entity.call(this,oGame);
 	this._oPlayer = oOwner;
 	this._ability_add(new mygame_game_ability_Position(this,oGame.map_get(),oPosition.x,oPosition.y));
+	this._ability_add(new mygame_game_ability_Loyalty(this,oOwner));
 };
 $hxClasses["mygame.game.entity.Unit"] = mygame_game_entity_Unit;
 mygame_game_entity_Unit.__name__ = ["mygame","game","entity","Unit"];
 mygame_game_entity_Unit.__super__ = legion_entity_Entity;
 mygame_game_entity_Unit.prototype = $extend(legion_entity_Entity.prototype,{
 	owner_get: function() {
-		return this._oPlayer;
-	}
-	,owner_set: function(oPlayer) {
-		this.onUpdate.dispatch(this);
-		this._oPlayer = oPlayer;
+		return this.ability_get(mygame_game_ability_Loyalty).owner_get();
 	}
 	,mygame_get: function() {
 		return js_Boot.__cast(this._oGame , mygame_game_MyGame);
@@ -6535,6 +6639,7 @@ mygame_game_entity_Copter.prototype = $extend(mygame_game_entity_Unit.prototype,
 var mygame_game_entity_Factory = function(oGame,oPlayer,oTile) {
 	mygame_game_entity_Building.call(this,oGame,oPlayer,oTile);
 	this._ability_add(new mygame_game_ability_BuilderFactory(this));
+	this._ability_add(new mygame_game_ability_SpawnShield(this));
 };
 $hxClasses["mygame.game.entity.Factory"] = mygame_game_entity_Factory;
 mygame_game_entity_Factory.__name__ = ["mygame","game","entity","Factory"];
@@ -6544,13 +6649,9 @@ mygame_game_entity_Factory.prototype = $extend(mygame_game_entity_Building.proto
 });
 var mygame_game_entity_PlatoonUnit = function(oGame,oOwner,oPosition) {
 	mygame_game_entity_Unit.call(this,oGame,oOwner,oPosition);
-	this._ability_add(new mygame_game_ability_Volume(this,4000,1));
-	this._ability_add(new mygame_game_ability_PositionPlan(this,2));
-	this._ability_add(new mygame_game_ability_Mobility(this,0.05));
-	var oAbility = new mygame_game_ability_GuidancePlatoon(this);
+	var oAbility = new mygame_game_ability_Platoon(this,oPosition);
 	this._ability_add(oAbility);
 	this._moAbility.set(Type.getClassName(mygame_game_ability_Guidance),oAbility);
-	this._ability_add(new mygame_game_ability_Platoon(this));
 };
 $hxClasses["mygame.game.entity.PlatoonUnit"] = mygame_game_entity_PlatoonUnit;
 mygame_game_entity_PlatoonUnit.__name__ = ["mygame","game","entity","PlatoonUnit"];
@@ -6784,6 +6885,8 @@ mygame_game_misc_PositionDistance.prototype = {
 		}
 		return this._moDelta.h[iId1].h[iId2];
 	}
+	,distance_get: function(oPosition1,oPosition2) {
+	}
 	,__class__: mygame_game_misc_PositionDistance
 };
 var mygame_game_misc_weapon_EDamageType = $hxClasses["mygame.game.misc.weapon.EDamageType"] = { __ename__ : ["mygame","game","misc","weapon","EDamageType"], __constructs__ : ["Bullet","Shell","Torpedo","Laser","Flamme"] };
@@ -6854,7 +6957,7 @@ mygame_game_misc_weapon_WeaponTypeBazoo.prototype = $extend(mygame_game_misc_wea
 	__class__: mygame_game_misc_weapon_WeaponTypeBazoo
 });
 var mygame_game_misc_weapon_WeaponTypeSoldier = function() {
-	mygame_game_misc_weapon_WeaponType.call(this,mygame_game_misc_weapon_EDamageType.Bullet,10,10,30000);
+	mygame_game_misc_weapon_WeaponType.call(this,mygame_game_misc_weapon_EDamageType.Bullet,5,10,5000);
 };
 $hxClasses["mygame.game.misc.weapon.WeaponTypeSoldier"] = mygame_game_misc_weapon_WeaponTypeSoldier;
 mygame_game_misc_weapon_WeaponTypeSoldier.__name__ = ["mygame","game","misc","weapon","WeaponTypeSoldier"];
@@ -6875,7 +6978,7 @@ mygame_game_misc_weapon_WeaponTypeSoldier.prototype = $extend(mygame_game_misc_w
 });
 var mygame_game_process_Death = function(oGame) {
 	this._oGame = oGame;
-	this._lHealth = new List();
+	this._aEntity = new haxe_ds_IntMap();
 	this._oGame.onLoop.attach(this);
 	this._oGame.onHealthAnyUpdate.attach(this);
 };
@@ -6884,53 +6987,122 @@ mygame_game_process_Death.__name__ = ["mygame","game","process","Death"];
 mygame_game_process_Death.__interfaces__ = [trigger_ITrigger];
 mygame_game_process_Death.prototype = {
 	process: function() {
-		while(!this._lHealth.isEmpty()) {
-			var oHealth = this._lHealth.pop();
-			if(oHealth.get() == 0) oHealth.unit_get().dispose();
+		var $it0 = this._aEntity.iterator();
+		while( $it0.hasNext() ) {
+			var oEntity = $it0.next();
+			if(oEntity.ability_get(mygame_game_ability_Health).get() > 0) continue;
+			oEntity.game_get().entity_remove(oEntity);
+		}
+		this._aEntity = new haxe_ds_IntMap();
+	}
+	,trigger: function(oSource) {
+		if(oSource == this._oGame.onLoop) this.process();
+		if(oSource == this._oGame.onHealthAnyUpdate) {
+			var oUnit = this._oGame.onHealthAnyUpdate.event_get().unit_get();
+			this._aEntity.set(oUnit.identity_get(),oUnit);
+		}
+	}
+	,__class__: mygame_game_process_Death
+};
+var mygame_game_process_DeathPlatoon = function(oGame) {
+	this._oGame = oGame;
+	this._oQueryPlatoon = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g = new haxe_ds_StringMap();
+		_g.set("ability",mygame_game_ability_Platoon);
+		$r = _g;
+		return $r;
+	}(this)));
+	this._oGame.onLoop.attach(this);
+};
+$hxClasses["mygame.game.process.DeathPlatoon"] = mygame_game_process_DeathPlatoon;
+mygame_game_process_DeathPlatoon.__name__ = ["mygame","game","process","DeathPlatoon"];
+mygame_game_process_DeathPlatoon.__interfaces__ = [trigger_ITrigger];
+mygame_game_process_DeathPlatoon.prototype = {
+	process: function() {
+		var $it0 = this._oQueryPlatoon.data_get(null).iterator();
+		while( $it0.hasNext() ) {
+			var oEntity = $it0.next();
+			if(oEntity.ability_get(mygame_game_ability_Platoon).subUnit_get().length != 0) continue;
+			oEntity.game_get().entity_remove(oEntity);
 		}
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oGame.onLoop) this.process();
-		if(oSource == this._oGame.onHealthAnyUpdate) this._lHealth.push(this._oGame.onHealthAnyUpdate.event_get());
 	}
-	,__class__: mygame_game_process_Death
+	,__class__: mygame_game_process_DeathPlatoon
 };
 var mygame_game_process_LoyaltyShiftProcess = function(oGame) {
 	this._oGame = oGame;
-	this._lAbility = new List();
+	this._oQueryLoyaltyShift = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g = new haxe_ds_StringMap();
+		_g.set("ability",mygame_game_ability_LoyaltyShift);
+		$r = _g;
+		return $r;
+	}(this)));
+	this._oQueryLoyaltyShifter = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g1 = new haxe_ds_StringMap();
+		_g1.set("ability",mygame_game_ability_LoyaltyShifter);
+		$r = _g1;
+		return $r;
+	}(this)));
 	this._oGame.onLoop.attach(this);
-	this._oGame.onEntityNew.attach(this);
-	this._oGame.onEntityDispose.attach(this);
 };
 $hxClasses["mygame.game.process.LoyaltyShiftProcess"] = mygame_game_process_LoyaltyShiftProcess;
 mygame_game_process_LoyaltyShiftProcess.__name__ = ["mygame","game","process","LoyaltyShiftProcess"];
 mygame_game_process_LoyaltyShiftProcess.__interfaces__ = [trigger_ITrigger];
 mygame_game_process_LoyaltyShiftProcess.prototype = {
 	process: function() {
-		var _g_head = this._lAbility.h;
-		var _g_val = null;
-		while(_g_head != null) {
-			var oAbility;
-			oAbility = (function($this) {
-				var $r;
-				_g_val = _g_head[0];
-				_g_head = _g_head[1];
-				$r = _g_val;
-				return $r;
-			}(this));
-			oAbility.process();
+		var $it0 = this._oQueryLoyaltyShift.data_get(null).iterator();
+		while( $it0.hasNext() ) {
+			var oEntity = $it0.next();
+			var oLoyaltyShift = oEntity.ability_get(mygame_game_ability_LoyaltyShift);
+			this._process(oLoyaltyShift);
 		}
+	}
+	,_process: function(oLoyaltyShift) {
+		var mCount = this._count_get(oLoyaltyShift);
+		if(!mCount.keys().hasNext()) return;
+		if(oLoyaltyShift.loyalty_get() == 0) {
+			var oChallenger = null;
+			var oChallengerSecond = null;
+			var $it0 = mCount.keys();
+			while( $it0.hasNext() ) {
+				var iPlayerId = $it0.next();
+				if(oChallenger == null) oChallenger = this._oGame.player_get(iPlayerId); else if(mCount.get(oChallenger.playerId_get()) < mCount.h[iPlayerId]) oChallenger = this._oGame.player_get(iPlayerId); else if(oChallengerSecond == null) oChallengerSecond = this._oGame.player_get(iPlayerId); else if(mCount.get(oChallengerSecond.playerId_get()) < mCount.h[iPlayerId]) oChallengerSecond = this._oGame.player_get(iPlayerId);
+			}
+			if(oChallenger != null && (oChallengerSecond == null || oChallengerSecond != null && mCount.get(oChallenger.playerId_get()) > mCount.get(oChallengerSecond.playerId_get()))) {
+				oLoyaltyShift.challenger_set(oChallenger);
+				if(oLoyaltyShift.challenger_get() != null) oLoyaltyShift.loyalty_increase();
+			}
+		} else {
+			var oChallenger1 = null;
+			var $it1 = mCount.keys();
+			while( $it1.hasNext() ) {
+				var oPlayer = $it1.next();
+				if(oChallenger1 == null) oChallenger1 = this._oGame.player_get(oPlayer); else if(mCount.get(oChallenger1.playerId_get()) < mCount.h[oPlayer]) oChallenger1 = this._oGame.player_get(oPlayer);
+			}
+			if(oChallenger1 == oLoyaltyShift.challenger_get()) oLoyaltyShift.loyalty_increase(); else oLoyaltyShift.loyalty_decrease();
+		}
+	}
+	,_count_get: function(oLoyaltyShift) {
+		var mCount = new haxe_ds_IntMap();
+		var $it0 = this._oQueryLoyaltyShifter.data_get(null).iterator();
+		while( $it0.hasNext() ) {
+			var oUnit = $it0.next();
+			var oPlayer = oUnit.ability_get(mygame_game_ability_Loyalty).owner_get();
+			if(oPlayer == null) continue;
+			var fDist = this._oGame.singleton_get(mygame_game_query_UnitDist).data_get([oLoyaltyShift.unit_get(),oUnit]);
+			if(fDist == null) continue;
+			if(fDist > oLoyaltyShift.radius_get()) continue;
+			if(mCount.exists(oPlayer.playerId_get())) mCount.set(oPlayer.playerId_get(),mCount.get(oPlayer.playerId_get()) + 1); else mCount.set(oPlayer.playerId_get(),1);
+		}
+		return mCount;
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oGame.onLoop) this.process();
-		if(oSource == this._oGame.onEntityNew) {
-			var oAbility = this._oGame.onEntityNew.event_get().ability_get(mygame_game_ability_LoyaltyShift);
-			if(oAbility != null) this._lAbility.push(oAbility);
-		}
-		if(oSource == this._oGame.onEntityDispose) {
-			var oAbility1 = this._oGame.onEntityNew.event_get().ability_get(mygame_game_ability_LoyaltyShift);
-			if(oAbility1 != null) this._lAbility.remove(oAbility1);
-		}
 	}
 	,__class__: mygame_game_process_LoyaltyShiftProcess
 };
@@ -7004,9 +7176,24 @@ var mygame_game_process_VictoryCondition = function(oGame) {
 	this._oGame = oGame;
 	this._fVictory = 0;
 	this._oChallenger = null;
-	this._mObjectif = new haxe_ds_IntMap();
-	this._mObjectif.set(0,new List());
-	this._mObjectif.set(1,new List());
+	this._mQueryCity = new haxe_ds_IntMap();
+	var _g = 0;
+	var _g1 = this._oGame.player_get_all();
+	while(_g < _g1.length) {
+		var oPlayer = _g1[_g];
+		++_g;
+		this._mQueryCity.set(oPlayer.playerId_get(),new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+			var $r;
+			var _g2 = new haxe_ds_StringMap();
+			_g2.set("ability",mygame_game_ability_LoyaltyShift);
+			{
+				var value = oPlayer.playerId_get();
+				_g2.set("player",value);
+			}
+			$r = _g2;
+			return $r;
+		}(this))));
+	}
 	this._oGame.onLoop.attach(this);
 };
 $hxClasses["mygame.game.process.VictoryCondition"] = mygame_game_process_VictoryCondition;
@@ -7019,27 +7206,8 @@ mygame_game_process_VictoryCondition.prototype = {
 	,value_get: function() {
 		return this._fVictory;
 	}
-	,_objectifCount_get: function() {
-	}
 	,process: function() {
-		this._init();
-		var fDelta = 0;
-		var iCountMax = 0;
-		var iChallengerIdNew = null;
-		var $it0 = this._mObjectif.keys();
-		while( $it0.hasNext() ) {
-			var iPlayerId = $it0.next();
-			var iCount = this._mObjectif.h[iPlayerId].length;
-			if(iCount == iCountMax) {
-				iChallengerIdNew = null;
-				break;
-			}
-			if(iCount > iCountMax) {
-				iCountMax = iCount;
-				iChallengerIdNew = iPlayerId;
-			}
-		}
-		this._victory_process(iChallengerIdNew);
+		this._victory_process(this._playerIdTop_get());
 		if(this._fVictory > 1) this._oGame.end(this._oChallenger);
 	}
 	,_victory_process: function(iChallengerIdNew) {
@@ -7061,132 +7229,107 @@ mygame_game_process_VictoryCondition.prototype = {
 			return;
 		}
 	}
-	,_influence_get: function() {
-	}
-	,_init: function() {
-		this._mObjectif = new haxe_ds_IntMap();
+	,_playerIdTop_get: function() {
+		var iCountTop = 0;
+		var iPlayerIdTop = null;
 		var _g = 0;
-		var _g1 = this._oGame.entity_get_all();
+		var _g1 = this._oGame.player_get_all();
 		while(_g < _g1.length) {
-			var oEntity = _g1[_g];
+			var oPlayer = _g1[_g];
 			++_g;
-			var oLoyaltyShift = oEntity.ability_get(mygame_game_ability_LoyaltyShift);
-			if(oLoyaltyShift != null) {
-				var oUnit = oEntity;
-				var oPlayer = oUnit.owner_get();
-				if(oPlayer != null) {
-					if(!this._mObjectif.exists(oPlayer.playerId_get())) this._mObjectif.set(oPlayer.playerId_get(),new List());
-					this._mObjectif.get(oPlayer.playerId_get()).add(oUnit);
-				}
+			var iPlayerId = oPlayer.identity_get();
+			var iCount = utils_MapTool.getLength(this._mQueryCity.h[iPlayerId].data_get(null));
+			if(iCount == iCountTop) iPlayerIdTop = null;
+			if(iCount > iCountTop) {
+				iCountTop = iCount;
+				iPlayerIdTop = iPlayerId;
 			}
 		}
+		return iPlayerIdTop;
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oGame.onLoop) this.process();
-		if(oSource == this._oGame.onEntityNew) {
-		}
-		if(oSource == this._oGame.onEntityUpdate) {
-			if(Std["is"](this._oGame.onEntityUpdate.event_get(),mygame_game_entity_Unit)) {
-				var oLoyaltyShift = this._oGame.onEntityUpdate.event_get().ability_get(mygame_game_ability_LoyaltyShift);
-				if(oLoyaltyShift != null) {
-					var oUnit = oLoyaltyShift.unit_get();
-					var $it0 = this._mObjectif.iterator();
-					while( $it0.hasNext() ) {
-						var lObjectif = $it0.next();
-						lObjectif.remove(oUnit);
-					}
-					this._mObjectif.get(oUnit.owner_get().playerId_get()).add(oUnit);
-				}
-			}
-		}
 	}
 	,__class__: mygame_game_process_VictoryCondition
 };
 var mygame_game_process_VolumeEjection = function(oGame) {
 	this._oGame = oGame;
+	this._oQueryVolume = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g = new haxe_ds_StringMap();
+		_g.set("ability",mygame_game_ability_Volume);
+		$r = _g;
+		return $r;
+	}(this)));
+	this._oQueryMobility = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g1 = new haxe_ds_StringMap();
+		_g1.set("ability",mygame_game_ability_Mobility);
+		$r = _g1;
+		return $r;
+	}(this)));
 	this._oGame.onLoop.attach(this);
-	this._oGame.onEntityNew.attach(this);
-	this._oGame.onAbilityDispose.attach(this);
-	this._loVolume = new List();
 };
 $hxClasses["mygame.game.process.VolumeEjection"] = mygame_game_process_VolumeEjection;
 mygame_game_process_VolumeEjection.__name__ = ["mygame","game","process","VolumeEjection"];
 mygame_game_process_VolumeEjection.__interfaces__ = [trigger_ITrigger];
 mygame_game_process_VolumeEjection.prototype = {
 	process: function() {
-		var _g = this._oGame.unitList_get().iterator();
-		while(_g.head != null) {
-			var oUnit;
-			oUnit = (function($this) {
-				var $r;
-				_g.val = _g.head[0];
-				_g.head = _g.head[1];
-				$r = _g.val;
-				return $r;
-			}(this));
+		var $it0 = this._oQueryMobility.data_get(null).iterator();
+		while( $it0.hasNext() ) {
+			var oUnit = $it0.next();
 			var oMobility = oUnit.ability_get(mygame_game_ability_Mobility);
 			if(oMobility == null) continue;
 			oMobility.force_set("volume",0,0,false);
-			var _g_head = this._loVolume.h;
-			var _g_val = null;
-			while(_g_head != null) {
-				var oVolume;
-				oVolume = (function($this) {
-					var $r;
-					_g_val = _g_head[0];
-					_g_head = _g_head[1];
-					$r = _g_val;
-					return $r;
-				}(this));
-				if(oVolume.unit_get() == oUnit) continue;
-				var fVolumeSecondSize = 0.0;
-				var oVolumeSecond = oUnit.ability_get(mygame_game_ability_Volume);
-				if(oVolumeSecond != null) fVolumeSecondSize = oVolumeSecond.size_get();
+			var oForce = oMobility.force_get("volume");
+			var $it1 = this._oQueryVolume.data_get(null).iterator();
+			while( $it1.hasNext() ) {
+				var oEntitySource = $it1.next();
+				if(oEntitySource == oUnit) continue;
+				var oVolume = oEntitySource.ability_get(mygame_game_ability_Volume);
+				var oVolumeTarget = oUnit.ability_get(mygame_game_ability_Volume);
+				var fVolumeTargetSize;
+				if(oVolumeTarget != null) fVolumeTargetSize = oVolumeTarget.size_get(); else fVolumeTargetSize = 0.0;
 				var oVector = this._oGame.positionDistance_get().delta_get(oMobility.position_get(),oVolume.position_get());
-				if(oVector.length_get() > oVolume.size_get() + fVolumeSecondSize) continue;
-				oVector.length_set((oVolume.size_get() + fVolumeSecondSize - oVector.length_get()) * 0.5);
-				oMobility.force_set("volume",oVector.x,oVector.y,false);
+				if(oVector.length_get() > oVolume.size_get() + fVolumeTargetSize) continue;
+				oVector.length_set((oVolume.size_get() + fVolumeTargetSize - oVector.length_get()) / 2);
+				oForce.oVector.vector_add(oVector);
 			}
 		}
 	}
 	,trigger: function(oSource) {
 		if(oSource == this._oGame.onLoop) this.process();
-		if(oSource == this._oGame.onEntityNew) {
-			var oVolume = (js_Boot.__cast(oSource.event_get() , legion_entity_Entity)).ability_get(mygame_game_ability_Volume);
-			if(oVolume != null) this._loVolume.push(oVolume);
-		}
-		if(oSource == this._oGame.onAbilityDispose && Std["is"](oSource.event_get(),mygame_game_ability_Volume)) {
-			var oVolume1;
-			oVolume1 = js_Boot.__cast(oSource.event_get() , mygame_game_ability_Volume);
-			this._loVolume.remove(oVolume1);
-		}
 	}
 	,__class__: mygame_game_process_VolumeEjection
 };
 var mygame_game_process_WeaponProcess = function(oGame) {
 	this._oGame = oGame;
-	this._lWeapon = new List();
-	this.onTargeting = new trigger_EventDispatcher2();
-	this.onFiring = new trigger_EventDispatcher2();
+	this._oQueryWeapon = new mygame_game_query_EntityQuery(this._oGame,(function($this) {
+		var $r;
+		var _g = new haxe_ds_StringMap();
+		_g.set("ability",mygame_game_ability_Weapon);
+		$r = _g;
+		return $r;
+	}(this)));
 	this._oGame.onLoop.attach(this);
 };
 $hxClasses["mygame.game.process.WeaponProcess"] = mygame_game_process_WeaponProcess;
 mygame_game_process_WeaponProcess.__name__ = ["mygame","game","process","WeaponProcess"];
 mygame_game_process_WeaponProcess.__interfaces__ = [trigger_ITrigger];
 mygame_game_process_WeaponProcess.prototype = {
-	entity_add: function(oEntity) {
-		if(js_Boot.__instanceof(oEntity,mygame_game_entity_Unit)) {
-			var oUnit = oEntity;
-			var oWeapon = oUnit.ability_get(mygame_game_ability_Weapon);
-			if(oWeapon != null) this._lWeapon.push(oWeapon);
-			return true;
-		}
-		return false;
-	}
-	,trigger: function(oSource) {
+	trigger: function(oSource) {
 		if(oSource == this._oGame.onLoop) {
-			this.onTargeting.dispatch(this._oGame);
-			this.onFiring.dispatch(this._oGame);
+			var aEntity = this._oQueryWeapon.data_get(null);
+			var $it0 = aEntity.iterator();
+			while( $it0.hasNext() ) {
+				var oEntity = $it0.next();
+				oEntity.ability_get(mygame_game_ability_Weapon).swipe_target();
+			}
+			var $it1 = aEntity.iterator();
+			while( $it1.hasNext() ) {
+				var oEntity1 = $it1.next();
+				oEntity1.ability_get(mygame_game_ability_Weapon).fire();
+			}
 		}
 	}
 	,__class__: mygame_game_process_WeaponProcess
@@ -7214,31 +7357,171 @@ mygame_game_query_CityTile.prototype = {
 	}
 	,__class__: mygame_game_query_CityTile
 };
-var mygame_game_query_UnitDist = function(oGame) {
-	this._iLoop = -1;
+var mygame_game_query_EntityQuery = function(oGame,oFilter) {
 	this._oGame = oGame;
-	this._oCache = new haxe_ds_StringMap();
+	this._oCache = null;
+	this._oFilter = oFilter;
+	this._oGame.onEntityNew.attach(this);
+	this._oGame.onEntityAbilityAdd.attach(this);
+	this._oGame.onEntityAbilityRemove.attach(this);
+	this._oGame.onLoyaltyAnyUpdate.attach(this);
+	this._oGame.onEntityDispose.attach(this);
+};
+$hxClasses["mygame.game.query.EntityQuery"] = mygame_game_query_EntityQuery;
+mygame_game_query_EntityQuery.__name__ = ["mygame","game","query","EntityQuery"];
+mygame_game_query_EntityQuery.__interfaces__ = [trigger_ITrigger,legion_IQuery];
+mygame_game_query_EntityQuery.prototype = {
+	data_get: function(o) {
+		if(this._oCache == null) this._cache_update();
+		return this._oCache;
+	}
+	,_cache_update: function() {
+		this._oCache = new haxe_ds_IntMap();
+		var _g = 0;
+		var _g1 = this._oGame.entity_get_all();
+		while(_g < _g1.length) {
+			var oEntity = _g1[_g];
+			++_g;
+			if(!this._test(oEntity)) continue;
+			this._oCache.set(oEntity.identity_get(),oEntity);
+		}
+	}
+	,_test: function(oEntity) {
+		var $it0 = this._oFilter.keys();
+		while( $it0.hasNext() ) {
+			var sKey = $it0.next();
+			switch(sKey) {
+			case "class":
+				var _oType = this._oFilter.get("class");
+				if(!js_Boot.__instanceof(oEntity,_oType)) return false;
+				break;
+			case "ability":
+				var _oType1 = this._oFilter.get("ability");
+				if(oEntity.ability_get(_oType1) == null) return false;
+				break;
+			case "player":
+				var oLoyalty = oEntity.ability_get(mygame_game_ability_Loyalty);
+				if(oLoyalty == null || oLoyalty.owner_get() == null || oLoyalty.owner_get().playerId_get() != this._oFilter.get("player")) return false;
+				break;
+			default:
+				throw new js__$Boot_HaxeError("unknown filter key \"" + sKey + "\"");
+			}
+		}
+		return true;
+	}
+	,trigger: function(oSource) {
+		if(this._oCache == null) return;
+		var oEntity = oSource.event_get();
+		if(oSource == this._oGame.onEntityAbilityAdd) {
+			var oEntity1 = this._oGame.onEntityAbilityAdd.event_get().entity;
+			if(this._test(oEntity1)) this._oCache.set(oEntity1.identity_get(),oEntity1);
+			return;
+		}
+		if(oSource == this._oGame.onEntityAbilityRemove) {
+			var oEntity2 = this._oGame.onEntityAbilityAdd.event_get().entity;
+			if(!this._test(oEntity2)) this._oCache.remove(oEntity2.identity_get());
+			return;
+		}
+		if(oSource == this._oGame.onLoyaltyAnyUpdate) {
+			var oEntity3 = this._oGame.onLoyaltyAnyUpdate.event_get().unit_get();
+			if(this._test(oEntity3)) this._oCache.set(oEntity3.identity_get(),oEntity3); else this._oCache.remove(oEntity3.identity_get());
+			return;
+		}
+		if(oSource == this._oGame.onEntityNew) {
+			if(this._test(oEntity)) this._oCache.set(oEntity.identity_get(),oEntity);
+			return;
+		}
+		if(oSource == this._oGame.onEntityDispose) {
+			this._oCache.remove(oEntity.identity_get());
+			return;
+		}
+	}
+	,__class__: mygame_game_query_EntityQuery
+};
+var mygame_game_query_UnitDist = function(oGame) {
+	this._oGame = oGame;
+	this._mCacheEntity = null;
+	this._mCacheDist = null;
+	this._oGame.onEntityNew.attach(this);
+	this._oGame.onPositionAnyUpdate.attach(this);
+	this._oGame.onEntityDispose.attach(this);
 };
 $hxClasses["mygame.game.query.UnitDist"] = mygame_game_query_UnitDist;
 mygame_game_query_UnitDist.__name__ = ["mygame","game","query","UnitDist"];
-mygame_game_query_UnitDist.__interfaces__ = [legion_IQuery];
+mygame_game_query_UnitDist.__interfaces__ = [trigger_ITrigger,legion_IQuery];
 mygame_game_query_UnitDist.prototype = {
 	data_get: function(aUnit) {
-		if(aUnit.length != 2) throw new js__$Boot_HaxeError("Invalid parameter");
-		var oPos0 = aUnit[0].ability_get(mygame_game_ability_Position);
-		var oPos1 = aUnit[1].ability_get(mygame_game_ability_Position);
-		if(oPos0 == null || oPos1 == null) throw new js__$Boot_HaxeError("Missing position ability");
-		this._cache_update();
-		var sKey = aUnit[0].identity_get() + ";" + aUnit[1].identity_get();
-		if(this._oCache.exists(sKey)) return this._oCache.get(sKey);
-		var fResult = space_Vector2i.distance(oPos0,oPos1);
-		this._oCache.set(sKey,fResult);
-		return fResult;
+		if(aUnit.length != 2) throw new js__$Boot_HaxeError("Invalid parameter : length != 2");
+		if(this._mCacheEntity == null) this._cache_update();
+		return this._mCacheDist.get(this._key_get(aUnit[0],aUnit[1]));
+	}
+	,entityList_get_byProximity: function(oEntity0,fRadius) {
+		var l = new List();
+		var $it0 = this._mCacheEntity.iterator();
+		while( $it0.hasNext() ) {
+			var oEntity1 = $it0.next();
+			if(this._mCacheDist.get(this._key_get(oEntity0,oEntity1)) <= fRadius) l.push(oEntity1);
+		}
+		return l;
 	}
 	,_cache_update: function() {
-		if(this._iLoop == this._oGame.loopId_get()) return;
-		this._iLoop == this._oGame.loopId_get();
-		this._oCache = new haxe_ds_StringMap();
+		this._mCacheEntity = new haxe_ds_IntMap();
+		this._mCacheDist = new haxe_ds_StringMap();
+		var _g = 0;
+		var _g1 = this._oGame.entity_get_all();
+		while(_g < _g1.length) {
+			var oEntity = _g1[_g];
+			++_g;
+			if(!this._test(oEntity)) continue;
+			this._cacheValue_create(oEntity);
+		}
+	}
+	,_test: function(oEntity) {
+		if(oEntity.ability_get(mygame_game_ability_Position) == null) return false;
+		return true;
+	}
+	,_cacheValue_create: function(oEntity0) {
+		this._cacheValue_update(oEntity0);
+		this._mCacheEntity.set(oEntity0.identity_get(),oEntity0);
+		this._mCacheDist.set(this._key_get(oEntity0,oEntity0),0);
+		oEntity0.ability_get(mygame_game_ability_Position).onUpdate.attach(this);
+	}
+	,_cacheValue_remove: function(oEntity0) {
+		var $it0 = this._mCacheEntity.iterator();
+		while( $it0.hasNext() ) {
+			var oEntity1 = $it0.next();
+			this._mCacheDist.remove(this._key_get(oEntity0,oEntity1));
+		}
+		this._mCacheEntity.remove(oEntity0.identity_get());
+		oEntity0.ability_get(mygame_game_ability_Position).onUpdate.remove(this);
+	}
+	,_cacheValue_update: function(oEntity0) {
+		var $it0 = this._mCacheEntity.iterator();
+		while( $it0.hasNext() ) {
+			var oEntity1 = $it0.next();
+			this._mCacheDist.set(this._key_get(oEntity0,oEntity1),oEntity0.ability_get(mygame_game_ability_Position).distance_get(oEntity1.ability_get(mygame_game_ability_Position)));
+		}
+	}
+	,_key_get: function(oEntity0,oEntity1) {
+		if(oEntity0.identity_get() > oEntity1.identity_get()) return this._key_get(oEntity1,oEntity0);
+		return oEntity0.identity_get() + ":" + oEntity1.identity_get();
+	}
+	,trigger: function(oSource) {
+		if(this._mCacheEntity == null) return;
+		if(oSource == this._oGame.onEntityNew) {
+			var oEntity = oSource.event_get();
+			if(this._test(oEntity)) this._cacheValue_create(oEntity);
+			return;
+		}
+		if(oSource == this._oGame.onEntityDispose) {
+			var oEntity1 = oSource.event_get();
+			this._cacheValue_remove(oEntity1);
+			return;
+		}
+		if(oSource == this._oGame.onPositionAnyUpdate) {
+			this._cacheValue_update(this._oGame.onPositionAnyUpdate.event_get().unit_get());
+			return;
+		}
 	}
 	,__class__: mygame_game_query_UnitDist
 };
@@ -7287,127 +7570,6 @@ mygame_game_query_UnitQuery.prototype = {
 	}
 	,__class__: mygame_game_query_UnitQuery
 };
-var space_IAlignedAxisBox = function() { };
-$hxClasses["space.IAlignedAxisBox"] = space_IAlignedAxisBox;
-space_IAlignedAxisBox.__name__ = ["space","IAlignedAxisBox"];
-space_IAlignedAxisBox.prototype = {
-	__class__: space_IAlignedAxisBox
-};
-var space_AlignedAxisBoxAlt = function(fWidth,fHeight,oBottomLeft) {
-	this._fWidth = fWidth;
-	this._fHeight = fHeight;
-	if(oBottomLeft == null) this._oBottomLeft = new space_Vector3(); else this._oBottomLeft = oBottomLeft;
-};
-$hxClasses["space.AlignedAxisBoxAlt"] = space_AlignedAxisBoxAlt;
-space_AlignedAxisBoxAlt.__name__ = ["space","AlignedAxisBoxAlt"];
-space_AlignedAxisBoxAlt.__interfaces__ = [space_IAlignedAxisBox];
-space_AlignedAxisBoxAlt.prototype = {
-	center_get: function() {
-		return new space_Vector3(this._oBottomLeft.x + this.halfWidth_get(),this._oBottomLeft.y + this.halfHeight_get());
-	}
-	,width_get: function() {
-		return this._fWidth;
-	}
-	,height_get: function() {
-		return this._fHeight;
-	}
-	,halfWidth_get: function() {
-		return this._fWidth / 2;
-	}
-	,halfHeight_get: function() {
-		return this._fHeight / 2;
-	}
-	,top_get: function() {
-		return this._oBottomLeft.y + this._fHeight;
-	}
-	,bottom_get: function() {
-		return this._oBottomLeft.y;
-	}
-	,right_get: function() {
-		return this._oBottomLeft.x + this._fWidth;
-	}
-	,left_get: function() {
-		return this._oBottomLeft.x;
-	}
-	,bottomLeft_set: function(x,y) {
-		this._oBottomLeft.set(x,y);
-	}
-	,__class__: space_AlignedAxisBoxAlt
-};
-var space_Vector3 = function(x_,y_,z_) {
-	if(z_ == null) z_ = 0;
-	if(y_ == null) y_ = 0;
-	if(x_ == null) x_ = 0;
-	this.set(x_,y_,z_);
-};
-$hxClasses["space.Vector3"] = space_Vector3;
-space_Vector3.__name__ = ["space","Vector3"];
-space_Vector3.distance = function(v1,v2) {
-	var dx = v1.x - v2.x;
-	var dy = v1.y - v2.y;
-	var dz = v1.z - v2.z;
-	return Math.sqrt(dx * dx + dy * dy + dz * dz);
-};
-space_Vector3.prototype = {
-	clone: function() {
-		return new space_Vector3(this.x,this.y,this.z);
-	}
-	,copy: function(oVector) {
-		this.set(oVector.x,oVector.y,oVector.z);
-	}
-	,set: function(x_,y_,z_) {
-		if(z_ == null) z_ = 0;
-		if(y_ == null) y_ = 0;
-		this.x = x_;
-		this.y = y_;
-		this.z = z_;
-		return this;
-	}
-	,add: function(x_,y_,z_) {
-		if(z_ == null) z_ = 0;
-		if(y_ == null) y_ = 0;
-		if(x_ == null) x_ = 0;
-		this.x += x_;
-		this.y += y_;
-		this.z += z_;
-		return this;
-	}
-	,mult: function(fMultiplicator) {
-		this.x *= fMultiplicator;
-		this.y *= fMultiplicator;
-		this.z *= fMultiplicator;
-	}
-	,divide: function(fDivisor) {
-		if(fDivisor != 0) this.mult(1 / fDivisor); else throw new js__$Boot_HaxeError("[ERROR] Vector3 : can not divide by 0.");
-	}
-	,normalize: function() {
-		this.divide(this.length_get());
-		return this;
-	}
-	,length_set: function(fLength) {
-		if(fLength < 0) throw new js__$Boot_HaxeError("Invalid length : " + fLength);
-		var length = this.length_get();
-		if(length == 0) this.x = fLength; else this.mult(fLength / length);
-		return this;
-	}
-	,length_get: function() {
-		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-	}
-	,dotProduct: function(v) {
-		return this.x * v.x + this.y * v.y + this.z * v.z;
-	}
-	,vector3_add: function(oVector) {
-		this.add(oVector.x,oVector.y,oVector.z);
-	}
-	,vector3_sub: function(oVector) {
-		this.add(-oVector.x,-oVector.y,-oVector.z);
-	}
-	,angleAxisXY: function() {
-		if(this.x == 0 && this.y == 0) return null;
-		return Math.atan2(this.y,this.x);
-	}
-	,__class__: space_Vector3
-};
 var mygame_game_tile_Tile = function(oMap,x,y,z,iType) {
 	this._x = x;
 	this._y = y;
@@ -7417,6 +7579,9 @@ var mygame_game_tile_Tile = function(oMap,x,y,z,iType) {
 };
 $hxClasses["mygame.game.tile.Tile"] = mygame_game_tile_Tile;
 mygame_game_tile_Tile.__name__ = ["mygame","game","tile","Tile"];
+mygame_game_tile_Tile.tileGeometry_get = function(oTile) {
+	return new space_AlignedAxisBoxAlti(9999,9999,new space_Vector2i(oTile.x_get() * 10000,oTile.y_get() * 10000));
+};
 mygame_game_tile_Tile.prototype = {
 	x_get: function() {
 		return this._x;
@@ -7505,7 +7670,7 @@ mygame_game_tile_Sea.__super__ = mygame_game_tile_Tile;
 mygame_game_tile_Sea.prototype = $extend(mygame_game_tile_Tile.prototype,{
 	__class__: mygame_game_tile_Sea
 });
-var mygame_game_utils_PathFinderFlowField = function(oWorldMap,lPosition,lDestination,pTest) {
+var mygame_game_utils_PathFinderFlowField = function(oWorldMap,lDestination,pTest) {
 	this._oWorldMap = oWorldMap;
 	this._aReferenceMap = new haxe_ds_StringMap();
 	this._aHeatMap = new haxe_ds_StringMap();
@@ -7525,18 +7690,13 @@ var mygame_game_utils_PathFinderFlowField = function(oWorldMap,lPosition,lDestin
 		this._aReferenceMap.set(this._key_get(oTile),oTile);
 		this._aHeatMap.set(this._key_get(oTile),0);
 		this._lTileCurrent.push(oTile);
-		lPosition.remove(oTile);
 	}
-	this._bSuccess = this._referenceMap_update(lPosition);
 };
 $hxClasses["mygame.game.utils.PathFinderFlowField"] = mygame_game_utils_PathFinderFlowField;
 mygame_game_utils_PathFinderFlowField.__name__ = ["mygame","game","utils","PathFinderFlowField"];
 mygame_game_utils_PathFinderFlowField.prototype = {
 	worldmap_get: function() {
 		return this._oWorldMap;
-	}
-	,success_check: function() {
-		return this._bSuccess;
 	}
 	,refTile_getbyCoord: function(x,y) {
 		if(this._aReferenceMap == null) return null;
@@ -7571,16 +7731,13 @@ mygame_game_utils_PathFinderFlowField.prototype = {
 		var oTileChild;
 		while(!this._lTileCurrent.isEmpty()) {
 			oTileParent = this._lTileCurrent.pop();
-			while(lTileStartRemaining.remove(oTileParent)) {
-			}
-			if(lTileStartRemaining.isEmpty()) return true;
 			var _g = 0;
 			var _g1 = this._tileChild_get(oTileParent);
 			while(_g < _g1.length) {
 				var oTileChild1 = _g1[_g];
 				++_g;
 				if(oTileChild1 != null && js_Boot.__instanceof(oTileChild1,mygame_game_tile_Tile)) {
-					if(this._pTest(oTileChild1)) {
+					if(this._pTest.check(oTileChild1)) {
 						if(this._aReferenceMap.get(this._key_get(oTileChild1)) == null) {
 							this._aReferenceMap.set(this._key_get(oTileChild1),oTileParent);
 							this._aHeatMap.set(this._key_get(oTileChild1),this._aHeatMap.get(this._key_get(oTileParent)) + 1);
@@ -7596,7 +7753,7 @@ mygame_game_utils_PathFinderFlowField.prototype = {
 							var oVectorTmp = new space_Vector3(v.x - oNewRef.x_get(),v.y - oNewRef.y_get());
 							if(oVectorTmp.dotProduct(new space_Vector3(oNewRefRef.x_get() - oNewRef.x_get(),oNewRefRef.y_get() - oNewRef.y_get())) < 0) continue;
 							var t = this._oWorldMap.tile_get(Math.floor(v.x),Math.floor(v.y));
-							if(t == null || !this._pTest(t) || t == oTileChild1) {
+							if(t == null || !this._pTest.check(t) || t == oTileChild1) {
 								continue;
 								throw new js__$Boot_HaxeError("NOT OK");
 								throw new js__$Boot_HaxeError("NOT OK");
@@ -7606,6 +7763,9 @@ mygame_game_utils_PathFinderFlowField.prototype = {
 					}
 				}
 			}
+			while(lTileStartRemaining.remove(oTileParent)) {
+			}
+			if(lTileStartRemaining.isEmpty()) return true;
 		}
 		console.log("[ERROR] : Pathfinder : no PATH found\n");
 		return false;
@@ -7674,15 +7834,15 @@ mygame_game_utils_Timer.prototype = {
 	}
 	,__class__: mygame_game_utils_Timer
 };
-var websocket_php_Socket = function(oResource) {
+var websocket_Socket = function(oResource) {
 	this._oResource = oResource;
 	this._bClosed = false;
 	this.onClose = new trigger_eventdispatcher_EventDispatcher();
 	__call__("socket_set_nonblock",this._oResource);
 };
-$hxClasses["websocket.php.Socket"] = websocket_php_Socket;
-websocket_php_Socket.__name__ = ["websocket","php","Socket"];
-websocket_php_Socket.prototype = {
+$hxClasses["websocket.Socket"] = websocket_Socket;
+websocket_Socket.__name__ = ["websocket","Socket"];
+websocket_Socket.prototype = {
 	resource_get: function() {
 		return this._oResource;
 	}
@@ -7701,19 +7861,19 @@ websocket_php_Socket.prototype = {
 		this._bClosed = true;
 		this.onClose.dispatch(this);
 	}
-	,__class__: websocket_php_Socket
+	,__class__: websocket_Socket
 };
-var websocket_php_SocketDistant = function(oResource) {
-	websocket_php_Socket.call(this,oResource);
+var websocket_SocketDistant = function(oResource) {
+	websocket_Socket.call(this,oResource);
 	this._bHandshaked = false;
 	this._sInBuffer = "";
 	this.onMessage = new trigger_eventdispatcher_EventDispatcher();
 	this.onClose = new trigger_eventdispatcher_EventDispatcher();
 };
-$hxClasses["websocket.php.SocketDistant"] = websocket_php_SocketDistant;
-websocket_php_SocketDistant.__name__ = ["websocket","php","SocketDistant"];
-websocket_php_SocketDistant.__super__ = websocket_php_Socket;
-websocket_php_SocketDistant.prototype = $extend(websocket_php_Socket.prototype,{
+$hxClasses["websocket.SocketDistant"] = websocket_SocketDistant;
+websocket_SocketDistant.__name__ = ["websocket","SocketDistant"];
+websocket_SocketDistant.__super__ = websocket_Socket;
+websocket_SocketDistant.prototype = $extend(websocket_Socket.prototype,{
 	isHandshaked_get: function() {
 		return this._bHandshaked;
 	}
@@ -7764,20 +7924,20 @@ websocket_php_SocketDistant.prototype = $extend(websocket_php_Socket.prototype,{
 	,handshake: function(sHandshake) {
 		this._handshake(sHandshake);
 	}
-	,__class__: websocket_php_SocketDistant
+	,__class__: websocket_SocketDistant
 });
 var mygame_server_model_Client = function(oResource) {
 	this._iSlotId = -1;
 	this._oRoom = null;
-	websocket_php_SocketDistant.call(this,oResource);
+	websocket_SocketDistant.call(this,oResource);
 	this._oMySerializer = new mygame_connection_MySerializer();
 	this._oMySerializer.useCache = true;
 };
 $hxClasses["mygame.server.model.Client"] = mygame_server_model_Client;
 mygame_server_model_Client.__name__ = ["mygame","server","model","Client"];
 mygame_server_model_Client.__interfaces__ = [trigger_ITrigger];
-mygame_server_model_Client.__super__ = websocket_php_SocketDistant;
-mygame_server_model_Client.prototype = $extend(websocket_php_SocketDistant.prototype,{
+mygame_server_model_Client.__super__ = websocket_SocketDistant;
+mygame_server_model_Client.prototype = $extend(websocket_SocketDistant.prototype,{
 	messageLast_get: function() {
 		return this._oMessageLast;
 	}
@@ -7801,7 +7961,7 @@ mygame_server_model_Client.prototype = $extend(websocket_php_SocketDistant.proto
 	}
 	,_message_handle: function() {
 		this._oMessageLast = mygame_connection_MyUnserializer.run(this.readResult_get(),this.game_get());
-		websocket_php_SocketDistant.prototype._message_handle.call(this);
+		websocket_SocketDistant.prototype._message_handle.call(this);
 	}
 	,trigger: function(oSource) {
 	}
@@ -7811,11 +7971,12 @@ mygame_server_model_Client.prototype = $extend(websocket_php_SocketDistant.proto
 	}
 	,__class__: mygame_server_model_Client
 });
-var mygame_server_model_Room = function(oGame) {
+var mygame_server_model_Room = function(iId,oGame) {
 	this._fGamePaceLapse = 45;
 	this._sPasswordShadow = "";
 	this._bPlayerSpontaneous = true;
 	this._iSpectatorMax = 0;
+	this._iId = iId;
 	this._oGame = oGame;
 	this._aoSlot = [];
 	this._abPause = [];
@@ -7834,7 +7995,10 @@ var mygame_server_model_Room = function(oGame) {
 $hxClasses["mygame.server.model.Room"] = mygame_server_model_Room;
 mygame_server_model_Room.__name__ = ["mygame","server","model","Room"];
 mygame_server_model_Room.prototype = {
-	spectatorMax_get: function() {
+	id_get: function() {
+		return this._iId;
+	}
+	,spectatorMax_get: function() {
 		return this._iSpectatorMax;
 	}
 	,spectatorMax_set: function(iSpectatorMax) {
@@ -7855,7 +8019,9 @@ mygame_server_model_Room.prototype = {
 		return loClient;
 	}
 	,pauseList_get: function() {
+		console.log("Slot:");
 		console.log(this._aoSlot);
+		console.log("Pause:");
 		console.log(this._abPause);
 		return this._abPause;
 	}
@@ -8046,6 +8212,12 @@ ob3updater_Transistion.prototype = {
 	}
 	,__class__: ob3updater_Transistion
 };
+var space_IAlignedAxisBox = function() { };
+$hxClasses["space.IAlignedAxisBox"] = space_IAlignedAxisBox;
+space_IAlignedAxisBox.__name__ = ["space","IAlignedAxisBox"];
+space_IAlignedAxisBox.prototype = {
+	__class__: space_IAlignedAxisBox
+};
 var space_AlignedAxisBox = function(fHalfWidth,fHalfHeight,oPosition) {
 	this._fHalfWidth = fHalfWidth;
 	this._fHalfHeight = fHalfHeight;
@@ -8128,6 +8300,47 @@ space_AlignedAxisBox2i.prototype = {
 	}
 	,__class__: space_AlignedAxisBox2i
 };
+var space_AlignedAxisBoxAlt = function(fWidth,fHeight,oBottomLeft) {
+	this._fWidth = fWidth;
+	this._fHeight = fHeight;
+	if(oBottomLeft == null) this._oBottomLeft = new space_Vector3(); else this._oBottomLeft = oBottomLeft;
+};
+$hxClasses["space.AlignedAxisBoxAlt"] = space_AlignedAxisBoxAlt;
+space_AlignedAxisBoxAlt.__name__ = ["space","AlignedAxisBoxAlt"];
+space_AlignedAxisBoxAlt.__interfaces__ = [space_IAlignedAxisBox];
+space_AlignedAxisBoxAlt.prototype = {
+	center_get: function() {
+		return new space_Vector3(this._oBottomLeft.x + this.halfWidth_get(),this._oBottomLeft.y + this.halfHeight_get());
+	}
+	,width_get: function() {
+		return this._fWidth;
+	}
+	,height_get: function() {
+		return this._fHeight;
+	}
+	,halfWidth_get: function() {
+		return this._fWidth / 2;
+	}
+	,halfHeight_get: function() {
+		return this._fHeight / 2;
+	}
+	,top_get: function() {
+		return this._oBottomLeft.y + this._fHeight;
+	}
+	,bottom_get: function() {
+		return this._oBottomLeft.y;
+	}
+	,right_get: function() {
+		return this._oBottomLeft.x + this._fWidth;
+	}
+	,left_get: function() {
+		return this._oBottomLeft.x;
+	}
+	,bottomLeft_set: function(x,y) {
+		this._oBottomLeft.set(x,y);
+	}
+	,__class__: space_AlignedAxisBoxAlt
+};
 var space_AlignedAxisBoxAlti = function(iWidth,iHeight,oBottomLeft) {
 	this._iWidth = iWidth;
 	this._iHeight = iHeight;
@@ -8181,8 +8394,97 @@ space_Circle.prototype = {
 	}
 	,__class__: space_Circle
 };
+var space_Circlei = function(oPosition,iRadius) {
+	if(oPosition == null) this._oPosition = new space_Vector2i(); else this._oPosition = oPosition;
+	this._fRadius = utils_IntTool.max(iRadius,0);
+};
+$hxClasses["space.Circlei"] = space_Circlei;
+space_Circlei.__name__ = ["space","Circlei"];
+space_Circlei.prototype = {
+	radius_get: function() {
+		return this._fRadius;
+	}
+	,position_get: function() {
+		return this._oPosition;
+	}
+	,__class__: space_Circlei
+};
+var space_Vector3 = function(x_,y_,z_) {
+	if(z_ == null) z_ = 0;
+	if(y_ == null) y_ = 0;
+	if(x_ == null) x_ = 0;
+	this.set(x_,y_,z_);
+};
+$hxClasses["space.Vector3"] = space_Vector3;
+space_Vector3.__name__ = ["space","Vector3"];
+space_Vector3.distance = function(v1,v2) {
+	var dx = v1.x - v2.x;
+	var dy = v1.y - v2.y;
+	var dz = v1.z - v2.z;
+	return Math.sqrt(dx * dx + dy * dy + dz * dz);
+};
+space_Vector3.prototype = {
+	clone: function() {
+		return new space_Vector3(this.x,this.y,this.z);
+	}
+	,copy: function(oVector) {
+		this.set(oVector.x,oVector.y,oVector.z);
+	}
+	,set: function(x_,y_,z_) {
+		if(z_ == null) z_ = 0;
+		if(y_ == null) y_ = 0;
+		this.x = x_;
+		this.y = y_;
+		this.z = z_;
+		return this;
+	}
+	,add: function(x_,y_,z_) {
+		if(z_ == null) z_ = 0;
+		if(y_ == null) y_ = 0;
+		if(x_ == null) x_ = 0;
+		this.x += x_;
+		this.y += y_;
+		this.z += z_;
+		return this;
+	}
+	,mult: function(fMultiplicator) {
+		this.x *= fMultiplicator;
+		this.y *= fMultiplicator;
+		this.z *= fMultiplicator;
+	}
+	,divide: function(fDivisor) {
+		if(fDivisor != 0) this.mult(1 / fDivisor); else throw new js__$Boot_HaxeError("[ERROR] Vector3 : can not divide by 0.");
+	}
+	,normalize: function() {
+		this.divide(this.length_get());
+		return this;
+	}
+	,length_set: function(fLength) {
+		if(fLength < 0) throw new js__$Boot_HaxeError("Invalid length : " + fLength);
+		var length = this.length_get();
+		if(length == 0) this.x = fLength; else this.mult(fLength / length);
+		return this;
+	}
+	,length_get: function() {
+		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+	}
+	,dotProduct: function(v) {
+		return this.x * v.x + this.y * v.y + this.z * v.z;
+	}
+	,vector3_add: function(oVector) {
+		this.add(oVector.x,oVector.y,oVector.z);
+	}
+	,vector3_sub: function(oVector) {
+		this.add(-oVector.x,-oVector.y,-oVector.z);
+	}
+	,angleAxisXY: function() {
+		if(this.x == 0 && this.y == 0) return null;
+		return Math.atan2(this.y,this.x);
+	}
+	,__class__: space_Vector3
+};
 var trigger_EventDispatcher2 = function() {
-	this._aoTrigger = [];
+	this._lTrigger = new List();
 };
 $hxClasses["trigger.EventDispatcher2"] = trigger_EventDispatcher2;
 trigger_EventDispatcher2.__name__ = ["trigger","EventDispatcher2"];
@@ -8190,21 +8492,27 @@ trigger_EventDispatcher2.__interfaces__ = [trigger_IEventDispatcher];
 trigger_EventDispatcher2.prototype = {
 	attach: function(oITrigger) {
 		if(oITrigger == null) throw new js__$Boot_HaxeError("[ERROR]:trigger is null");
-		this._aoTrigger.push(oITrigger);
+		this._lTrigger.push(oITrigger);
 	}
 	,remove: function(oITrigger) {
-		HxOverrides.remove(this._aoTrigger,oITrigger);
+		this._lTrigger.remove(oITrigger);
 	}
 	,event_get: function() {
 		return this._oEventCurrent;
 	}
 	,dispatch: function(oEvent) {
 		this._oEventCurrent = oEvent;
-		var _g = 0;
-		var _g1 = this._aoTrigger;
-		while(_g < _g1.length) {
-			var oTrigger = _g1[_g];
-			++_g;
+		var _g_head = this._lTrigger.h;
+		var _g_val = null;
+		while(_g_head != null) {
+			var oTrigger;
+			oTrigger = (function($this) {
+				var $r;
+				_g_val = _g_head[0];
+				_g_head = _g_head[1];
+				$r = _g_val;
+				return $r;
+			}(this));
 			oTrigger.trigger(this);
 		}
 		return this;
@@ -8233,6 +8541,19 @@ trigger_EventDispatcherTree.prototype = $extend(trigger_EventDispatcher2.prototy
 		return this._oParent.source_check(oSource);
 	}
 	,__class__: trigger_EventDispatcherTree
+});
+var trigger_eventdispatcher_EventDispatcherFunel = function() {
+	trigger_EventDispatcher2.call(this);
+};
+$hxClasses["trigger.eventdispatcher.EventDispatcherFunel"] = trigger_eventdispatcher_EventDispatcherFunel;
+trigger_eventdispatcher_EventDispatcherFunel.__name__ = ["trigger","eventdispatcher","EventDispatcherFunel"];
+trigger_eventdispatcher_EventDispatcherFunel.__interfaces__ = [trigger_ITrigger,trigger_IEventDispatcher];
+trigger_eventdispatcher_EventDispatcherFunel.__super__ = trigger_EventDispatcher2;
+trigger_eventdispatcher_EventDispatcherFunel.prototype = $extend(trigger_EventDispatcher2.prototype,{
+	trigger: function(oSource) {
+		this.dispatch(oSource.event_get());
+	}
+	,__class__: trigger_eventdispatcher_EventDispatcherFunel
 });
 var trigger_eventdispatcher_EventDispatcherJS = function(sType,oEventTarget) {
 	trigger_eventdispatcher_EventDispatcher.call(this);
@@ -8277,6 +8598,17 @@ utils_Disposer.dispose = function(o) {
 };
 utils_Disposer.prototype = {
 	__class__: utils_Disposer
+};
+var utils_IntTool = function() { };
+$hxClasses["utils.IntTool"] = utils_IntTool;
+utils_IntTool.__name__ = ["utils","IntTool"];
+utils_IntTool.min = function(a,b) {
+	if(a > b) return b;
+	return a;
+};
+utils_IntTool.max = function(a,b) {
+	if(a < b) return b;
+	return a;
 };
 var utils_ListTool = function() { };
 $hxClasses["utils.ListTool"] = utils_ListTool;
@@ -8325,12 +8657,47 @@ utils_ListTool.index_get = function(l,o) {
 	}
 	return -1;
 };
+var utils_MapTool = function() { };
+$hxClasses["utils.MapTool"] = utils_MapTool;
+utils_MapTool.__name__ = ["utils","MapTool"];
+utils_MapTool.getMergedIntMap = function(oMap1,oMap2) {
+	var oMap = new haxe_ds_IntMap();
+	var $it0 = oMap1.keys();
+	while( $it0.hasNext() ) {
+		var oKey = $it0.next();
+		oMap.h[oKey] = oMap1.h[oKey];
+	}
+	var $it1 = oMap2.keys();
+	while( $it1.hasNext() ) {
+		var oKey1 = $it1.next();
+		oMap.h[oKey1] = oMap2.h[oKey1];
+	}
+	return oMap;
+};
+utils_MapTool.getLength = function(oMap) {
+	var i = 0;
+	var $it0 = oMap.iterator();
+	while( $it0.hasNext() ) {
+		var e = $it0.next();
+		i++;
+	}
+	return i;
+};
+utils_MapTool.toList = function(oMap) {
+	var l = new List();
+	var $it0 = oMap.iterator();
+	while( $it0.hasNext() ) {
+		var e = $it0.next();
+		l.add(e);
+	}
+	return l;
+};
 var utils_three_Coordonate = function() { };
 $hxClasses["utils.three.Coordonate"] = utils_three_Coordonate;
 utils_three_Coordonate.__name__ = ["utils","three","Coordonate"];
 utils_three_Coordonate.init = function() {
 	if(utils_three_Coordonate._bInit) return;
-	utils_three_Coordonate._oPlane = new THREE.Plane(new THREE.Vector3(0,0,1),-0.5);
+	utils_three_Coordonate._oPlane = new THREE.Plane(new THREE.Vector3(0,0,1),-0.25);
 	utils_three_Coordonate._oProjector = new THREE.Projector();
 	utils_three_Coordonate._bInit = true;
 };
@@ -8342,7 +8709,7 @@ utils_three_Coordonate.canva_to_eye = function(x,y,oRenderer,oVector) {
 };
 utils_three_Coordonate.screen_to_worldGround = function(x,y,oRenderer,oCamera,oVector) {
 	var oPlane = new THREE.Mesh(new THREE.PlaneGeometry(2000000,2000000),new THREE.MeshLambertMaterial());
-	oPlane.position.set(0,0,5000);
+	oPlane.position.set(0,0,2500);
 	utils_three_Coordonate.init();
 	if(oVector == null) oVector = new THREE.Vector3();
 	utils_three_Coordonate.canva_to_eye(x,y,oRenderer,oVector);
@@ -9496,32 +9863,22 @@ mygame_client_view_GameView.WORLDMAP_MESHSIZE = 10;
 mygame_client_view_visual_EntityVisual._moEntityVisual = mygame_client_view_visual_EntityVisual._moEntityVisual = new haxe_ds_IntMap();
 mygame_client_view_visual_MapVisual.LANDHEIGHT = 0.25;
 mygame_client_view_visual_ability_GuidanceVisual._oMaterial = new THREE.LineBasicMaterial({ color : 255});
-mygame_client_view_visual_ability_WeaponVisual._oMatBackground = new THREE.SpriteMaterial({ color : 0, depthTest : false, depthWrite : false});
-mygame_client_view_visual_ability_WeaponVisual._oMatForeground = new THREE.SpriteMaterial({ color : 16733525, depthTest : false, depthWrite : false});
-mygame_client_view_visual_ability_WeaponVisual._oMaterial = new THREE.LineBasicMaterial({ color : 16711680});
-mygame_client_view_visual_ability_WeaponVisual._fBorderSize = 3;
-mygame_client_view_visual_gui_HealthGauge._oMaterialBackground = new THREE.MeshBasicMaterial({ color : 0, depthTest : false, depthWrite : false});
-mygame_client_view_visual_gui_HealthGauge._oMaterialGauge = new THREE.MeshBasicMaterial({ color : 1179460, depthTest : false, depthWrite : false});
-mygame_client_view_visual_gui_HealthGauge._oGeometryBackground = new THREE.PlaneGeometry(2,2);
-mygame_client_view_visual_gui_HealthGauge._oGeometryGauge = new THREE.PlaneGeometry(2,2);
+mygame_client_view_visual_ability_WeaponVisual._oMaterial = new THREE.LineBasicMaterial({ color : 16776960});
 mygame_client_view_visual_unit_CopterVisual._oMaterial = new THREE.LineDashedMaterial({ color : 14606046, dashSize : 3, gapSize : 1});
 mygame_connection_MySerializer._bUSE_RELATIVE = false;
-mygame_game_ability_BuilderFactory._aOffer = [new mygame_game_misc_offer_Offer(15,"Build a Solier 2"),new mygame_game_misc_offer_Offer(15,"Build a Tank")];
-utils_IntTool.MAX = 1073741823;
+mygame_game_ability_BuilderFactory._aOffer = [new mygame_game_misc_offer_Offer(15,"Build a Solier 2","mygame.game.entity.PlatoonUnit"),new mygame_game_misc_offer_Offer(15,"Build a Tank","mygame.game.entity.Tank")];
 mygame_game_ability_LoyaltyShift._fStep = 0.01;
-mygame_game_ability_LoyaltyShift._oArea = new space_Circlei(new space_Vector2i(),10000);
-mygame_game_ability_LoyaltyShift.RANGE = 10000;
 mygame_game_entity_WorldMap.TILETYPE_SEA = 0;
 mygame_game_entity_WorldMap.TILETYPE_GRASS = 1;
 mygame_game_entity_WorldMap.TILETYPE_FOREST = 2;
 mygame_game_entity_WorldMap.TILETYPE_MOUNTAIN = 3;
 mygame_game_entity_WorldMap.TILETYPE_ROAD = 4;
-mygame_game_tile_Tile._oHitBox = new space_AlignedAxisBoxAlt(1,1);
 trigger_eventdispatcher_EventDispatcherJS.onClick = new trigger_eventdispatcher_EventDispatcherJS("click");
 trigger_eventdispatcher_EventDispatcherJS.onMouseUp = new trigger_eventdispatcher_EventDispatcherJS("mouseup");
 trigger_eventdispatcher_EventDispatcherJS.onMouseDown = new trigger_eventdispatcher_EventDispatcherJS("mousedown");
 trigger_eventdispatcher_EventDispatcherJS.onMouseMove = new trigger_eventdispatcher_EventDispatcherJS("mousemove");
 trigger_eventdispatcher_EventDispatcherJS.onContextMenu = new trigger_eventdispatcher_EventDispatcherJS("contextmenu");
+utils_IntTool.MAX = 1073741823;
 utils_three_Coordonate._bInit = false;
 mygame_client_MyClient.main();
 })(typeof console != "undefined" ? console : {log:function(){}}, typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : this);

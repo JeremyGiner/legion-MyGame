@@ -2,5 +2,5 @@
 
 interface utils_IDisposable {
 	function dispose();
-	function dispose_check();
+	function disposed_check();
 }

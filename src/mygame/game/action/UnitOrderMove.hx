@@ -2,7 +2,9 @@ package mygame.game.action;
 
 import legion.entity.Player;
 import legion.PlayerInput;
+import mygame.game.ability.Platoon;
 import mygame.game.entity.PlatoonUnit;
+import mygame.game.entity.SubUnit;
 import space.Vector2i;
 
 import mygame.game.entity.Unit;
@@ -39,16 +41,22 @@ class UnitOrderMove implements IAction {
 	public function exec( oGame :MyGame ) {
 		if( !check( oGame ) ) throw('invalid input');
 		//var oUnit = oGame.hero_get( _oPlayer );
-		//TODO : check if unit has guidance
+		var oPlatoon = _oUnit.ability_get(Platoon);
+		if ( oPlatoon != null ) {
+			_oUnit.ability_get(Platoon).goal_set( _oDestination );
+			return;
+		}
+		
 		_oUnit.ability_get(Guidance).goal_set( _oDestination );
 		
-		if ( Std.is( _oUnit, PlatoonUnit ) ) {
-			
-		}
 	}
 	
 	public function check( oGame :MyGame ) :Bool {
-		if( _oUnit.ability_get(Guidance) == null ) return false;
+		if ( 
+			_oUnit.ability_get(Guidance) == null && 
+			_oUnit.ability_get(Platoon) == null 
+		) return false;
+		if( Std.is( _oUnit, SubUnit) ) return false; //TODO use ability to tellthem appart instead
 		//return super.check( oPlayer );
 		return true;
 	}

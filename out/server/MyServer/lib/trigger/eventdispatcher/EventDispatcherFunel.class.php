@@ -4,14 +4,6 @@ class trigger_eventdispatcher_EventDispatcherFunel extends trigger_EventDispatch
 	public function __construct() { if(!php_Boot::$skip_constructor) {
 		parent::__construct();
 	}}
-	public function link_add($oIEventDispatcher) {
-		$oIEventDispatcher->remove($this);
-		return $this;
-	}
-	public function link_remove($oIEventDispatcher) {
-		$oIEventDispatcher->remove($this);
-		return $this;
-	}
 	public function trigger($oSource) {
 		$this->dispatch($oSource->event_get());
 	}

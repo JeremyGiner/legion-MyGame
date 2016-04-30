@@ -67,21 +67,6 @@ class MobilityProcess implements ITrigger {
 			_loUnit.remove( oUnit );
 		}
 		
-		// Run Unit-Unit collision layer
-		//TODO
-		
-		// Run Tile-Unit collision layer
-		/*for( i in 0...100 ) {
-			if( _oCLayerUnitTile.collision_check() == 0 )
-				break;
-			
-			//------
-			if( i == 90 ) {
-				trace('[ERROR]:Collision(s) cant resolve after 90 pass.');
-				break;
-			}
-		}*/
-		
 		// Move each entity
 		for( oUnit in _loUnit ) {
 			oUnit.ability_get( Mobility ).move();

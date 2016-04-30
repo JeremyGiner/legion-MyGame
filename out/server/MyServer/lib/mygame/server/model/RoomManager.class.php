@@ -35,7 +35,7 @@ class mygame_server_model_RoomManager {
 		return $this->_moGameInput->get($iGameId);
 	}
 	public function game_create() {
-		$oRoom = new mygame_server_model_Room(new mygame_game_MyGame());
+		$oRoom = new mygame_server_model_Room(mygame_server_model_RoomManager::$_iIdAutoIncrement, new mygame_game_MyGame(mygame_game_GameConfFactory::gameConfDefault_get()));
 		$this->_moRoom->set(mygame_server_model_RoomManager::$_iIdAutoIncrement, $oRoom);
 		mygame_server_model_RoomManager::$_iIdAutoIncrement++;
 		$oRoom->onUpdate->attach($this->onAnyRoomUpdate);

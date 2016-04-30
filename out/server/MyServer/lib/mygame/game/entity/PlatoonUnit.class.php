@@ -4,13 +4,9 @@ class mygame_game_entity_PlatoonUnit extends mygame_game_entity_Unit {
 	public function __construct($oGame, $oOwner, $oPosition) {
 		if(!php_Boot::$skip_constructor) {
 		parent::__construct($oGame,$oOwner,$oPosition);
-		$this->_ability_add(new mygame_game_ability_Volume($this, 4000, 1));
-		$this->_ability_add(new mygame_game_ability_PositionPlan($this, 2));
-		$this->_ability_add(new mygame_game_ability_Mobility($this, 0.05));
-		$oAbility = new mygame_game_ability_GuidancePlatoon($this);
+		$oAbility = new mygame_game_ability_Platoon($this, $oPosition);
 		$this->_ability_add($oAbility);
 		$this->_moAbility->set(Type::getClassName(_hx_qtype("mygame.game.ability.Guidance")), $oAbility);
-		$this->_ability_add(new mygame_game_ability_Platoon($this));
 	}}
 	public $_aSubUnit;
 	public function __call($m, $a) {

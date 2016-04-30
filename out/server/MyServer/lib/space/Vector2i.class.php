@@ -25,6 +25,9 @@ class space_Vector2i {
 	public function dotProduct($v) {
 		return $this->x * $v->x + $this->y * $v->y;
 	}
+	public function distance_get($oVector) {
+		return space_Vector2i::distance($this, $oVector);
+	}
 	public function set($x_, $y_ = null) {
 		if($y_ === null) {
 			$y_ = 0;
@@ -98,7 +101,7 @@ class space_Vector2i {
 	static function distance($v1, $v2) {
 		$dx = $v1->x - $v2->x;
 		$dy = $v1->y - $v2->y;
-		return Math::round(Math::sqrt($dx * $dx + $dy * $dy));
+		return Math::sqrt($dx * $dx + $dy * $dy);
 	}
 	function __toString() { return 'space.Vector2i'; }
 }

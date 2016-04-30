@@ -6,14 +6,14 @@ import trigger.ITrigger;
 
 class EventDispatcher2<CEvent> implements IEventDispatcher {
 
-	var _aoTrigger : Array<ITrigger>;
+	var _lTrigger  :List<ITrigger>;
 	var _oEventCurrent :CEvent;
 
 //______________________________________________________________________________
 //	Constructor
 
 	public function new(){
-		_aoTrigger = new Array<ITrigger>();
+		_lTrigger = new List<ITrigger>();
 	}
 
 //______________________________________________________________________________
@@ -23,13 +23,13 @@ class EventDispatcher2<CEvent> implements IEventDispatcher {
 	
 		if( oITrigger == null ) throw '[ERROR]:trigger is null';
 	
-		_aoTrigger.push( oITrigger );
+		_lTrigger.push( oITrigger );
 		
 		//return this;
 	}
 	
 	public function remove( oITrigger :ITrigger ){
-		_aoTrigger.remove( oITrigger );
+		_lTrigger.remove( oITrigger );
 		
 		//return this;
 	}
@@ -40,7 +40,7 @@ class EventDispatcher2<CEvent> implements IEventDispatcher {
 
 	public function dispatch( ?oEvent :Dynamic ){
 		_oEventCurrent = oEvent;
-		for( oTrigger in _aoTrigger ){
+		for( oTrigger in _lTrigger ){
 			oTrigger.trigger( this );
 		}
 		

@@ -1,9 +1,8 @@
 package mygame.game.process;
 
+import haxe.ds.IntMap;
 import legion.entity.Entity;
 import mygame.game.MyGame;
-import mygame.game.ability.Weapon;
-import mygame.game.collision.WeaponLayer;
 import mygame.game.ability.Health;
 
 import trigger.*;
@@ -11,16 +10,16 @@ import trigger.*;
 class Death implements ITrigger {
 
 	var _oGame :MyGame;
-	
-	var _lHealth :List<Health>;	// List of Health recently updated 
+	var _aEntity :IntMap<Entity>; // Map of entity which Health have been recently updated, indexed by id
 
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oGame :MyGame ) {
 		_oGame = oGame;
-		_lHealth = new List<Health>();
+		_aEntity = new IntMap<Entity>();
 		
+		// Trigger
 		_oGame.onLoop.attach( this );
 		_oGame.onHealthAnyUpdate.attach( this );
 	}
@@ -35,11 +34,19 @@ class Death implements ITrigger {
 	
 	function process() {
 		
-		while( !_lHealth.isEmpty() ) {
-			var oHealth = _lHealth.pop();
-			if( oHealth.get() == 0 )
-				oHealth.unit_get().dispose();
+		// Process each unit
+		for ( oEntity in _aEntity ) {
+			
+			// Skip living unit
+			if ( oEntity.ability_get(Health).get() > 0 )
+				continue;
+			
+			// Case : dead -> dispose entity
+			oEntity.game_get().entity_remove( oEntity );
 		}
+		
+		// Reset
+		_aEntity = new IntMap<Entity>();
 	} 
 	
 //______________________________________________________________________________
@@ -52,8 +59,10 @@ class Death implements ITrigger {
 			process();
 		
 		// on 
-		if ( oSource == _oGame.onHealthAnyUpdate )
-			_lHealth.push( _oGame.onHealthAnyUpdate.event_get() );
+		if ( oSource == _oGame.onHealthAnyUpdate ) {
+			var oUnit = _oGame.onHealthAnyUpdate.event_get().unit_get();
+			_aEntity.set( oUnit.identity_get(), oUnit );
+		}
 		
 	}
 }

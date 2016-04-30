@@ -58,5 +58,7 @@ class PositionDistance {
 		return _moDelta.get( iId1 ).get( iId2 );
 	}
 	
-	
+	public function distance_get( oPosition1 :Position, oPosition2 :Position ) {
+		
+	}
 }

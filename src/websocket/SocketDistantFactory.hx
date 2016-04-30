@@ -1,10 +1,9 @@
 package websocket;
 
-import websocket.php.SocketDistant;
 import websocket.Resource;
 
 /**
- * ...
+ * Default distant socket factory
  * @author GINER Jérémy
  */
 class SocketDistantFactory {

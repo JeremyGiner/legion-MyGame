@@ -1,7 +1,7 @@
 <?php
 
 class mygame_game_utils_PathFinderFlowField {
-	public function __construct($oWorldMap, $lPosition, $lDestination, $pTest) {
+	public function __construct($oWorldMap, $lDestination, $pTest) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oWorldMap = $oWorldMap;
 		$this->_aReferenceMap = new haxe_ds_StringMap();
@@ -16,21 +16,15 @@ class mygame_game_utils_PathFinderFlowField {
 			$this->_aReferenceMap->set($this->_key_get($oTile), $oTile);
 			$this->_aHeatMap->set($this->_key_get($oTile), 0);
 			$this->_lTileCurrent->push($oTile);
-			$lPosition->remove($oTile);
 		}
-		$this->_bSuccess = $this->_referenceMap_update($lPosition);
 	}}
 	public $_oWorldMap;
 	public $_aHeatMap;
 	public $_aReferenceMap;
 	public $_lTileCurrent;
 	public $_pTest;
-	public $_bSuccess;
 	public function worldmap_get() {
 		return $this->_oWorldMap;
-	}
-	public function success_check() {
-		return $this->_bSuccess;
 	}
 	public function refTile_getbyCoord($x, $y) {
 		if($this->_aReferenceMap === null) {
@@ -75,11 +69,6 @@ class mygame_game_utils_PathFinderFlowField {
 		$oTileChild = null;
 		while(!$this->_lTileCurrent->isEmpty()) {
 			$oTileParent = $this->_lTileCurrent->pop();
-			while($lTileStartRemaining->remove($oTileParent)) {
-			}
-			if($lTileStartRemaining->isEmpty()) {
-				return true;
-			}
 			{
 				$_g = 0;
 				$_g1 = $this->_tileChild_get($oTileParent);
@@ -87,7 +76,7 @@ class mygame_game_utils_PathFinderFlowField {
 					$oTileChild1 = $_g1[$_g];
 					++$_g;
 					if($oTileChild1 !== null && Std::is($oTileChild1, _hx_qtype("mygame.game.tile.Tile"))) {
-						if($this->_pTest($oTileChild1)) {
+						if($this->_pTest->check($oTileChild1)) {
 							if($this->_aReferenceMap->get($this->_key_get($oTileChild1)) === null) {
 								$this->_aReferenceMap->set($this->_key_get($oTileChild1), $oTileParent);
 								$this->_aHeatMap->set($this->_key_get($oTileChild1), $this->_aHeatMap->get($this->_key_get($oTileParent)) + 1);
@@ -109,7 +98,7 @@ class mygame_game_utils_PathFinderFlowField {
 									continue;
 								}
 								$t = $this->_oWorldMap->tile_get(Math::floor($v->x), Math::floor($v->y));
-								if($t === null || !$this->_pTest($t) || $t === $oTileChild1) {
+								if($t === null || !$this->_pTest->check($t) || $t === $oTileChild1) {
 									continue;
 									throw new HException("NOT OK");
 									throw new HException("NOT OK");
@@ -123,8 +112,13 @@ class mygame_game_utils_PathFinderFlowField {
 				}
 				unset($_g1,$_g);
 			}
+			while($lTileStartRemaining->remove($oTileParent)) {
+			}
+			if($lTileStartRemaining->isEmpty()) {
+				return true;
+			}
 		}
-		haxe_Log::trace("[ERROR] : Pathfinder : no PATH found\x0A", _hx_anonymous(array("fileName" => "PathFinderFlowField.hx", "lineNumber" => 237, "className" => "mygame.game.utils.PathFinderFlowField", "methodName" => "_referenceMap_update")));
+		haxe_Log::trace("[ERROR] : Pathfinder : no PATH found\x0A", _hx_anonymous(array("fileName" => "PathFinderFlowField.hx", "lineNumber" => 234, "className" => "mygame.game.utils.PathFinderFlowField", "methodName" => "_referenceMap_update")));
 		return false;
 	}
 	public function _tileChild_get($oTileParent) {

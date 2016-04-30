@@ -1,6 +1,7 @@
 package mygame.game.ability;
 
 import cloner.Cloner;
+import collider.CollisionCheckerPostInt;
 import legion.ability.IAbility;
 import mygame.game.tile.Tile;
 import mygame.game.entity.WorldMap;
@@ -8,6 +9,7 @@ import mygame.game.entity.Unit;
 import mygame.game.ability.Position;
 import space.AlignedAxisBox;
 import space.AlignedAxisBox2i;
+import space.AlignedAxisBoxAlti;
 import space.Vector2i;
 import space.Vector3;
 
@@ -15,7 +17,7 @@ class Volume extends UnitAbility {
 
 	var _oPosition :Position;
 
-	var _iHalfSize :Int;	// 1 = tile size, must be between [0;5000[
+	var _iHalfSize :Int;	// 10000 = tile size, must be between [0;5000[
 	var _fWeight :Float;
 	
 	var _oHitBox :AlignedAxisBox2i;
@@ -95,27 +97,55 @@ class Volume extends UnitAbility {
 		return loTile;
 	}
 	
-//______________________________________________________________________________
-//	Modifier
-
-	//TODO
-	public function move() {
-		/*
-	// Check velocity
-		if( _oVelocity == null )
-			return;
-	
-	// Get direction vector
-		var oVector = _oVelocity.clone();
-		oVector = _oVelocity.clone();
-	
-	// Apply speed
-		if( oVector.length_get() > _fSpeed )
-			oVector.length_set( _fSpeed );
-		oVector.add( _oPosition.x, _oPosition.y );
+	public function positionCorrection( oPoint :Vector2i ) {
+		// Case volume
+			
+		// Get target and neightbor Tile
+		var lTile = this.tileListProject_get( oPoint.x, oPoint.y );
 		
-	// Update position
-		_position_set( oVector.x, oVector.y );
-		*/
+		// Clamp on target tile
+		var oResult = oPoint.clone();
+		
+		var oUnitGeometry = new AlignedAxisBox2i( 
+			this.size_get(), 
+			this.size_get(), 
+			oPoint 
+		);
+		
+		var oTileGeometry :AlignedAxisBoxAlti;
+		for ( oTile in lTile ) {
+			// Filter walkable and non colling tile
+			if ( this.unit_get().ability_get(PositionPlan).check( oTile ) ) 
+				continue;
+			
+			// Build up tile geometry
+			oTileGeometry = Tile.tileGeometry_get( oTile );
+			
+			// Filter non colling tile
+			if ( 
+				!CollisionCheckerPostInt.check( 
+					oUnitGeometry,
+					oTileGeometry
+				)
+			) 
+				continue;
+			
+			//_____
+			var iVolumeSize = this.size_get();
+			var dx :Float = oPoint.x/10000 - (oTile.x_get()+0.5);
+			var dy :Float = oPoint.y/10000 - (oTile.y_get()+0.5);
+			if ( Math.abs(dx) > Math.abs(dy) )
+				// Clamp on X axis
+				oResult.x = ( dx > 0 ) ?
+					oTileGeometry.right_get() + 1 + iVolumeSize : 
+					oTileGeometry.left_get()-1 - iVolumeSize;
+			else
+				// Clamp on Y axis
+				oResult.y = ( dy > 0 ) ?
+					oTileGeometry.top_get() + 1 + iVolumeSize : 
+					oTileGeometry.bottom_get()-1 - iVolumeSize;
+		}
+		return oResult;
 	}
+	
 }

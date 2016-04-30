@@ -4,16 +4,16 @@ class mygame_game_process_VolumeEjection implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
+		$this->_oQueryVolume = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_VolumeEjection_0($this, $oGame));
+		$this->_oQueryMobility = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_VolumeEjection_1($this, $oGame));
 		$this->_oGame->onLoop->attach($this);
-		$this->_oGame->onEntityNew->attach($this);
-		$this->_oGame->onAbilityDispose->attach($this);
-		$this->_loVolume = new HList();
 	}}
 	public $_oGame;
-	public $_loVolume;
+	public $_oQueryVolume;
+	public $_oQueryMobility;
 	public function process() {
-		if(null == $this->_oGame->unitList_get()) throw new HException('null iterable');
-		$__hx__it = $this->_oGame->unitList_get()->iterator();
+		if(null == $this->_oQueryMobility->data_get(null)) throw new HException('null iterable');
+		$__hx__it = $this->_oQueryMobility->data_get(null)->iterator();
 		while($__hx__it->hasNext()) {
 			unset($oUnit);
 			$oUnit = $__hx__it->next();
@@ -22,44 +22,37 @@ class mygame_game_process_VolumeEjection implements trigger_ITrigger{
 				continue;
 			}
 			$oMobility->force_set("volume", 0, 0, false);
-			if(null == $this->_loVolume) throw new HException('null iterable');
-			$__hx__it2 = $this->_loVolume->iterator();
+			$oForce = $oMobility->force_get("volume");
+			if(null == $this->_oQueryVolume->data_get(null)) throw new HException('null iterable');
+			$__hx__it2 = $this->_oQueryVolume->data_get(null)->iterator();
 			while($__hx__it2->hasNext()) {
-				unset($oVolume);
-				$oVolume = $__hx__it2->next();
-				if($oVolume->unit_get() === $oUnit) {
+				unset($oEntitySource);
+				$oEntitySource = $__hx__it2->next();
+				if($oEntitySource === $oUnit) {
 					continue;
 				}
-				$fVolumeSecondSize = 0.0;
-				$oVolumeSecond = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Volume"));
-				if($oVolumeSecond !== null) {
-					$fVolumeSecondSize = $oVolumeSecond->size_get();
+				$oVolume = $oEntitySource->ability_get(_hx_qtype("mygame.game.ability.Volume"));
+				$oVolumeTarget = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Volume"));
+				$fVolumeTargetSize = null;
+				if($oVolumeTarget !== null) {
+					$fVolumeTargetSize = $oVolumeTarget->size_get();
+				} else {
+					$fVolumeTargetSize = 0.0;
 				}
 				$oVector = $this->_oGame->positionDistance_get()->delta_get($oMobility->position_get(), $oVolume->position_get());
-				if($oVector->length_get() > $oVolume->size_get() + $fVolumeSecondSize) {
+				if($oVector->length_get() > $oVolume->size_get() + $fVolumeTargetSize) {
 					continue;
 				}
-				$oVector->length_set(($oVolume->size_get() + $fVolumeSecondSize - $oVector->length_get()) * 0.5);
-				$oMobility->force_set("volume", $oVector->x, $oVector->y, false);
-				unset($oVolumeSecond,$oVector,$fVolumeSecondSize);
+				$oVector->length_set(($oVolume->size_get() + $fVolumeTargetSize - $oVector->length_get()) / 2);
+				$oForce->oVector->vector_add($oVector);
+				unset($oVolumeTarget,$oVolume,$oVector,$fVolumeTargetSize);
 			}
-			unset($oMobility);
+			unset($oMobility,$oForce);
 		}
 	}
 	public function trigger($oSource) {
 		if($oSource === $this->_oGame->onLoop) {
 			$this->process();
-		}
-		if($oSource === $this->_oGame->onEntityNew) {
-			$oVolume = _hx_deref(($oSource->event_get()))->ability_get(_hx_qtype("mygame.game.ability.Volume"));
-			if($oVolume !== null) {
-				$this->_loVolume->push($oVolume);
-			}
-		}
-		if($oSource === $this->_oGame->onAbilityDispose && Std::is($oSource->event_get(), _hx_qtype("mygame.game.ability.Volume"))) {
-			$oVolume1 = null;
-			$oVolume1 = $oSource->event_get();
-			$this->_loVolume->remove($oVolume1);
 		}
 	}
 	public function __call($m, $a) {
@@ -73,4 +66,18 @@ class mygame_game_process_VolumeEjection implements trigger_ITrigger{
 			throw new HException('Unable to call <'.$m.'>');
 	}
 	function __toString() { return 'mygame.game.process.VolumeEjection'; }
+}
+function mygame_game_process_VolumeEjection_0(&$__hx__this, &$oGame) {
+	{
+		$_g = new haxe_ds_StringMap();
+		$_g->set("ability", _hx_qtype("mygame.game.ability.Volume"));
+		return $_g;
+	}
+}
+function mygame_game_process_VolumeEjection_1(&$__hx__this, &$oGame) {
+	{
+		$_g1 = new haxe_ds_StringMap();
+		$_g1->set("ability", _hx_qtype("mygame.game.ability.Mobility"));
+		return $_g1;
+	}
 }

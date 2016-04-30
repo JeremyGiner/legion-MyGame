@@ -1,7 +1,8 @@
 package mygame.server.controller;
 
 import mygame.connection.message.serversent.ResError;
-import mygame.connection.message.serversent.RoomStatus;
+import mygame.connection.message.serversent.RoomUpdate;
+import mygame.connection.ServerMessageFactory;
 import mygame.server.model.RoomManager;
 import mygame.server.model.Client;
 import trigger.*;
@@ -57,7 +58,7 @@ class ClientController implements ITrigger {
 				
 			case ReqGameJoin :
 
-		trace('[NOTICE]:requesting access to game #'+cast(oMessage,ReqGameJoin).gameId_get());
+				trace('[NOTICE]:requesting access to game #'+cast(oMessage,ReqGameJoin).gameId_get());
 				var iRoomId = cast(oMessage,ReqGameJoin).gameId_get();
 				var iSlotId = cast(oMessage,ReqGameJoin).slotId_get();
 				
@@ -77,7 +78,7 @@ class ClientController implements ITrigger {
 				if ( iSlotId == -1 )
 					iSlotId = oRoom.slotFreeAny_get();
 				if ( iSlotId == null ) 
-					throw('slot not any free');
+					throw('slot :not any available');
 				var iSlotAvailable = oRoom.slot_occupy( oClient, iSlotId );
 				if( iSlotAvailable == null ) {
 					trace('[ERROR]:slot occupation fail.');
@@ -88,21 +89,15 @@ class ClientController implements ITrigger {
 				trace('Room client Q = '+oRoom.clientList_get().length );
 				
 				// Sending respond
-				var o = new ResGameJoin( oRoom.gameSpeed_get() );
-				o.iGameId = iRoomId;
-				o.iSlotId = iSlotAvailable;
-				o.oGame = oRoom.game_get();
-				
-				var oRespond = new MessageComposite( [
-					o,
-					new RoomStatus( oRoom ),
-				] );
-				
+				var oRespond = ServerMessageFactory.resGameJoin_create( oRoom, iSlotAvailable );
+				trace(oRespond);
 				oClient.send( oRespond );
 				
 				// Send Room status
-				for( oClient in oRoom.clientList_get() )
-					oClient.send( new RoomStatus(oRoom) );
+				var oRoomUpdate = oRespond.oRoomUpdate;
+				for ( oClientTmp in oRoom.clientList_get() )
+					if( oClient != oClientTmp )
+						oClientTmp.send( oRoomUpdate );
 				
 			case ReqPlayerInput :
 				
@@ -119,8 +114,13 @@ class ClientController implements ITrigger {
 					cast(oMessage,ReqPlayerInput).action_get( oClient.player_get() )
 				);
 				
-			
 			case ReqGameQuit :
+				
+				if ( oClient.room_get() == null ) {
+					trace('[ERROR] : Client trying to leave a null room');
+					return;
+				}
+					
 				//Detach slot from client
 				oClient.room_get().slot_leave( oClient );
 				oClient.room_set( null, -1 );
@@ -128,6 +128,7 @@ class ClientController implements ITrigger {
 			case ReqReadyUpdate :
 				
 				var oRoom = oClient.room_get();
+				
 				if ( oRoom == null )
 					oClient.send( new ResError( 1, 'Trying to update ready status while not in room') );
 				
@@ -146,34 +147,34 @@ class ClientController implements ITrigger {
 
 	public function trigger( oSource :IEventDispatcher ){
 
-		if ( oSource == _oRoomManager.onAnyRoomUpdate ) {
-			var oRoom :Room = cast _oRoomManager.onAnyRoomUpdate.event_get();
-			var oMessage = new RoomStatus( oRoom );
-			for( oClient in oRoom.clientList_get() ) {
-				oClient.send( oMessage );
-			}
-		}
+		
+		//_____________________________
+		//	Client Event
 		
 		if( oSource == _oParent.server_get().onAnyClose ) {
 		
 			// leave slot
 			var oClient :Client = cast oSource.event_get();
 			var oRoom = oClient.room_get();
-			if( oRoom != null ) {
-				oRoom.slot_leave( oClient );
 			
-				// Send Room status
-				for( oClient in oRoom.clientList_get() )
-					oClient.send( new RoomStatus(oRoom) );
-			}
+			// No room no worry
+			if ( oRoom == null ) 
+				return;
+			
+			// Update room
+			oRoom.slot_leave( oClient );
+		
+			// Send Room status
+			for( oClient in oRoom.clientList_get() )
+				oClient.send( ServerMessageFactory.roomUpdate_create( oRoom ) );
 		}
 		
 		if( oSource == _oParent.server_get().onAnyMessage ) {
 			message_handle( cast oSource.event_get() );
 		}
-		/*if( oSource == Client.onAnyClose ) {
-			var oClient = cast oSource.event_get();
-		}*/
+		
+		//_____________________________
+		//	Room event
 		
 		if( oSource == _oRoomManager.onAnyProcessStart ) {
 			var oRoom :Room = cast oSource.event_get();
@@ -187,10 +188,17 @@ class ClientController implements ITrigger {
 			//trace('[NOTICE]:sending '+oRoom.gameActionList_get().length+' input to '+oRoom.clientList_get().length+' client.' );
 				// Send to each client inside the room
 				for( oClient in oRoom.clientList_get() ) {
-					trace('[NOTICE]:Game input send.');
+					//trace('[NOTICE]:Game input send.');
 					oClient.send( oMessage );
 				}
 			
+		}
+		if ( oSource == _oRoomManager.onAnyRoomUpdate ) {
+			var oRoom :Room = cast _oRoomManager.onAnyRoomUpdate.event_get();
+			var oMessage = ServerMessageFactory.roomUpdate_create( oRoom );
+			for( oClient in oRoom.clientList_get() ) {
+				oClient.send( oMessage );
+			}
 		}
 	}
 }

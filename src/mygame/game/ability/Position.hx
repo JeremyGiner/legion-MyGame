@@ -6,7 +6,12 @@ import mygame.game.entity.WorldMap;
 import mygame.game.tile.Tile;
 import space.Vector2i;
 import space.Vector3 in Vector2;
+import trigger.EventDispatcher2;
 
+/**
+ * 
+ * @author GINER Jérémy
+ */
 class Position extends Vector2i implements IAbility {
 	
 	var _oWorldMap :WorldMap;
@@ -15,13 +20,20 @@ class Position extends Vector2i implements IAbility {
 	// Calculable
 	var _oTile :Tile;
 	
+	public var onUpdate :EventDispatcher2<Position>;
+	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oUnit :Unit, oWorldMap :WorldMap, x_ :Int, y_ :Int ) :Void {
+		onUpdate = new EventDispatcher2<Position>();
+		
 		_oUnit = oUnit;
 		_oWorldMap = oWorldMap;
+		
 		super( x_, y_ );
+		
+		onUpdate.attach( _oUnit.mygame_get().onPositionAnyUpdate );
 	}
 
 //______________________________________________________________________________
@@ -32,6 +44,8 @@ class Position extends Vector2i implements IAbility {
 		y = y_;
 		
 		_oTile = _oWorldMap.tile_get_byUnitMetric( x, y );
+		
+		onUpdate.dispatch( this );
 		
 		return this;
 	}

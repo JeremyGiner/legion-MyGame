@@ -4,6 +4,8 @@ import mygame.game.ability.Weapon;
 import mygame.game.ability.Health;
 import mygame.game.entity.Unit;
 
+import mygame.game.misc.weapon.EDamageType;
+
 /**
  * Class defining most of the behavior of the weapon Ability for Soldier unit.
  * 
@@ -16,10 +18,10 @@ class WeaponTypeSoldier extends WeaponType {
 
 	public function new() {
 		super( 
-			EDamageType.Bullet,
-			10,
-			10,
-			30000
+			Bullet,	//Damage type
+			5,	// power
+			10,	// speed (loop)
+			5000	//range
 		);
 	}
 	

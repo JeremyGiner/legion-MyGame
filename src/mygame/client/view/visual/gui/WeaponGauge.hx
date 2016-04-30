@@ -30,12 +30,12 @@ class WeaponGauge extends UnitGauge implements ITrigger {
 
 	override function _update() {
 		
-		_oGauge.scale.setX(
-			Math.min( 
-				1, 
-				_oWeapon.cooldown_get().expirePercent_get() 
-			)
+		var fValue = Math.min( 
+			1, 
+			_oWeapon.cooldown_get().expirePercent_get() 
 		);
+		
+		_value_set( fValue );
 	}
 	
 

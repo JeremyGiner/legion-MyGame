@@ -2,6 +2,7 @@ package legion.entity;
 
 import haxe.ds.StringMap;
 import legion.ability.IAbility;
+import trigger.EventDispatcher2;
 import utils.Disposer;
 import utils.IDisposable;
 
@@ -13,14 +14,16 @@ import trigger.eventdispatcher.EventDispatcher;
  * 
  * @author GINER Jérémy
  */
-class Entity implements IDisposable {
+class Entity /*implements IDisposable*/ {
 	
 	var _iIdentity :Int;
 	var _oGame :Game;
 	var _moAbility :StringMap<IAbility>;
 	
-	public var onUpdate :EventDispatcher;
-	public var onDispose :EventDispatcher;
+	//public var onUpdate :EventDispatcher;
+	public var onAbilityAdd :EventDispatcher2<EventEntityAbility>;
+	public var onAbilityRemove :EventDispatcher2<EventEntityAbility>;
+	public var onDispose :EventDispatcher2<Entity>;
 	
 //______________________________________________________________________________
 //	Constructor
@@ -31,8 +34,10 @@ class Entity implements IDisposable {
 		
 		_moAbility = new StringMap<IAbility>();
 		
-		onUpdate = new EventDispatcher();
-		onDispose = new EventDispatcher();
+		//onUpdate = new EventDispatcher();
+		onAbilityAdd = new EventDispatcher2<EventEntityAbility>();
+		onAbilityRemove = new EventDispatcher2<EventEntityAbility>();
+		onDispose = new EventDispatcher2<Entity>();
 	}
 	
 //______________________________________________________________________________
@@ -51,13 +56,7 @@ class Entity implements IDisposable {
 		}
 		return null;
 	}
-	
-	public function ability_remove<CAbility:IAbility>( oClass :Class<CAbility> ) {
-		_moAbility.remove( Type.getClassName( oClass ) );
-	}
-	function _ability_add( oAbility :IAbility) {
-		_moAbility.set( Type.getClassName( Type.getClass( oAbility ) ), oAbility );
-	}
+
 	
 	public function ability_get<CAbility:IAbility>( oClass :Class<CAbility> ) :CAbility {
 		// Check if oClass derived from IEntityAbility
@@ -69,8 +68,36 @@ class Entity implements IDisposable {
 	}
 	
 //______________________________________________________________________________
-//	Disposer
+//	Modifier
+	
+	public function ability_add( oAbility :IAbility ) {
+		_ability_add( oAbility );
+		onAbilityAdd.dispatch( { ability: oAbility, entity: this } );
+	}
+	
+	public function ability_remove<CAbility:IAbility>( oClass :Class<CAbility> ) {
+		
+		var sClassName = Type.getClassName( oClass );
+		
+		if ( !_moAbility.exists( sClassName ) )
+			return;
+		
+		_moAbility.remove( sClassName );
+		
+		onAbilityRemove.dispatch( { ability: _moAbility.get(sClassName), entity: this } );
+	}
 
+//______________________________________________________________________________
+//	Sub-routine
+	
+	function _ability_add( oAbility :IAbility ) {
+		_moAbility.set( Type.getClassName( Type.getClass( oAbility ) ), oAbility );
+	}
+	
+
+//______________________________________________________________________________
+//	Disposer
+/*
 	public function dispose() {
 		// Dispatch
 		onDispose.dispatch( this );
@@ -86,6 +113,11 @@ class Entity implements IDisposable {
 			
 		// Wipe all
 		Disposer.dispose( this );
-	}
+	}*/
 
+}
+
+typedef EventEntityAbility = {
+	var ability :IAbility;
+	var entity :Entity;
 }

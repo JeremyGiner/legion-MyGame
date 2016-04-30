@@ -37,8 +37,6 @@ class Model {
 //______________________________________________________________________________
 //	Accessor
 	
-
-	
 	public function game_get() { return _oGame; }
 	
 	public function playerLocal_get() { return _oPlayer; }
@@ -54,12 +52,22 @@ class Model {
 	public function roomInfo_get() {
 		return _oRoomInfo;
 	}
+	
+	public function userInfoCurrent_get() {
+		for ( oUserInfo in _oRoomInfo.userInfoList_get() ) {
+			if ( oUserInfo.playerId == _oPlayer.playerId_get() )
+				return oUserInfo;
+		}
+		throw('Weird');
+	}
+	
 //______________________________________________________________________________
 //	Modifier
 
-	public function game_set( oGame :MyGame, iPlayerKey :Int ) { 
+	public function game_set( oGame :MyGame, iPlayerKey :Int, oRoomInfo :RoomInfo ) { 
 		//TODO : check oGame
 		_oGame = oGame;
+		_oRoomInfo = oRoomInfo;
 		_oPlayer = _oGame.player_get( iPlayerKey );
 		if( _oPlayer == null ) trace('[ERROR]:invalid player id');//throw('[ERROR]:invalid player id');
 		_oGUI = new GUI( _oGame );

@@ -1,7 +1,3 @@
-/*
- * TODO :
- */
-
 package mygame.game;
 
 import haxe.ds.IntMap;
@@ -45,7 +41,6 @@ class MyGame extends Game {
 	var _oMap :WorldMap = null;
 	
 	var _aoHero :Array<Unit>;
-	var _loUnit :List<Unit>;
 	var _aoPlayer :Array<Player>;
 	
 	var _oWinner :Player;
@@ -60,6 +55,8 @@ class MyGame extends Game {
 	public var onLoopEnd :EventDispatcher;
 	
 	public var onHealthAnyUpdate :EventDispatcher2<Health>;
+	public var onLoyaltyAnyUpdate :EventDispatcherFunel<Loyalty>;
+	public var onPositionAnyUpdate :EventDispatcherFunel<Position>;
 	//public var onUnitMove :EventDispatcher2<Unit>;
 	
 	//_____
@@ -70,7 +67,7 @@ class MyGame extends Game {
 //______________________________________________________________________________
 //	Constructor
  
-    public function new(){
+    public function new( oConf :GameConf ){
 		super();
 		
 	//___________
@@ -78,11 +75,11 @@ class MyGame extends Game {
 		onLoop = new EventDispatcher();
 		onLoopEnd = new EventDispatcher();
 		
-		onHealthAnyUpdate  = new EventDispatcher2<Health>();
-		//onUnitMove = new EventDispatcher2<Unit>();
+		onHealthAnyUpdate = new EventDispatcher2<Health>();
+		onLoyaltyAnyUpdate = new EventDispatcherFunel<Loyalty>();
+		onPositionAnyUpdate = new EventDispatcherFunel<Position>();
 		
 		_aoHero = new Array<Unit>();
-		_loUnit = new List<Unit>();
 		_aoPlayer = new Array<Player>();
 		
 		_oPositionDistance = new PositionDistance();
@@ -101,41 +98,21 @@ class MyGame extends Game {
 		_singleton_add( new CityTile( this ) );
 		_singleton_add( new UnitDist( this ) );
 		_singleton_add( new UnitQuery( this ) );
-	//__________________
-	// Loading rules(process)
-		
-		new VolumeEjection( this );
-		new MobilityProcess( this );	
-		oWeaponProcess = new WeaponProcess( this );
-		new LoyaltyShiftProcess( this );
-		new Death( this );
-		oVictoryCondition = new VictoryCondition( this );
+	
 		
 	//__________
 	// Loading entities
-	
 		_oMap = WorldMap.load( 
 			{
-				iSizeX : 15,
-				iSizeY : 10,
-				aoTile : [
-					[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-					[0,0,1,2,4,4,4,4,4,1,2,1,1,1,0],
-					[0,1,1,2,4,2,0,1,4,1,1,1,1,1,0],
-					[0,1,1,4,4,0,0,0,4,1,3,1,4,1,0],
-					[0,1,1,4,1,0,0,0,4,1,3,1,4,1,0],
-					[0,1,4,4,1,0,0,2,4,4,4,4,4,1,0],
-					[0,1,1,1,1,1,1,2,2,1,0,0,4,0,0],
-					[0,0,1,1,1,1,1,1,1,1,0,0,1,1,0],
-					[0,0,0,1,3,1,3,2,1,1,4,1,1,1,0],
-					[0,0,0,1,1,1,1,0,0,0,0,0,0,4,0]
-				]
+				iSizeX : oConf.map.sizeX,
+				iSizeY : oConf.map.sizeY,
+				aoTile : oConf.map.tileArr
 			},
 			this
 		);
-		
-		player_add( new Player( this, 'Blue' ) );
-		player_add( new Player( this, 'Yellow' ) );
+		for( oConfPlayer in oConf.playerArr )
+			player_add( new Player( this, oConfPlayer.name ) );
+		//player_add( new Player( this, 'Yellow' ) );
 		
 		entity_add( _oMap );
 		
@@ -152,8 +129,8 @@ class MyGame extends Game {
 		entity_add( new Factory( this, player_get(1), _oMap.tile_get( 3, 17 ) ) );
 		
 		//entity_add( new Bazoo( this, player_get(0), new Vector2( 2.5, 2.5) ) );
-		entity_add( new Tank( this, player_get(1), new Vector2i( 35000, 35000) ) );
-		//entity_add( new Copter( this, player_get(1), new Vector2( 3.5, 3.5) ) );
+		//entity_add( new Tank( this, player_get(1), new Vector2i( 35000, 35000) ) );
+		//entity_add( new Copter( this, player_get(1), new Vector2i( 35000, 35000) ) );
 		//entity_add( new PlatoonUnit( this, player_get(1), new Vector2( 3.5, 3.5) ) );
 		
 		
@@ -162,8 +139,16 @@ class MyGame extends Game {
 		_aoHero[ 1 ] = cast _aoEntity[_aoEntity.length - 1];
 		
 		
-	//___________
+	//__________________
+	// Loading rules(process)
 		
+		new VolumeEjection( this );
+		new MobilityProcess( this );	
+		oWeaponProcess = new WeaponProcess( this );
+		new LoyaltyShiftProcess( this );
+		new Death( this );
+		new DeathPlatoon( this );
+		oVictoryCondition = new VictoryCondition( this );
 	
 	}
 
@@ -173,8 +158,13 @@ class MyGame extends Game {
 	public function loop(){
 		_iLoop++;
 		
+		var iTime = Date.now().getTime();
 		onLoop.dispatch( this );
+		//trace( 'Pre-loop :' + (Date.now().getTime() - iTime) );
+		
+		iTime = Date.now().getTime();
 		onLoopEnd.dispatch( this );
+		//trace( 'Post-loop :'+(Date.now().getTime() - iTime) );
 	}
 	
 //______________________________________________________________________________
@@ -216,30 +206,20 @@ class MyGame extends Game {
 	
 	override public function entity_add( oEntity ) {
 		super.entity_add( oEntity );
-		if ( Std.is( oEntity, Unit ) ) {
-			var oUnit :Unit = cast oEntity;
-			_loUnit.push( oUnit );
-			var oPlatoon = oUnit.ability_get( Platoon );
-			if ( oPlatoon != null ) {
-				var aUnit = oPlatoon.subUnit_get();
-				for ( oSubUnit in aUnit ) {
-					entity_add( oSubUnit );
-				}
+		var oPlatoon = oEntity.ability_get( Platoon );
+		if ( oPlatoon != null ) {
+			var aUnit = oPlatoon.subUnit_get();
+			for ( oSubUnit in aUnit ) {
+				entity_add( oSubUnit );
 			}
 		}
 	}
 	override public function entity_remove( oEntity ) {
 		super.entity_remove( oEntity );
-		if( Std.is( oEntity, Unit ) )
-			_loUnit.remove( cast oEntity );
-	}
-	
-	public function unitList_get() {
-		return _loUnit;
 	}
 	
 	public function player_get( iKey:Int ) { return _aoPlayer[ iKey ]; }
-	
+	public function player_get_all() { return _aoPlayer; }
 	
 	public function positionDistance_get() {
 		return _oPositionDistance;

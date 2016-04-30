@@ -4,27 +4,32 @@ class mygame_game_process_Death implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
-		$this->_lHealth = new HList();
+		$this->_aEntity = new haxe_ds_IntMap();
 		$this->_oGame->onLoop->attach($this);
 		$this->_oGame->onHealthAnyUpdate->attach($this);
 	}}
 	public $_oGame;
-	public $_lHealth;
+	public $_aEntity;
 	public function process() {
-		while(!$this->_lHealth->isEmpty()) {
-			$oHealth = $this->_lHealth->pop();
-			if(_hx_equal($oHealth->get(), 0)) {
-				$oHealth->unit_get()->dispose();
+		if(null == $this->_aEntity) throw new HException('null iterable');
+		$__hx__it = $this->_aEntity->iterator();
+		while($__hx__it->hasNext()) {
+			unset($oEntity);
+			$oEntity = $__hx__it->next();
+			if($oEntity->ability_get(_hx_qtype("mygame.game.ability.Health"))->get() > 0) {
+				continue;
 			}
-			unset($oHealth);
+			$oEntity->game_get()->entity_remove($oEntity);
 		}
+		$this->_aEntity = new haxe_ds_IntMap();
 	}
 	public function trigger($oSource) {
 		if($oSource === $this->_oGame->onLoop) {
 			$this->process();
 		}
 		if($oSource === $this->_oGame->onHealthAnyUpdate) {
-			$this->_lHealth->push($this->_oGame->onHealthAnyUpdate->event_get());
+			$oUnit = $this->_oGame->onHealthAnyUpdate->event_get()->unit_get();
+			$this->_aEntity->set($oUnit->identity_get(), $oUnit);
 		}
 	}
 	public function __call($m, $a) {

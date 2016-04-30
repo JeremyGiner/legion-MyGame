@@ -4,6 +4,7 @@ import mygame.client.model.Model;
 import mygame.client.model.UnitSelection;
 import js.html.DivElement;
 import js.html.Element;
+import mygame.client.view.html.BlockUnitSelection;
 import trigger.*;
 
 import mygame.game.ability.BuilderFactory;
@@ -21,6 +22,8 @@ class GameMenu implements ITrigger {
 	var _oCreditLabel :Element; // Dynamic content
 	
 	var _oSelection :UnitSelection;
+	
+	var _oBlockUnitSelection :BlockUnitSelection;
 
 //______________________________________________________________________________
 //	Constructor
@@ -28,6 +31,7 @@ class GameMenu implements ITrigger {
 	public function new( oModel :Model ) {
 		_oModel = oModel;
 		_oContainer = js.Browser.document.getElementById('GameMenu');
+		_oContainer.style.removeProperty('display');
 		
 		_oCreditLabel = js.Browser.document.getElementById('Credit');
 
@@ -43,7 +47,12 @@ class GameMenu implements ITrigger {
 		// Trigger
 		_oSelection = _oModel.GUI_get().unitSelection_get();
 		_oSelection.onUpdate.attach( this );
-		_oModel.playerLocal_get().onUpdate.attach( this );
+		//_oModel.playerLocal_get().onUpdate.attach( this );
+		
+		_oBlockUnitSelection = new BlockUnitSelection( 
+			_oModel, 
+			js.Browser.document.getElementById('selection-wrapper')
+		);
 		
 	}
 	
@@ -57,7 +66,7 @@ class GameMenu implements ITrigger {
 //	
 	
 	function selectionList_update() {
-		
+		return;
 		// Cleaning
 		_oSelectionList.innerHTML = '';
 		
@@ -108,11 +117,11 @@ class GameMenu implements ITrigger {
 	}
 	
 	function pattern_selectButton( sName :String, iQuantity :Int ) :String {
-		return '<button>'+sName+'<span>'+iQuantity+'</span></button>';
+		return '<button class="btn-icon">'+sName+'<span>'+iQuantity+'</span></button>';
 	}
 	
 	function pattern_buildButton( iId :Int, sName :String, iCost :Int ) :String {
-		return '<button class="Sale" data-sale="'+iId+'">'+sName+'<span>-'+iCost+' C</span></button>';
+		return '<button class="btn-icon Sale" data-sale="'+iId+'">'+sName+'<span>-'+iCost+' C</span></button>';
 	}
 	function className_get_fromFullName( s :String ) {
 		var a = s.split('.');
@@ -138,8 +147,8 @@ class GameMenu implements ITrigger {
 		if( oSource == _oSelection.onUpdate ) {
 			selectionList_update();
 		}
-		if( oSource == _oModel.playerLocal_get().onUpdate ) {
+		/*if( oSource == _oModel.playerLocal_get().onUpdate ) {
 			selectionList_update();
-		}
+		}*/
 	}
 }

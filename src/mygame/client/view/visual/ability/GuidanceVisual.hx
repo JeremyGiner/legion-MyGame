@@ -1,18 +1,21 @@
 package mygame.client.view.visual.ability;
 
 import js.three.*;
+import mygame.client.view.visual.unit.UnitVisual;
 import mygame.game.ability.Platoon;
 import mygame.game.ability.Position;
+import mygame.game.entity.Unit;
 import trigger.*;
 
 import mygame.client.view.GameView;
 import mygame.game.ability.Guidance;
 
 //TODO : extends UnitAbilityVisual
-class GuidanceVisual implements IVisual implements ITrigger {
+class GuidanceVisual extends Object3D implements ITrigger {
 	var _oLine :Line = null;
 	var _oGuidance :Guidance;
-	var _oGameView :GameView;
+	var _oUnitVisual :UnitVisual<Dynamic>;
+	var _oUnit :Unit;
 	
 	static var _oMaterial :Material = { 
 		new LineBasicMaterial( { color: 0x0000FF } ); 
@@ -21,16 +24,20 @@ class GuidanceVisual implements IVisual implements ITrigger {
 //______________________________________________________________________________
 //	Constructor
 
-	public function new( oGameView :GameView, oGuidance :Guidance ){
-		_oGameView = oGameView;
+	public function new( oUnitVisual :UnitVisual<Dynamic>, oGuidance :Guidance ) {
+		super();
+		_oUnitVisual = oUnitVisual;
 		_oGuidance = oGuidance;
 		
 		_oLine = new Line( new Geometry(), untyped _oMaterial );
-				
-		_oGameView.scene_get().add( this.object3d_get() );
-		update();
 		
-		_oGameView.model_get().game_get().onLoopEnd.attach( this );
+		add( this.object3d_get() );
+		
+		_update();
+		
+		_oUnit = _oUnitVisual.unit_get();
+		_oUnit.mygame_get().onLoopEnd.attach( this );
+		_oUnit.onDispose.attach( this );
 	}
 	
 //______________________________________________________________________________
@@ -41,7 +48,7 @@ class GuidanceVisual implements IVisual implements ITrigger {
 //______________________________________________________________________________
 //	Updater
 	
-	public function update() {
+	function _update() {
 		
 		if ( _oGuidance.goal_get() == null )
 			if ( _oLine == null )
@@ -49,28 +56,27 @@ class GuidanceVisual implements IVisual implements ITrigger {
 			else
 				_oLine.visible = false;
 		
-		// Building geometry from pathfinder
-		var geometry = new Geometry();
 		var destination = _oGuidance.goal_get();
 		
-		if( destination != null ) {
-			var oPosition = _oGuidance.mobility_get().position_get();
-			
-			geometry.vertices.push( 
-				new Vector3( 
-					Position.metric_unit_to_map( destination.x ), 
-					Position.metric_unit_to_map( destination.y ), 
-					0.51 
-				)
-			);
-			geometry.vertices.push( 
-				new Vector3( 
-					Position.metric_unit_to_map( oPosition.x ), 
-					Position.metric_unit_to_map( oPosition.y ), 
-					0.51 
-				)
-			);
-		}
+		// Case no destination
+		if ( destination == null )
+			return;
+		
+		var oPosition = _oGuidance.mobility_get().position_get();
+		
+		var geometry = new Geometry();
+		geometry.vertices = [ 
+			new Vector3( 
+				_oUnitVisual.object3d_get().position.x, 
+				_oUnitVisual.object3d_get().position.y, 
+				0.251 
+			),
+			new Vector3( 
+				Position.metric_unit_to_map( destination.x ), 
+				Position.metric_unit_to_map( destination.y ), 
+				0.251 
+			)
+		];
 		
 		// Update geometry
 		var scene = _oLine.parent;
@@ -79,16 +85,26 @@ class GuidanceVisual implements IVisual implements ITrigger {
 		scene.add(_oLine);
 	}
 	
-	public function _update() {
-		
-	}
-	
 //______________________________________________________________________________
 //	Trigger
 	
 	public function trigger( oSource :IEventDispatcher ) :Void { 
-		if ( oSource == _oGameView.model_get().game_get().onLoopEnd ) {
-			update();
+		if ( oSource == _oUnit.mygame_get().onLoopEnd ) {
+			_update();
+			return;
 		}
+		if ( oSource == _oUnit.onDispose ) {
+			dispose();
+			return;
+		}
+	}
+//______________________________________________________________________________
+//	disposer
+
+	public function dispose() {
+		_oLine.parent.remove( _oLine );
+		
+		_oUnit.mygame_get().onLoopEnd.remove( this );
+		_oUnit.onDispose.remove( this );
 	}
 }

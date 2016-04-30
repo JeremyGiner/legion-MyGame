@@ -1,6 +1,5 @@
 package mygame.game.entity;
 
-import mygame.game.ability.GuidancePlatoon;
 import mygame.game.MyGame in Game;
 import mygame.game.ability.Volume;
 import space.Vector2i;
@@ -22,15 +21,10 @@ class PlatoonUnit extends Unit {
 		super( oGame, oOwner, oPosition );
 		
 		// Ability
-		_ability_add( new Volume( this, 4000, 1 ) );
-		_ability_add( new PositionPlan( this, 2 ) );
-		_ability_add( new Mobility( this, 0.05 ) );
 		
 		
-		var oAbility = new GuidancePlatoon( this );
+		var oAbility = new PlatoonAbility( this, oPosition );
 		_ability_add( oAbility );
 		_moAbility.set( Type.getClassName( Guidance ), oAbility );
-		
-		_ability_add( new PlatoonAbility( this ) );
 	}
 }

@@ -11,10 +11,7 @@ class mygame_connection_message_serversent_RoomStatus implements mygame_connecti
 			$_g = $aPause->length;
 			while($_g1 < $_g) {
 				$i = $_g1++;
-				$this->aUser[$i] = new haxe_ds_StringMap();
-				_hx_array_get($this->aUser, $i)->set("name", "player" . _hx_string_rec($i, ""));
-				_hx_array_get($this->aUser, $i)->set("ready", $aPause[$i]);
-				_hx_array_get($this->aUser, $i)->set("playerindex", $i);
+				$this->aUser[$i] = _hx_anonymous(array("name" => "player" . _hx_string_rec($i, ""), "ready" => $aPause[$i], "ai" => false, "playerId" => $i));
 				unset($i);
 			}
 		}

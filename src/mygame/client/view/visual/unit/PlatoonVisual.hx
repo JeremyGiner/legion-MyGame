@@ -56,8 +56,8 @@ class PlatoonVisual extends UnitVisual<PlatoonUnit> {
 		// Position update
 		var v = _subUnitPositionAvr_get();
 		
-		_oScene.position.setX( v.x );
-		_oScene.position.setY( v.y );
+		_oScene.position.setX( v.x/10000 );
+		_oScene.position.setY( v.y/10000 );
 		
 		// trigger event
 		onUpdateEnd.dispatch( this );

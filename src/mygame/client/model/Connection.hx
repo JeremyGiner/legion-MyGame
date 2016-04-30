@@ -1,7 +1,7 @@
 package mygame.client.model;
 
 import js.Browser;
-import mygame.connection.message.serversent.RoomStatus;
+import mygame.connection.message.serversent.RoomUpdate;
 import websocket.IMessage;
 
 import trigger.*;

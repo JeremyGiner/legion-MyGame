@@ -1,9 +1,8 @@
-package websocket.php;
+package websocket;
 
 import trigger.eventdispatcher.*;
 
 import websocket.crypto.Hybi10;
-import websocket.php.Socket;
 import websocket.Resource;
 
 /**
@@ -108,27 +107,8 @@ class SocketDistant extends Socket {
 		onMessage.dispatch( this );
 	}
 	
-	
-	
 //______________________________________________________________________________
 //	Utils
-/*
-	public function read( iLength :Int ):Int {
-		
-		// Try to read socket
-		_sInBuffer = '';
-		var iByteN :Int = untyped __call__( '@socket_recv', _oResource, _sInBuffer, iLength, 0 );	// @ : no error reporting
-		
-		// Error check
-		var error = untyped __call__('socket_last_error', _oResource );
-		if ( error != 0 )
-			trace('[ERROR]:socket error:'+untyped __call__('socket_strerror', error ));
-		
-		// If no handshaked assume it's an encoded handshake
-		if( isHandshaked_get() )
-			_sInBuffer = Hybi10.decode( _sInBuffer );
-		return iByteN;
-	}*/
 
 	public function write( sBuffer :String ):Int {
 		var sOutBuffer :String = sBuffer;

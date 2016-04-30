@@ -2,17 +2,22 @@ package mygame.client.controller;
 
 import js.Browser;
 import js.Lib;
+import mygame.client.controller.game.GameController;
 import mygame.client.model.RoomInfo;
+import mygame.client.model.UserInfo;
 import mygame.client.view.MenuPause;
+import mygame.game.GameConf;
+import mygame.game.GameConf.GameConfMapModifier;
+import mygame.game.GameConf.GameConfFactory;
 import mygame.game.MyGame;
 import legion.PlayerInput;
+import utils.Disposer;
 
 import trigger.*;
 import trigger.eventdispatcher.*;
 
 import mygame.trigger.*;
 
-import mygame.client.controller.game.IGameController;
 import mygame.client.controller.game.GameControllerLocal;
 import mygame.client.controller.game.GameControllerOnline;
 
@@ -22,18 +27,22 @@ import mygame.client.view.View;
 import mygame.client.view.GameView;
 
 import mygame.connection.message.*;
-import mygame.connection.message.serversent.RoomStatus;
+import mygame.connection.message.serversent.RoomUpdate;
 
 import js.html.ButtonElement;
 import js.html.Element;
 import js.html.InputElement;
 
+/**
+ * ...
+ * @author GINER Jérémy
+ */
 class Controller implements ITrigger {
 
 	var _oModel :Model;
 	var _oView :View;
 
-	var _oGameController :IGameController = null;
+	var _oGameController :GameController = null;
 	
 	//_____
 	
@@ -49,18 +58,20 @@ class Controller implements ITrigger {
 	
 	var _onButtonClick :EventDispatcherJS;
 	
+	var _oMenuPause :MenuPause;
+	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oModel :Model, oView :View ){
 		_oModel =  oModel;
 		_oView = oView;
+		_oMenuPause = null;
 		
 		// Menu
 		_onButtonClick = new EventDispatcherJS('mouseup');
 		_onButtonClick.attach( this );
 		
-		_oMenuStartNew = cast js.Browser.document.getElementById('BtLocalNew');
 		_oMenuOnlineNew = cast js.Browser.document.getElementById('BtRemoteNew');
 		_oMenuConnect = cast js.Browser.document.getElementById('BtConnect');
 		_oMenuRefresh = cast js.Browser.document.getElementById('BtRefresh');
@@ -74,30 +85,33 @@ class Controller implements ITrigger {
 // Utils
 
 	public function game_start( 
-		oGame :MyGame = null, 
+		oRoomInfo :RoomInfo,
+		oGame :MyGame, 
 		iPlayerSlot :Int = 0,
 		bOnline :Bool = false
-	){
-		if( oGame == null )
-			oGame = new MyGame();
+	) {
 		
 		// TODO : game config
-		// TODO : dispose of previous game
+		
+		// dispose of previous game
+		if( _oGameController != null )
+			_oGameController.dispose();
 		
 		// Update model
-		_oModel.game_set( oGame, iPlayerSlot );
+		_oModel.game_set( oGame, iPlayerSlot, oRoomInfo );
+		
+		
+		_oMenuPause = new MenuPause( _oModel, cast Browser.document.getElementById('PauseMenu') );
 		
 		// Delegate to game controller
-		if( bOnline ) {
-			_oGameController = new GameControllerOnline( 
+		_oGameController = ( bOnline ) ? 
+			new GameControllerOnline( 
 				_oModel,
 				100	//TODO :put dynamic value, and timeout system
-			);
-		} else {
-			_oGameController = new GameControllerLocal( 
+			) :
+			new GameControllerLocal( 
 				_oModel
 			);
-		}
 	}
 	
 	public function game_load() {
@@ -167,6 +181,8 @@ class Controller implements ITrigger {
 		}
 		//_oModel.connection_get().game_join( iGameId );
 	}
+	
+	
 
 
 //______________________________________________________________________________
@@ -174,24 +190,73 @@ class Controller implements ITrigger {
 	
 	public function trigger( oSource :IEventDispatcher ) {
 		
-	// Menu buttons
-		if( oSource.event_get().target == _oMenuStartNew ) {
-			trace( 'Starting new local game' );
-			game_start();
-			return;
-		}
-		
-		// Connection toggle
-		if( oSource.event_get().target == _oMenuConnect ) {
-			if( _oModel.connection_get() != null && _oModel.connection_get().open_check() ) {
-				disconnect();
-			} else {
-				connect();
+		// haxe action
+		if ( oSource == _onButtonClick ) {
+			var oTarget :Element = cast oSource.event_get().target;
+			
+			// Ignore elements without haxeaction
+			if ( oTarget.dataset.haxeaction == null )
+				return;
+			
+			switch( oTarget.dataset.haxeaction ) {
+				case 'solo-newgame' :
+					trace( 'Starting new local game' );
+					game_start( RoomInfo.default_create(), new MyGame( GameConfFactory.gameConfDefault_get() ) );
+				case 'lobby-connect' :
+					//if( oSource.event_get().target == _oMenuConnect ) {
+					if( _oModel.connection_get() != null && _oModel.connection_get().open_check() ) {
+						disconnect();
+					} else {
+						connect();
+					}
+				case 'lobby-refresh' :
+					// Resquest sender
+					//if( oSource.event_get().target == _oMenuRefresh ) {
+						// Requesting game and slot list
+						
+					// Ignore if not connected
+					if ( 
+						_oModel.connection_get() == null || 
+						!_oModel.connection_get().open_check() 
+					) {
+						trace('[WARNING]: requesting lobby refresh when disconnected');
+						return;
+					}
+					
+					// 
+					trace('Requesting slot list');
+					_oModel.connection_get().send( new ReqSlotList() );
+				case 'lobby-join' :
+				//if( oSource.event_get().target == _oMenuGameJoin ) {
+					// Ignore if not connected
+					if ( 
+						_oModel.connection_get() == null || 
+						!_oModel.connection_get().open_check() 
+					) {
+						trace('[WARNING]: requesting lobby room join when disconnected');
+						return;
+					}
+					
+					// Get selected game of the list
+					var iGameId :Int=-1;
+					var loElement = js.Browser.document.getElementsByName('GameSelector');
+					for( oElement in loElement ) {
+						if(  cast(oElement,InputElement).checked ) {
+							iGameId = Std.parseInt( cast(oElement,InputElement).value );
+							break;
+						}
+					}
+					trace('Requesting an access to game #'+iGameId);
+					// Requesting slot attachement to this client
+					_oModel.connection_get().send( new ReqGameJoin(iGameId) );
+				default :
+					// Delegate
+					_oGameController.haxeAction( oTarget.dataset.haxeaction );				
 			}
 			return;
 		}
 		
-	// Connection
+		// Connection
 		if( _oModel.connection_get() != null ) {
 		
 			// TODO : move to MenuView
@@ -218,27 +283,8 @@ class Controller implements ITrigger {
 			// Connected
 			if( _oModel.connection_get().open_check() ) {
 			
-				// Resquest sender
-				if( oSource.event_get().target == _oMenuRefresh ) {
-					// Requesting game and slot list
-					trace('Requesting slot list');
-					_oModel.connection_get().send( new ReqSlotList() );
-				}
-				if( oSource.event_get().target == _oMenuGameJoin ) {
 				
-					// Get selected game of the list
-					var iGameId :Int=-1;
-					var loElement = js.Browser.document.getElementsByName('GameSelector');
-					for( oElement in loElement ) {
-						if(  cast(oElement,InputElement).checked ) {
-							iGameId = Std.parseInt( cast(oElement,InputElement).value );
-							break;
-						}
-					}
-					trace('Requesting an access to game #'+iGameId);
-					// Requesting slot attachement to this client
-					_oModel.connection_get().send( new ReqGameJoin(iGameId) );
-				}
+				
 				
 				if ( oSource.event_get().target == _oBtShutDown ) {
 					_oModel.connection_get().send( new ReqShutDown() );
@@ -259,31 +305,30 @@ class Controller implements ITrigger {
 							var oRespond = cast( oMessage, ResGameJoin );
 							trace('[NOTICE]:game instance receive (step:'+oRespond.oGame.loopId_get()+').');
 							game_start(
+								RoomInfo.online_create( oRespond.oRoomUpdate ),
 								oRespond.oGame,
 								oRespond.iSlotId,
 								true
 							);
 							
-						case RoomStatus : 
+						case RoomUpdate : 
 							trace('[NOTICE]:updating room');
-							var oRoomStatus = cast(oMessage, RoomStatus);
+							var oRoomUpdate = cast(oMessage, RoomUpdate);
 							
 							var oRoomInfo = _oModel.roomInfo_get();
 							
 							if ( oRoomInfo == null )
-								_oModel.roomInfo_set( new RoomInfo( oRoomStatus ) )
-							else
-								oRoomInfo.update( oRoomStatus );
-						
-							new MenuPause( _oModel, cast Browser.document.getElementById('MENU-PAUSE') );
+								throw('[ERROR] game was not initailised with a room');
+							
+							oRoomInfo.update( oRoomUpdate );
 						default :
 							trace('[ERROR]:unknow command/respond from server:'+oMessage);
 					}
 				}
-
 			}
 			
 		}
 		
 	}
+
 }

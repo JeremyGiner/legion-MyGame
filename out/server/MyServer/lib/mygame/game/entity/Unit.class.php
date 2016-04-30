@@ -6,14 +6,11 @@ class mygame_game_entity_Unit extends legion_entity_Entity {
 		parent::__construct($oGame);
 		$this->_oPlayer = $oOwner;
 		$this->_ability_add(new mygame_game_ability_Position($this, $oGame->map_get(), $oPosition->x, $oPosition->y));
+		$this->_ability_add(new mygame_game_ability_Loyalty($this, $oOwner));
 	}}
 	public $_oPlayer;
 	public function owner_get() {
-		return $this->_oPlayer;
-	}
-	public function owner_set($oPlayer) {
-		$this->onUpdate->dispatch($this);
-		$this->_oPlayer = $oPlayer;
+		return $this->ability_get(_hx_qtype("mygame.game.ability.Loyalty"))->owner_get();
 	}
 	public function mygame_get() {
 		return $this->_oGame;

@@ -38,7 +38,6 @@ class UnitAbility implements IAbility {
 		
 		// Dispatch event
 		onDispose.dispatch( this );
-		_oUnit.game_get().onAbilityDispose.dispatch( this );
 		
 		// Wipe all
 		Disposer.dispose( this );

@@ -68,7 +68,8 @@ class mygame_game_tile_Tile {
 		else
 			throw new HException('Unable to call <'.$m.'>');
 	}
-	static $_oHitBox;
+	static function tileGeometry_get($oTile) {
+		return new space_AlignedAxisBoxAlti(9999, 9999, new space_Vector2i($oTile->x_get() * 10000, $oTile->y_get() * 10000));
+	}
 	function __toString() { return 'mygame.game.tile.Tile'; }
 }
-mygame_game_tile_Tile::$_oHitBox = new space_AlignedAxisBoxAlt(1, 1, null);

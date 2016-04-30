@@ -3,8 +3,8 @@ package mygame.server.controller;
 import mygame.game.MyGame;
 import mygame.server.misc.ClientFactory;
 import mygame.server.model.Model;
-import websocket.php.Server in PHPWSServer;
-import websocket.php.SocketDistant in PHPWSClient;
+import websocket.Server;
+import websocket.SocketDistant;
 import mygame.server.model.Client;
 
 import mygame.server.model.RoomManager;
@@ -27,7 +27,7 @@ class Controller implements ITrigger {
 	
 	var _oRoomManager :RoomManager;
 	
-	var _oServer :PHPWSServer;
+	var _oServer :Server;
 
 //______________________________________________________________________________
 //	Constructor
@@ -42,10 +42,14 @@ class Controller implements ITrigger {
 		_oRoomManager.game_create();
 		
 		
-		_oServer = new PHPWSServer( 'localhost', 8000, new ClientFactory() );
+		_oServer = new Server( 'localhost', 8000, new ClientFactory() );
 		_oServer.start();
 		
+		trace('[NOTICE] Server : up and running.');
+		
+		// Listening to event
 		_oServer.onAnyOpen.attach( this );
+		_oServer.onAnyClose.attach( this );
 		
 		_oClientController = new ClientController( this, _oRoomManager );	//require a server
 		
@@ -77,9 +81,12 @@ class Controller implements ITrigger {
 	
 	public function trigger( oSource :IEventDispatcher ){
 		
-		// Collect client
+		// DEBUG
 		if( oSource == _oServer.onAnyOpen ) {
 			trace('[NOTICE]:New client.');
+		}
+		if( oSource == _oServer.onAnyClose ) {
+			trace('[NOTICE]:Client close.');
 		}
 		
 	}

@@ -30,6 +30,10 @@ class Vector2i {
 	public function dotProduct( v :Vector2i ) :Float {
 		return x * v.x + y * v.y;
 	}
+	
+	public function distance_get( oVector :Vector2i ) {
+		return distance( this, oVector );
+	}
 
 //_____________________________________________________________________________
 //	Modifier
@@ -109,6 +113,6 @@ class Vector2i {
 		var dx = v1.x - v2.x;
 		var dy = v1.y - v2.y;
 			
-		return Math.round( Math.sqrt( dx * dx + dy * dy ) );
+		return Math.sqrt( dx * dx + dy * dy );
 	}
 }

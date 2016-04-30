@@ -1,7 +1,8 @@
 package mygame.client.model;
 import haxe.ds.StringMap;
-import mygame.connection.message.serversent.RoomStatus;
+import mygame.connection.message.serversent.RoomUpdate;
 import trigger.eventdispatcher.EventDispatcher;
+import mygame.client.model.UserInfo;
 
 /**
  * Room view by a client
@@ -16,11 +17,9 @@ class RoomInfo {
 //_____________________________________________________________________________
 //	Contrustor
 	
-	public function new( oMessage :RoomStatus ) {
-		
+	function new() {
+		_aUserInfo = null;
 		onUpdate = new EventDispatcher();
-		
-		update( oMessage );
 	}
 	
 //_____________________________________________________________________________
@@ -30,15 +29,54 @@ class RoomInfo {
 		return _aUserInfo;
 	}
 	
+	public function isPaused() {
+		for ( oUserInfo in _aUserInfo )
+			if ( oUserInfo.ready == false )
+				return true;
+		return false;
+	}
+	
+	
+	
 //_____________________________________________________________________________
 //	Modifier
 	
-	public function update( oMessage :RoomStatus ) {
-		_aUserInfo = new Array<UserInfo>();
-		for( i in 0...oMessage.aUser.length )
-			_aUserInfo.push( new UserInfo(oMessage, i) );
-			
+	public function update( oMessage :RoomUpdate ) {
+		_aUserInfo = oMessage.aUser;
 		onUpdate.dispatch( this );
+	}
+
+//_____________________________________________________________________________
+//	Factory
+	
+	/**
+	 * Create default room info
+	 * 1v1 human vs AI
+	 */
+	static public function default_create() {
+		var o = new RoomInfo();
+		o._aUserInfo = [
+			{
+				name: 'Player 0',
+				ready: true,
+				ai: false,
+				playerId: 0
+			},
+			{
+				name: 'Nemesis',
+				ready: true,
+				ai: true,
+				playerId: 1
+			},
+		];
+		return o;
+	}
+	
+	static public function online_create( oMessage :RoomUpdate ) {
+		var o = new RoomInfo();
+		o._aUserInfo = oMessage.aUser;
+		
+		return o;
 	}
 	
 }

@@ -1,18 +1,20 @@
 <?php
 
-class legion_entity_Entity implements utils_IDisposable{
+class legion_entity_Entity {
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_iIdentity = null;
 		$this->_oGame = $oGame;
 		$this->_moAbility = new haxe_ds_StringMap();
-		$this->onUpdate = new trigger_eventdispatcher_EventDispatcher();
-		$this->onDispose = new trigger_eventdispatcher_EventDispatcher();
+		$this->onAbilityAdd = new trigger_EventDispatcher2();
+		$this->onAbilityRemove = new trigger_EventDispatcher2();
+		$this->onDispose = new trigger_EventDispatcher2();
 	}}
 	public $_iIdentity;
 	public $_oGame;
 	public $_moAbility;
-	public $onUpdate;
+	public $onAbilityAdd;
+	public $onAbilityRemove;
 	public $onDispose;
 	public function dispose_check() {
 		return $this->_oGame === null;
@@ -29,32 +31,26 @@ class legion_entity_Entity implements utils_IDisposable{
 	public function game_get() {
 		return $this->_oGame;
 	}
-	public function ability_remove($oClass) {
-		$this->_moAbility->remove(Type::getClassName($oClass));
-	}
-	public function _ability_add($oAbility) {
-		$this->_moAbility->set(Type::getClassName(Type::getClass($oAbility)), $oAbility);
-	}
 	public function ability_get($oClass) {
 		return $this->_moAbility->get(Type::getClassName($oClass));
 	}
 	public function abilityMap_get() {
 		return $this->_moAbility;
 	}
-	public function dispose() {
-		$this->onDispose->dispatch($this);
-		if(null == $this->_moAbility) throw new HException('null iterable');
-		$__hx__it = $this->_moAbility->iterator();
-		while($__hx__it->hasNext()) {
-			unset($oAbility);
-			$oAbility = $__hx__it->next();
-			$oAbility->dispose();
+	public function ability_add($oAbility) {
+		$this->_ability_add($oAbility);
+		$this->onAbilityAdd->dispatch(_hx_anonymous(array("ability" => $oAbility, "entity" => $this)));
+	}
+	public function ability_remove($oClass) {
+		$sClassName = Type::getClassName($oClass);
+		if(!$this->_moAbility->exists($sClassName)) {
+			return;
 		}
-		if($this->_oGame !== null) {
-			$this->_oGame->entity_remove($this);
-			$this->_oGame = null;
-		}
-		utils_Disposer::dispose($this);
+		$this->_moAbility->remove($sClassName);
+		$this->onAbilityRemove->dispatch(_hx_anonymous(array("ability" => $this->_moAbility->get($sClassName), "entity" => $this)));
+	}
+	public function _ability_add($oAbility) {
+		$this->_moAbility->set(Type::getClassName(Type::getClass($oAbility)), $oAbility);
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

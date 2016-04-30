@@ -14,7 +14,7 @@ class Coordonate {
 	static function init() {
 		if( _bInit )
 			return;
-		_oPlane = new Plane( new Vector3( 0, 0, 1 ), -0.5 );
+		_oPlane = new Plane( new Vector3( 0, 0, 1 ), -0.25 );
 		_oProjector = new Projector();
 		_bInit = true;
 	}
@@ -56,7 +56,7 @@ class Coordonate {
 	) :Vector3 {
 	
 		var oPlane = new Mesh( new PlaneGeometry( 2000000, 2000000 ), new MeshLambertMaterial() );
-		oPlane.position.set(0, 0, 5000);
+		oPlane.position.set(0, 0, 2500);
 		init();
 			
 		if( oVector == null )

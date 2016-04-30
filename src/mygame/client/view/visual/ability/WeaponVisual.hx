@@ -4,6 +4,7 @@ import js.three.*;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.ability.UnitAbiltiyVisual.UnitAbilityVisual;
 import trigger.*;
+import utils.IDisposable;
 
 import mygame.client.model.GUI;
 import mygame.client.view.visual.unit.UnitVisual;
@@ -14,69 +15,37 @@ import mygame.client.view.visual.EntityVisual;
 
 import Math;
 
-class WeaponVisual extends UnitAbilityVisual<Weapon> implements IVisual implements ITrigger {
+class WeaponVisual extends Object3D implements ITrigger implements IDisposable {
 	
 	var _oUnitVisual :UnitVisual<Dynamic>;
-	var _oGUI :GUI;
 	
-	var _oSprite :Sprite;
+	var _oAbility :Weapon;
 	var _oLine :Line = null;
 	var _oGameView :GameView;
 	
 //_____
-
-	static var _oMatBackground :SpriteMaterial = { 
-		new SpriteMaterial({color:0x000000,depthTest:false,depthWrite:false});
-	};
-	static var _oMatForeground :SpriteMaterial = { 
-		new SpriteMaterial({color:0xff5555,depthTest:false,depthWrite:false});
-	};
 	
 	static var _oMaterial = { 
-		new LineBasicMaterial({ color: 0xFF0000 }); 
+		new LineBasicMaterial({ color: 0xFFFF00 }); 
 	};
-	
-	static var _fBorderSize = 3;
 	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( 
 		oUnitVisual :UnitVisual<Dynamic>, 
-		oWeapon :Weapon, 
-		oGUI :GUI 
+		oWeapon :Weapon
 	) {
-		super( oWeapon );
-	//public function new( oEntity :IWeapony ){
+		super();
 		_oUnitVisual = oUnitVisual;
 		_oGameView = _oUnitVisual.gameView_get();
 		_oAbility = oWeapon;
-		_oGUI = oGUI;
 		
 		//_____
 		
-/*
-		// Foreground
-		_oSprite = new Sprite( _oMatForeground );
-		_oSprite.scale.set( 20, 5, 1 );
-		_oScene.add( _oSprite );
-		
-		// Background
-		var oSpriteTmp :Sprite = new Sprite( _oMatBackground );
-		oSpriteTmp.scale.set( 20+_fBorderSize, 5+_fBorderSize, 1 );
-		oSpriteTmp.position.set( 0, 0, 0 );
-		_oSprite.add( oSpriteTmp );
-
-		_oUnitVisual.gameView_get().sceneOrtho_get().add(_oScene);*/
-		
-		//---
-		update();
-		
-		
 		// Trigger
-		//_oGUI.onModeChange.attach( this );
-		//oGameView.onFrame.attach( this );
-		_oGameView.model_get().game_get().oWeaponProcess.onTargeting.attach(this);
+		_oAbility.unit_get().mygame_get().onLoopEnd.attach(this);
+		_oAbility.unit_get().onDispose.attach( this );
 		_oAbility.onFire.attach( this );
 	}
 	
@@ -84,117 +53,87 @@ class WeaponVisual extends UnitAbilityVisual<Weapon> implements IVisual implemen
 //	Accessor
 	
 	public function update() {
-		
-		// New target
-		if( _oAbility.target_get() != null && _oLine == null ) {
-			var oTargetVisual :EntityVisual<Dynamic> = EntityVisual.get_byEntity( _oAbility.target_get() );
-			if( oTargetVisual != null ) {
-			
-				var geometry = new Geometry();
-				geometry.vertices.push( new Vector3( 0, 0.1, 0 ) );
-				geometry.vertices.push( new Vector3( 0, 0, 0 ) );
-				
-				//var oMaterial = _oUnitVisual.gameView_get().material_get_byPlayer(_oUnitVisual.unit_get().owner_get() );
-				_oLine = new Line( geometry,  _oMaterial );
-				
-				// Add to the scene
-				_oUnitVisual.object3d_get().add( _oLine );
-			}
-		} else
-		// Lost target
-		if( _oAbility.target_get() == null && _oLine != null ) {
-			_oUnitVisual.object3d_get().remove( _oLine );
-			_oLine = null;
+		if ( parent == null ) {
+			trace('notice : disposed ');
+			dispose();
 		}
 		
-		// Update target position
-		if( _oLine != null ) {
-			var oTargetVisual :EntityVisual<Dynamic> = EntityVisual.get_byEntity( _oAbility.target_get() );
-			var v = _oUnitVisual.object3d_get().worldToLocal( 
-						oTargetVisual.object3d_get().localToWorld( new Vector3(0,0,0) )
-					);
-			untyped _oLine.geometry.verticesNeedUpdate = true;
-			untyped _oLine.geometry.vertices[1] = v;
-			_oLine.updateMatrix();
+		if ( _oLine == null )
+			return;
 			
-			// Fade test
-			if ( _oAbility.cooldown_get().expirePercent_get() > 0.5 )
-				_oLine.visible = false;
+		// Fade
+		if ( _oAbility.cooldown_get().expirePercent_get() > 0.5 ) {
+			
+			// Dispose of line
+			_fireLine_dispose();
 		}
-		
-		
-		/*
-		var vector = new Vector3( 0, 0, 0);
-		var mat = new Matrix4();
-
-		_oUnitVisual.object3d_get().updateMatrix();
-		_oUnitVisual.object3d_get().updateMatrixWorld();
-		
-		_oUnitVisual.object3d_get().localToWorld( vector );
-		
-		vector.applyMatrix4( mat.getInverse( untyped _oUnitVisual.gameView_get().camera_get().matrixWorld )  );
-		vector.applyProjection( cast _oUnitVisual.gameView_get().camera_get().projectionMatrix );
-		
-		//mat.getInverse( _oUnitVisual.gameView_get().cameraOrtho_get().projectionMatrix );
-		//vector.applyMatrix4( mat );
-		
-		//_oUnitVisual.gameView_get().cameraOrtho_get().localToWorld(vector);
-		//_oUnitVisual.gameView_get().sceneOrtho_get().worldToLocal(vector);
-		
-		vector.applyMatrix4( mat.getInverse( _oUnitVisual.gameView_get().cameraOrtho_get().projectionMatrix) );
-		
-		_oSprite.position.copy(vector);
-		_oSprite.position.y -= 10;
-		_oSprite.position.setZ(5);*/
 	}
 	
-	public function update_visibility() {
-		if( _oGUI.mode_get() == 0 )
-			hide();
-		else
-			show();
+	public function disposed_check() {
+		return true;
 	}
 	
 //______________________________________________________________________________
-//	Sub
-	
-	function hide() {
-		trace( untyped _oSprite.material.visible );
-		_oMatBackground.visible = false;
-		_oMatForeground.visible = false; 
+//	Sub-routine
+
+	function _fireLine_create() {
+		//Clean previous line
+		if ( _oLine != null ) {
+			_fireLine_dispose();
+		}
+		
+		// Useless check
+		if ( _oAbility.target_get() == null ) 
+			throw('something is wrong');
+		
+		// Create fire line
+		var oTargetVisual = EntityVisual.get_byEntity( _oAbility.target_get() );
+		if ( oTargetVisual == null )
+			throw('something is wrong');
+		var geometry = new Geometry();
+		geometry.vertices.push( _oUnitVisual.object3d_get().localToWorld( new Vector3(0, 0.1, 0) ) );
+		geometry.vertices.push( oTargetVisual.object3d_get().localToWorld( new Vector3(0,0.1,0) ) );
+		_oLine = new Line( geometry, _oMaterial );
+		
+		_oUnitVisual.gameView_get().scene_get().add( _oLine );
 	}
-	function show() { 
-		trace( untyped _oSprite.material.visible );
-		_oMatBackground.visible = true; 
-		_oMatForeground.visible = true; 
+	
+	function _fireLine_dispose() {
+		if ( _oLine == null )
+			return;
+		
+		// Dispose of line
+		_oLine.parent.remove( _oLine );
+		_oLine = null;
 	}
 
 //______________________________________________________________________________
 //	Trigger
 
-	override public function trigger( oSource :IEventDispatcher ) :Void { 
-		
-		if ( oSource == _oGameView.model_get().game_get().oWeaponProcess.onTargeting ) {
-			update();
-		}
+	public function trigger( oSource :IEventDispatcher ) :Void { 
 		
 		if ( oSource == _oAbility.onFire ) {
-			
-			// Make line appear
-			if( _oLine != null )
-				_oLine.visible = true;
+			_fireLine_create();
+			return;
+		}
+		if ( oSource == _oAbility.unit_get().onDispose ) {
+			dispose();
+			return;
+		}
+		if ( oSource == _oAbility.unit_get().mygame_get().onLoopEnd ) {
+			update();
+			return;
 		}
 		
-		super.trigger( oSource );
 	}
 //______________________________________________________________________________
 //	Disposer
 
-	override public function dispose() {
-		// Remove from event dispatcher
-		_oGameView.model_get().game_get().oWeaponProcess.onTargeting.remove(this);
+	public function dispose() {
+		_fireLine_dispose();
 		
-		//___
-		super.dispose();
+		// Remove from event dispatcher
+		_oAbility.unit_get().mygame_get().onLoopEnd.remove(this);
+		
 	}
 }

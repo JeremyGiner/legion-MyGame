@@ -5,7 +5,7 @@ class mygame_game_entity_Copter extends mygame_game_entity_Unit {
 		parent::__construct($oGame,$oPlayer,$oPosition);
 		$this->_ability_add(new mygame_game_ability_PositionPlan($this, 0));
 		$this->_ability_add(new mygame_game_ability_Mobility($this, 0.05));
-		$this->_ability_add(new mygame_game_ability_Volume($this, 0.1, null));
+		$this->_ability_add(new mygame_game_ability_Volume($this, null, 0.1));
 		$this->_ability_add(new mygame_game_ability_Guidance($this));
 		$this->_ability_add(new mygame_game_ability_Weapon($this, $oGame->singleton_get(_hx_qtype("mygame.game.misc.weapon.WeaponTypeBazoo"))));
 		$this->_ability_add(new mygame_game_ability_Health($this, null, null, null));

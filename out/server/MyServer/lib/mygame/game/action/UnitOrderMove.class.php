@@ -18,11 +18,18 @@ class mygame_game_action_UnitOrderMove implements mygame_game_action_IAction{
 		if(!$this->check($oGame)) {
 			throw new HException("invalid input");
 		}
+		$oPlatoon = $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
+		if($oPlatoon !== null) {
+			$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"))->goal_set($this->_oDestination);
+			return;
+		}
 		$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance"))->goal_set($this->_oDestination);
-		if(Std::is($this->_oUnit, _hx_qtype("mygame.game.entity.PlatoonUnit"))) {}
 	}
 	public function check($oGame) {
-		if($this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance")) === null) {
+		if($this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance")) === null && $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon")) === null) {
+			return false;
+		}
+		if(Std::is($this->_oUnit, _hx_qtype("mygame.game.entity.SubUnit"))) {
 			return false;
 		}
 		return true;

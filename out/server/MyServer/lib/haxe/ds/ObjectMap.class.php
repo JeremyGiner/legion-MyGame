@@ -27,6 +27,9 @@ class haxe_ds_ObjectMap implements haxe_IMap{
 	public function keys() {
 		return new _hx_array_iterator(array_values($this->hk));
 	}
+	public function iterator() {
+		return new _hx_array_iterator(array_values($this->h));
+	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

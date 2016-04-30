@@ -16,6 +16,11 @@ class PathfinderVisual implements IVisual {
 		_oGameView = oGameView;
 		_oPathfinder = oPathfinder;
 		
+		if ( oPathfinder == null ) {
+			trace('[DEBUG]:PathfinderVisual:oPathfinder is null');
+			return;
+		}
+		
 		update();
 		
 		oInstance = this;
@@ -55,13 +60,13 @@ class PathfinderVisual implements IVisual {
 			scene.remove( _oLine );
 			_oLine = new Line( geometry, material );
 			//_oLine.scale.set( GameView.WORLDMAP_MESHSIZE,GameView.WORLDMAP_MESHSIZE,GameView.WORLDMAP_MESHSIZE );
-			_oLine.position.set( 5000, 5000, 5001 );
+			_oLine.position.set( 2500, 2500, 2501 );
 			_oLine.scale.set(10000,10000,10000);
 			scene.add( _oLine );
 		} else {
 			_oLine = new Line( geometry, material );
 			//_oLine.scale.set( GameView.WORLDMAP_MESHSIZE,GameView.WORLDMAP_MESHSIZE,GameView.WORLDMAP_MESHSIZE );
-			_oLine.position.set( 5000,5000,5001 );
+			_oLine.position.set( 2500,2500,2501 );
 			_oLine.scale.set(10000,10000,10000);
 		}
 	}

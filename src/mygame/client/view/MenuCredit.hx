@@ -20,7 +20,7 @@ class MenuCredit implements ITrigger {
 		
 		update();
 		
-		_oModel.playerLocal_get().onUpdate.attach( this );
+		//_oModel.playerLocal_get().onUpdate.attach( this );
 	}
 	
 //______________________________________________________________________________

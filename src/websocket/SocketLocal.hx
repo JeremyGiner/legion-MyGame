@@ -1,8 +1,6 @@
-package websocket.php;
+package websocket;
 
 import websocket.crypto.Hybi10;
-import websocket.php.SocketDistant;
-import websocket.php.Socket;
 import websocket.Resource;
 
 /**

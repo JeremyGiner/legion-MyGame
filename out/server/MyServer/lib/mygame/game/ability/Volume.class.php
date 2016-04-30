@@ -12,7 +12,7 @@ class mygame_game_ability_Volume extends mygame_game_ability_UnitAbility {
 		parent::__construct($oUnit);
 		$this->_oPosition = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Position"));
 		if($this->_oPosition === null) {
-			haxe_Log::trace("[ERROR]:ability dependency not respected.", _hx_anonymous(array("fileName" => "Volume.hx", "lineNumber" => 31, "className" => "mygame.game.ability.Volume", "methodName" => "new")));
+			haxe_Log::trace("[ERROR]:ability dependency not respected.", _hx_anonymous(array("fileName" => "Volume.hx", "lineNumber" => 33, "className" => "mygame.game.ability.Volume", "methodName" => "new")));
 		}
 		$this->_fWeight = $fWeight;
 		$this->_iHalfSize = $fHalfSize;
@@ -52,7 +52,43 @@ class mygame_game_ability_Volume extends mygame_game_ability_UnitAbility {
 		$loTile = $this->_oPosition->map_get()->tileList_get_byArea(Math::floor($oHitBox->left_get() / 10000), Math::floor($oHitBox->right_get() / 10000), Math::floor($oHitBox->bottom_get() / 10000), Math::floor($oHitBox->top_get() / 10000));
 		return $loTile;
 	}
-	public function move() {}
+	public function positionCorrection($oPoint) {
+		$lTile = $this->tileListProject_get($oPoint->x, $oPoint->y);
+		$oResult = $oPoint->hclone();
+		$oUnitGeometry = new space_AlignedAxisBox2i($this->size_get(), $this->size_get(), $oPoint);
+		$oTileGeometry = null;
+		if(null == $lTile) throw new HException('null iterable');
+		$__hx__it = $lTile->iterator();
+		while($__hx__it->hasNext()) {
+			unset($oTile);
+			$oTile = $__hx__it->next();
+			if($this->unit_get()->ability_get(_hx_qtype("mygame.game.ability.PositionPlan"))->check($oTile)) {
+				continue;
+			}
+			$oTileGeometry = mygame_game_tile_Tile::tileGeometry_get($oTile);
+			if(!collider_CollisionCheckerPostInt::check($oUnitGeometry, $oTileGeometry)) {
+				continue;
+			}
+			$iVolumeSize = $this->size_get();
+			$dx = $oPoint->x / 10000 - ($oTile->x_get() + 0.5);
+			$dy = $oPoint->y / 10000 - ($oTile->y_get() + 0.5);
+			if(Math::abs($dx) > Math::abs($dy)) {
+				if($dx > 0) {
+					$oResult->x = $oTileGeometry->right_get() + 1 + $iVolumeSize;
+				} else {
+					$oResult->x = $oTileGeometry->left_get() - 1 - $iVolumeSize;
+				}
+			} else {
+				if($dy > 0) {
+					$oResult->y = $oTileGeometry->top_get() + 1 + $iVolumeSize;
+				} else {
+					$oResult->y = $oTileGeometry->bottom_get() - 1 - $iVolumeSize;
+				}
+			}
+			unset($iVolumeSize,$dy,$dx);
+		}
+		return $oResult;
+	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

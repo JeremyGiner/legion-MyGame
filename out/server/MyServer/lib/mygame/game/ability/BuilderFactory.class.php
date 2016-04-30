@@ -25,40 +25,17 @@ class mygame_game_ability_BuilderFactory extends mygame_game_ability_Builder {
 			throw new HException("[ERROR]:neutral unit can not sell.");
 		}
 		$this->_oUnit->owner_get()->credit_add(-_hx_array_get(mygame_game_ability_BuilderFactory::$_aOffer, $iOfferIndex)->cost_get());
-		$oProduct = $this->unit_create($iOfferIndex);
+		$oProduct = $this->unit_create(mygame_game_ability_BuilderFactory::$_aOffer[$iOfferIndex]);
 		$oGuidance = $oProduct->ability_get(_hx_qtype("mygame.game.ability.Guidance"));
 		if($oGuidance === null) {
 			throw new HException("[ERROR]:buy:product must have Guidance ability.");
 		}
 		$oGuidance->goal_set($this->_oRallyPoint);
 	}
-	public function unit_create($i) {
-		switch($i) {
-		case 99:{
-			$u = new mygame_game_entity_Soldier($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition);
-			$this->_oUnit->game_get()->entity_add($u);
-			return $u;
-		}break;
-		case 98:{
-			$u1 = new mygame_game_entity_Bazoo($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition);
-			$this->_oUnit->game_get()->entity_add($u1);
-			return $u1;
-		}break;
-		case 1:{
-			$u2 = new mygame_game_entity_Tank($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition);
-			$this->_oUnit->game_get()->entity_add($u2);
-			return $u2;
-		}break;
-		case 0:{
-			$u3 = new mygame_game_entity_PlatoonUnit($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition);
-			$this->_oUnit->game_get()->entity_add($u3);
-			return $u3;
-		}break;
-		default:{
-			throw new HException("wooops");
-		}break;
-		}
-		return null;
+	public function unit_create($oOffer) {
+		$oUnit = Type::createInstance(Type::resolveClass($oOffer->data_get()), (new _hx_array(array($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition))));
+		$this->_oUnit->game_get()->entity_add($oUnit);
+		return $oUnit;
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
@@ -73,4 +50,4 @@ class mygame_game_ability_BuilderFactory extends mygame_game_ability_Builder {
 	static $_aOffer;
 	function __toString() { return 'mygame.game.ability.BuilderFactory'; }
 }
-mygame_game_ability_BuilderFactory::$_aOffer = (new _hx_array(array(new mygame_game_misc_offer_Offer(15, "Build a Solier 2"), new mygame_game_misc_offer_Offer(15, "Build a Tank"))));
+mygame_game_ability_BuilderFactory::$_aOffer = (new _hx_array(array(new mygame_game_misc_offer_Offer(15, "Build a Solier 2", "mygame.game.entity.PlatoonUnit"), new mygame_game_misc_offer_Offer(15, "Build a Tank", "mygame.game.entity.Tank"))));

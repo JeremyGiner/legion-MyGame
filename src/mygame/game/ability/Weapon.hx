@@ -18,16 +18,12 @@ import mygame.game.utils.Timer;
  * - process : targeting then firing
  * @author GINER Jérémy
  */
-class Weapon extends UnitAbility implements ITrigger {
+class Weapon extends UnitAbility {
 
 	var _oType :IWeaponType;
 	var _oTarget :Unit = null;
 	var _oCooldown :Timer;
 
-//____
-	
-	var _oProcess :WeaponProcess;
-	
 //____
 
 	public var onFire :EventDispatcher2<Weapon>;
@@ -43,11 +39,6 @@ class Weapon extends UnitAbility implements ITrigger {
 		_oCooldown.reset();
 		
 		onFire = new EventDispatcher2<Weapon>();
-		
-		// Trigger
-		_oProcess = _oUnit.mygame_get().oWeaponProcess;
-		_oProcess.onTargeting.attach( this );
-		_oProcess.onFiring.attach( this );
 	}
 	
 //______________________________________________________________________________
@@ -59,39 +50,25 @@ class Weapon extends UnitAbility implements ITrigger {
 
 	
 	public function cooldown_get() { return _oCooldown; }
-
-//______________________________________________________________________________
-//	Accessor
 	
-	function target_set( oTarget :Unit ) :Void {
-		_oTarget = oTarget;
+	public function target_get() :Unit {
+		_target_update();
+		return _oTarget;
 	}
 	
+//______________________________________________________________________________
+//	Modifier
+
 	public function target_suggest( oTarget :Unit ) :Bool {
 		
 		// Pass if already got a target, or suggested target is invalid
 		if( _oTarget != null || !target_check( oTarget ) ) 
 			return false;
 		
-		target_set( oTarget );
+		_oTarget = oTarget;
 		return true;
 	}
-	
-	public function target_get() :Unit {
-		return _oTarget;
-	}
-	
-	
-//______________________________________________________________________________
-//	Update
-	/*
-	public function update() {
-		// Update target
-		target_update();
-		
-		
-	}*/
-	
+
 //______________________________________________________________________________
 //	Sub-routine
 	
@@ -100,29 +77,37 @@ class Weapon extends UnitAbility implements ITrigger {
 		//Trigger
 		onFire.dispatch( this );
 		
-		// Check target exist
-		if ( _oTarget == null ) 
-			return;
-		
 		// Set cooldown
 		_oCooldown.reset();
 		
-		// Apply damage
+		// Apply hit
 		var oHealth = _oTarget.ability_get( Health );
 		oHealth.damage( _oType.power_get(), _oType.damageType_get() );
 	}
 	
-	function target_update() {
+	function _target_update() {
 		// Reset target if no longer valid
 		if( !target_check( _oTarget ) ) 
-			target_set( null );
+			_oTarget = null;
 	}
 	
+	function target_check( oTarget :Unit ) :Bool {
+		return _oType.target_check( this, oTarget );
+	}
+	
+	
+//______________________________________________________________________________
+//	Process
+
 	//TODO : Replace by collision layer
-	function swipe_target() {
+	public function swipe_target() {
 		
 		// Update current target
-		target_update();
+		_target_update();
+		
+		// Check if new target needed
+		if ( _oTarget != null )
+			return;
 		
 		// Look for better target
 		for ( oTarget in _oUnit.mygame_get().entity_get_all() ) 
@@ -130,42 +115,10 @@ class Weapon extends UnitAbility implements ITrigger {
 				target_suggest( cast oTarget );
 	}
 	
-	function target_check( oTarget :Unit ) :Bool {
-		return _oType.target_check( this, oTarget );
-	}
-	
-//______________________________________________________________________________
-//	Trigger
-
-	public function trigger( oSource :IEventDispatcher ) {
-		if( oSource == _oProcess.onTargeting )
-			swipe_target();
-		
-		if ( oSource == _oProcess.onFiring ) {
-			// Fire on cooldown expire
-			if( _oCooldown.expired_check() ) {
-				
-				_fire();
-			}
+	public function fire() {
+		// Fire on cooldown expire
+		if( _oCooldown.expired_check() && _oTarget != null ) {
+			_fire();
 		}
-			
-	}
-//______________________________________________________________________________
-//	Process
-	
-
-	
-//______________________________________________________________________________
-//	Disposer
-
-	override public function dispose() {
-		
-		// Stop listening
-		_oProcess.onTargeting.remove( this );
-		_oProcess.onFiring.remove( this );
-		
-		// Wipe all
-		super.dispose();
-		
 	}
 }

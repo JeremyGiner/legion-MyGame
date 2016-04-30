@@ -6,5 +6,5 @@ package utils;
 
 interface IDisposable {
   public function dispose():Void;
-  public function dispose_check():Bool;
+  public function disposed_check():Bool;
 }

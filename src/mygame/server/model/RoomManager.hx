@@ -6,6 +6,7 @@ import mygame.connection.GameInput;
 import legion.PlayerInput;
 
 import mygame.game.MyGame;
+import mygame.game.GameConf.GameConfFactory;
 import trigger.eventdispatcher.*;
 
 
@@ -69,7 +70,7 @@ class RoomManager {
 //	Modifier
 
 	public function game_create() {
-		var oRoom = new Room( new MyGame() );
+		var oRoom = new Room( _iIdAutoIncrement, new MyGame(GameConfFactory.gameConfDefault_get()) );
 		_moRoom.set( _iIdAutoIncrement, oRoom );
 		_iIdAutoIncrement++;
 		
@@ -83,7 +84,6 @@ class RoomManager {
 		// TODO : check timer for game speed
 		for( oRoom in _moRoom ) {
 			if ( oRoom.timerExpire_check() && !oRoom.paused_get() ) {
-				
 				
 				onAnyProcessStart.dispatch( oRoom );
 				oRoom.process();

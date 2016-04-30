@@ -35,6 +35,13 @@ class MapTool {
 		return oMap;
 	}
 	
+	static public function getLength( oMap :Map<Dynamic,Dynamic> ) {
+		var i = 0;
+		for ( e in oMap )
+			i++;
+		return i;
+	}
+	
 	/**
 	 * 
 	 */

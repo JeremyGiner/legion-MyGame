@@ -3,6 +3,7 @@
 class trigger_eventdispatcher_EventDispatcher implements trigger_IEventDispatcher{
 	public function __construct() {
 		if(!php_Boot::$skip_constructor) {
+		haxe_Log::trace("deprecated", _hx_anonymous(array("fileName" => "EventDispatcher.hx", "lineNumber" => 16, "className" => "trigger.eventdispatcher.EventDispatcher", "methodName" => "new")));
 		$this->_aoTrigger = new _hx_array(array());
 	}}
 	public $_aoTrigger;

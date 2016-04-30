@@ -20,10 +20,10 @@ class BuilderFactory extends Builder {
 	var _oRallyPoint :Vector2;
 	//var _oProduct :Array<Unit>;
 	//var _oCost :Array<Int>;
-	static var _aOffer :Array<Offer> = 
+	static var _aOffer :Array<Offer<String>> = 
 		[
-			new Offer( 15, 'Build a Solier 2' ),
-			new Offer( 15, 'Build a Tank' ),
+			new Offer<String>( 15, 'Build a Solier 2', 'mygame.game.entity.PlatoonUnit' ),
+			new Offer<String>( 15, 'Build a Tank', 'mygame.game.entity.Tank' ),
 		];
 	
 //______________________________________________________________________________
@@ -62,7 +62,7 @@ class BuilderFactory extends Builder {
 			
 		//_aOffer[iOfferIndex].accept( cast _oUnit.owner_get(), _oUnit );
 		_oUnit.owner_get().credit_add( -_aOffer[ iOfferIndex ].cost_get() );
-		var oProduct = unit_create( iOfferIndex );
+		var oProduct = unit_create( _aOffer[ iOfferIndex ] );
 		
 		var oGuidance = oProduct.ability_get( Guidance );
 		if ( oGuidance == null ) throw('[ERROR]:buy:product must have Guidance ability.');
@@ -71,7 +71,21 @@ class BuilderFactory extends Builder {
 	}
 	
 	// TEST 
-	function unit_create( i :Int ) :Unit {
+	function unit_create( oOffer :Offer<String> ) :Unit {
+		var oUnit = Type.createInstance( 
+			Type.resolveClass(oOffer.data_get()), 
+			[
+				_oUnit.game_get(),
+				_oUnit.owner_get(),
+				_oPosition
+			] 
+		);
+		
+		_oUnit.game_get().entity_add(
+			oUnit
+		);
+		return cast oUnit;
+		/*
 		switch( i ) {
 			case 99 : 
 				var u = new Soldier( 
@@ -116,7 +130,7 @@ class BuilderFactory extends Builder {
 			
 			default: throw('wooops');
 		}
-		return null;
+		return null;*/
 	}
 
 }

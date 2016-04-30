@@ -4,17 +4,16 @@ import mygame.game.MyGame;
 import mygame.server.model.Client;
 import haxe.ds.IntMap;
 import trigger.eventdispatcher.EventDispatcher;
-
 import mygame.connection.message.ResGameStepInput;
-
 import legion.IAction;
-
 import mygame.game.process.MobilityProcess;
 
 
 
 class Room {
 
+	var _iId :Int;
+	
 	var _oGame :MyGame;
 	
 	var _aoSlot :Array<Client>;
@@ -36,7 +35,8 @@ class Room {
 //______________________________________________________________________________
 //	Constructor
 
-	public function new( oGame :MyGame ) {
+	public function new( iId :Int, oGame :MyGame ) {
+		_iId = iId;
 		_oGame = oGame;
 		_aoSlot = new Array<Client>();
 		_abPause = new Array<Bool>();
@@ -56,6 +56,10 @@ class Room {
 //______________________________________________________________________________
 //	Accessor
 
+	public function id_get() {
+		return _iId;
+	}
+
 	public function spectatorMax_get() { return _iSpectatorMax; }
 	public function spectatorMax_set( iSpectatorMax :Int ) { _iSpectatorMax = iSpectatorMax; }
 	
@@ -70,7 +74,9 @@ class Room {
 	}
 	
 	public function pauseList_get() {
+		trace('Slot:');
 		trace(_aoSlot);
+		trace('Pause:');
 		trace(_abPause);
 		return _abPause;
 	}

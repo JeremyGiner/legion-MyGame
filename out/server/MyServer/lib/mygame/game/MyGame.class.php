@@ -1,7 +1,7 @@
 <?php
 
 class mygame_game_MyGame extends legion_Game {
-	public function __construct() {
+	public function __construct($oConf) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oMap = null;
 		$this->_iLoop = 0;
@@ -9,8 +9,9 @@ class mygame_game_MyGame extends legion_Game {
 		$this->onLoop = new trigger_eventdispatcher_EventDispatcher();
 		$this->onLoopEnd = new trigger_eventdispatcher_EventDispatcher();
 		$this->onHealthAnyUpdate = new trigger_EventDispatcher2();
+		$this->onLoyaltyAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
+		$this->onPositionAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
 		$this->_aoHero = new _hx_array(array());
-		$this->_loUnit = new HList();
 		$this->_aoPlayer = new _hx_array(array());
 		$this->_oPositionDistance = new mygame_game_misc_PositionDistance();
 		$this->_oWinner = null;
@@ -20,15 +21,17 @@ class mygame_game_MyGame extends legion_Game {
 		$this->_singleton_add(new mygame_game_query_CityTile($this));
 		$this->_singleton_add(new mygame_game_query_UnitDist($this));
 		$this->_singleton_add(new mygame_game_query_UnitQuery($this));
-		new mygame_game_process_VolumeEjection($this);
-		new mygame_game_process_MobilityProcess($this);
-		$this->oWeaponProcess = new mygame_game_process_WeaponProcess($this);
-		new mygame_game_process_LoyaltyShiftProcess($this);
-		new mygame_game_process_Death($this);
-		$this->oVictoryCondition = new mygame_game_process_VictoryCondition($this);
-		$this->_oMap = mygame_game_entity_WorldMap::load(_hx_anonymous(array("iSizeX" => 15, "iSizeY" => 10, "aoTile" => (new _hx_array(array((new _hx_array(array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))), (new _hx_array(array(0, 0, 1, 2, 4, 4, 4, 4, 4, 1, 2, 1, 1, 1, 0))), (new _hx_array(array(0, 1, 1, 2, 4, 2, 0, 1, 4, 1, 1, 1, 1, 1, 0))), (new _hx_array(array(0, 1, 1, 4, 4, 0, 0, 0, 4, 1, 3, 1, 4, 1, 0))), (new _hx_array(array(0, 1, 1, 4, 1, 0, 0, 0, 4, 1, 3, 1, 4, 1, 0))), (new _hx_array(array(0, 1, 4, 4, 1, 0, 0, 2, 4, 4, 4, 4, 4, 1, 0))), (new _hx_array(array(0, 1, 1, 1, 1, 1, 1, 2, 2, 1, 0, 0, 4, 0, 0))), (new _hx_array(array(0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0))), (new _hx_array(array(0, 0, 0, 1, 3, 1, 3, 2, 1, 1, 4, 1, 1, 1, 0))), (new _hx_array(array(0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 4, 0)))))))), $this);
-		$this->player_add(new mygame_game_entity_Player($this, "Blue"));
-		$this->player_add(new mygame_game_entity_Player($this, "Yellow"));
+		$this->_oMap = mygame_game_entity_WorldMap::load(_hx_anonymous(array("iSizeX" => $oConf->map->sizeX, "iSizeY" => $oConf->map->sizeY, "aoTile" => $oConf->map->tileArr)), $this);
+		{
+			$_g = 0;
+			$_g1 = $oConf->playerArr;
+			while($_g < $_g1->length) {
+				$oConfPlayer = $_g1[$_g];
+				++$_g;
+				$this->player_add(new mygame_game_entity_Player($this, $oConfPlayer->name));
+				unset($oConfPlayer);
+			}
+		}
 		$this->entity_add($this->_oMap);
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(2, 6)));
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(2, 13)));
@@ -38,14 +41,19 @@ class mygame_game_MyGame extends legion_Game {
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(13, 12)));
 		$this->entity_add(new mygame_game_entity_Factory($this, $this->player_get(0), $this->_oMap->tile_get(3, 2)));
 		$this->entity_add(new mygame_game_entity_Factory($this, $this->player_get(1), $this->_oMap->tile_get(3, 17)));
-		$this->entity_add(new mygame_game_entity_Tank($this, $this->player_get(1), new space_Vector2i(35000, 35000)));
 		$this->_aoHero[0] = $this->_aoEntity[$this->_aoEntity->length - 1];
 		$this->_aoHero[1] = $this->_aoEntity[$this->_aoEntity->length - 1];
+		new mygame_game_process_VolumeEjection($this);
+		new mygame_game_process_MobilityProcess($this);
+		$this->oWeaponProcess = new mygame_game_process_WeaponProcess($this);
+		new mygame_game_process_LoyaltyShiftProcess($this);
+		new mygame_game_process_Death($this);
+		new mygame_game_process_DeathPlatoon($this);
+		$this->oVictoryCondition = new mygame_game_process_VictoryCondition($this);
 	}}
 	public $_iLoop;
 	public $_oMap;
 	public $_aoHero;
-	public $_loUnit;
 	public $_aoPlayer;
 	public $_oWinner;
 	public $_oPositionDistance;
@@ -53,11 +61,15 @@ class mygame_game_MyGame extends legion_Game {
 	public $onLoop;
 	public $onLoopEnd;
 	public $onHealthAnyUpdate;
+	public $onLoyaltyAnyUpdate;
+	public $onPositionAnyUpdate;
 	public $oWeaponProcess;
 	public $oVictoryCondition;
 	public function loop() {
 		$this->_iLoop++;
+		$iTime = Date::now()->getTime();
 		$this->onLoop->dispatch($this);
+		$iTime = Date::now()->getTime();
 		$this->onLoopEnd->dispatch($this);
 	}
 	public function log_get() {
@@ -88,35 +100,28 @@ class mygame_game_MyGame extends legion_Game {
 	}
 	public function entity_add($oEntity) {
 		parent::entity_add($oEntity);
-		if(Std::is($oEntity, _hx_qtype("mygame.game.entity.Unit"))) {
-			$oUnit = $oEntity;
-			$this->_loUnit->push($oUnit);
-			$oPlatoon = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
-			if($oPlatoon !== null) {
-				$aUnit = $oPlatoon->subUnit_get();
-				{
-					$_g = 0;
-					while($_g < $aUnit->length) {
-						$oSubUnit = $aUnit[$_g];
-						++$_g;
-						$this->entity_add($oSubUnit);
-						unset($oSubUnit);
-					}
+		$oPlatoon = $oEntity->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
+		if($oPlatoon !== null) {
+			$aUnit = $oPlatoon->subUnit_get();
+			{
+				$_g = 0;
+				while($_g < $aUnit->length) {
+					$oSubUnit = $aUnit[$_g];
+					++$_g;
+					$this->entity_add($oSubUnit);
+					unset($oSubUnit);
 				}
 			}
 		}
 	}
 	public function entity_remove($oEntity) {
 		parent::entity_remove($oEntity);
-		if(Std::is($oEntity, _hx_qtype("mygame.game.entity.Unit"))) {
-			$this->_loUnit->remove($oEntity);
-		}
-	}
-	public function unitList_get() {
-		return $this->_loUnit;
 	}
 	public function player_get($iKey) {
 		return $this->_aoPlayer[$iKey];
+	}
+	public function player_get_all() {
+		return $this->_aoPlayer;
 	}
 	public function positionDistance_get() {
 		return $this->_oPositionDistance;

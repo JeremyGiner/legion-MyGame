@@ -34,6 +34,9 @@ class mygame_game_ability_Mobility extends mygame_game_ability_UnitAbility {
 	public function orientation_get() {
 		return $this->_fOrientation;
 	}
+	public function force_get($sKey) {
+		return $this->_moForce->get($sKey);
+	}
 	public function speed_set($fSpeed) {
 		$this->_fSpeed = $fSpeed;
 	}
@@ -173,7 +176,7 @@ class mygame_game_ability_Mobility extends mygame_game_ability_UnitAbility {
 		while($__hx__it->hasNext()) {
 			unset($oTile);
 			$oTile = $__hx__it->next();
-			if(!$this->_oPlan->tile_check($oTile)) {
+			if(!$this->_oPlan->check($oTile)) {
 				$loTmp->push($oTile);
 			}
 		}
@@ -233,58 +236,6 @@ class mygame_game_ability_Mobility extends mygame_game_ability_UnitAbility {
 			return $this->__toString();
 		else
 			throw new HException('Unable to call <'.$m.'>');
-	}
-	static function positionCorrection($oMobility, $oPoint) {
-		if($oMobility->_oPlan === null) {
-			return $oPoint;
-		}
-		$oMap = $oMobility->position_get()->map_get();
-		$oVolume = $oMobility->_oVolume;
-		if($oVolume === null) {
-			$oTile = $oMap->tile_get_byUnitMetric($oPoint->x, $oPoint->y);
-			if($oMobility->_oPlan->tile_check($oTile)) {
-				return $oPoint;
-			}
-			return null;
-		}
-		$lTile = $oVolume->tileListProject_get($oPoint->x, $oPoint->y);
-		$oResult = $oPoint->hclone();
-		$oUnitGeometry = new space_AlignedAxisBox2i($oMobility->_oVolume->size_get(), $oMobility->_oVolume->size_get(), $oPoint);
-		$oTileGeometry = null;
-		if(null == $lTile) throw new HException('null iterable');
-		$__hx__it = $lTile->iterator();
-		while($__hx__it->hasNext()) {
-			unset($oTile1);
-			$oTile1 = $__hx__it->next();
-			if($oMobility->_oPlan->tile_check($oTile1)) {
-				continue;
-			}
-			$oTileGeometry = mygame_game_ability_Mobility::tileGeometry_get($oTile1);
-			if(!collider_CollisionCheckerPostInt::check($oUnitGeometry, $oTileGeometry)) {
-				continue;
-			}
-			$iVolumeSize = 0;
-			if($oVolume !== null) {
-				$iVolumeSize = $oVolume->size_get();
-			}
-			$dx = $oPoint->x / 10000 - ($oTile1->x_get() + 0.5);
-			$dy = $oPoint->y / 10000 - ($oTile1->y_get() + 0.5);
-			if(Math::abs($dx) > Math::abs($dy)) {
-				if($dx > 0) {
-					$oResult->x = $oTileGeometry->right_get() + 1 + $iVolumeSize;
-				} else {
-					$oResult->x = $oTileGeometry->left_get() - 1 - $iVolumeSize;
-				}
-			} else {
-				if($dy > 0) {
-					$oResult->y = $oTileGeometry->top_get() + 1 + $iVolumeSize;
-				} else {
-					$oResult->y = $oTileGeometry->bottom_get() - 1 - $iVolumeSize;
-				}
-			}
-			unset($iVolumeSize,$dy,$dx);
-		}
-		return $oResult;
 	}
 	static function tileGeometry_get($oTile) {
 		return new space_AlignedAxisBoxAlti(9999, 9999, new space_Vector2i($oTile->x_get() * 10000, $oTile->y_get() * 10000));

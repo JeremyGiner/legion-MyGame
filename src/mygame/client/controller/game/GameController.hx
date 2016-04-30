@@ -2,6 +2,8 @@ package mygame.client.controller.game;
 
 import js.Browser;
 import trigger.*;
+import utils.Disposer;
+import utils.IDisposable;
 
 import mygame.game.MyGame;
 import mygame.game.action.IAction;
@@ -28,7 +30,7 @@ import mygame.client.model.Model;
  * 
  * @author GINER Jérémy
  */
-class GameController implements ITrigger implements IGameController {
+class GameController implements ITrigger implements IDisposable {
 
 	var _oModel :Model;
 	var _oGame :MyGame;
@@ -119,6 +121,10 @@ class GameController implements ITrigger implements IGameController {
 	public function game_get() { return _oGame; }
 	
 	public function model_get() { return _oModel; }
+	
+	public function disposed_check() {
+		return _oModel == null;
+	}
 //______________________________________________________________________________
 // 
 
@@ -127,6 +133,19 @@ class GameController implements ITrigger implements IGameController {
 	}
 //______________________________________________________________________________
 // Trigger
+
+
+	public function haxeAction( sAction :String ) {
+		switch( sAction ) {
+			case 'pause' :
+				pause_toggle();
+			case 'unpause' :
+				pause_toggle();
+			default :
+				trace('[WARNING]:invalid haxeAction');
+		}
+		return true;
+	}
 
 	public function trigger( oSource :IEventDispatcher ) {
 	
@@ -147,5 +166,12 @@ class GameController implements ITrigger implements IGameController {
 			if( _oKeyboard.keyTrigger_get() == 0x10 )
 				_oGUI.mode_set( 0 );
 		}
+	}
+	
+//______________________________________________________________________________
+// Disposer
+
+	public function dispose() {
+		Disposer.dispose( this );// not necessary
 	}
 }
