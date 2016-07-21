@@ -30,12 +30,16 @@ class BlockUnitSelection implements ITrigger {
 		_oModel = oModel;
 		_oDiv = oDiv;
 		
+		_init_render();
+		
+		
 		_oBuildContainer = js.Browser.document.getElementById('Build');
 		_oBuildList = js.Browser.document.getElementById('BuildList');
 		_oSelectionList = js.Browser.document.getElementById('SelectionList');
 		
 		_oModel.GUI_get().unitSelection_get().onUpdate.attach( this );
 		//_oModel.playerLocal_get().onUpdate.attach( this );
+		
 		
 		update();
 	}
@@ -50,14 +54,17 @@ class BlockUnitSelection implements ITrigger {
 		
 		// Print
 		//_oDiv.innerHTML = _render();
-		_oSelectionList.innerHTML = _render();
+		_oSelectionList.innerHTML = _selection_render();
 		
 	}
 
 //______________________________________________________________________________
 //	Sub-routine
 	
-	function _render() :String {
+	function _init_render() {
+		_oDiv.innerHTML = _menuSelection_render() + _menuBuild_render();
+	}
+	function _selection_render() :String {
 		
 		var oSelection = _oModel.GUI_get().unitSelection_get().unitSelection_get();
 		
@@ -101,7 +108,7 @@ class BlockUnitSelection implements ITrigger {
 	/**
 	 * NOT USED
 	 */
-	function _menuBUild_render() {
+	function _menuBuild_render() {
 		return '<fieldset id="Build">
 			<legend>Build unit</legend>
 			<div id="BuildList"></div>

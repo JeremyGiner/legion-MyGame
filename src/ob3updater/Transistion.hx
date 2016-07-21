@@ -108,6 +108,9 @@ class Transistion implements IOb3Updater {
 		return ( _timeCurrent_get() - _iTimeAlpha ) / _iDuration;
 	}
 	
+//_____________________________________________________________________________
+//	Utils
+
 	static public function timeFuncLinear( f :Float ) {
 		return f;
 	}

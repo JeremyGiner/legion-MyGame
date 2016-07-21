@@ -22,7 +22,7 @@ class mygame_server_model_Room {
 			}
 		}
 		$this->_loAction = new HList();
-		$this->onUpdate = new trigger_eventdispatcher_EventDispatcher();
+		$this->onUpdate = new trigger_EventDispatcher2();
 		$this->_oGame->onLoop->attach(new mygame_game_process_MobilityProcess($this->_oGame));
 		$this->timer_reset();
 	}}

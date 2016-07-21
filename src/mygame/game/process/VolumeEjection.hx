@@ -2,13 +2,26 @@ package mygame.game.process;
 
 import legion.entity.Entity;
 import mygame.game.ability.Mobility;
+import mygame.game.ability.PositionPlan;
 import mygame.game.MyGame;
 import mygame.game.ability.Volume;
 import mygame.game.query.EntityQuery;
-import mygame.game.query.UnitDist;
-
+import mygame.game.query.ValidatorEntity;
 import trigger.*;
 
+/**
+ * Pair each volume with all entity 
+ * - (not self) that isn't associated to the volume
+ * - have correct plan
+ * - have a mobility
+ * - in range
+ * 
+ * Cascading value
+ * - make a query param : 
+ * - 
+ * 
+ * @author GINER Jérémy
+ */
 class VolumeEjection implements ITrigger {
 
 	var _oGame :MyGame;
@@ -21,8 +34,8 @@ class VolumeEjection implements ITrigger {
 
 	public function new( oGame :MyGame ) {
 		_oGame = oGame;
-		_oQueryVolume = new EntityQuery( _oGame, [ 'ability' => Volume ] );
-		_oQueryMobility = new EntityQuery( _oGame, [ 'ability' => Mobility ] );
+		_oQueryVolume = new EntityQuery( _oGame, new ValidatorEntity([ 'ability' => Volume ]) );
+		_oQueryMobility = new EntityQuery( _oGame, new ValidatorEntity([ 'ability' => Mobility ]) );
 		
 		_oGame.onLoop.attach( this );
 		
@@ -44,6 +57,9 @@ class VolumeEjection implements ITrigger {
 			
 			// Not necessary
 			if ( oMobility == null )
+				continue;
+			
+			if ( oUnit.ability_get( PositionPlan ) == null )
 				continue;
 			
 			// Reset volume ejection

@@ -1,6 +1,6 @@
 <?php
 
-class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
+class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility implements legion_IBehaviour{
 	public function __construct($oUnit) {
 		if(!php_Boot::$skip_constructor) {
 		parent::__construct($oUnit);
@@ -11,15 +11,15 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 		$this->_oVolume = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Volume"));
 		$this->_oPlan = $oUnit->ability_get(_hx_qtype("mygame.game.ability.PositionPlan"));
 		$this->_oPathfinder = null;
-		$this->_oGoal = null;
+		$this->_lWaypoint = new HList();
 	}}
 	public $_oMobility;
 	public $_oVolume;
 	public $_oPlan;
 	public $_oPathfinder;
-	public $_oGoal;
-	public function goal_get() {
-		return $this->_oGoal;
+	public $_lWaypoint;
+	public function waypointList_get() {
+		return $this->_lWaypoint;
 	}
 	public function mobility_get() {
 		return $this->_oMobility;
@@ -27,15 +27,22 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 	public function pathfinder_get() {
 		return $this->_oPathfinder;
 	}
+	public function processName_get() {
+		return "guidance";
+	}
 	public function positionCorrection($oPoint) {
 		if($this->_oMobility->plan_get() === null) {
 			return $oPoint;
 		}
-		$oMap = $this->_oMobility->position_get()->map_get();
+		$oPlatoon = $this->unit_get()->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
+		if($oPlatoon !== null) {
+			return $oPlatoon->positionCorrection($oPoint);
+		}
 		$oVolume = $this->_oVolume;
 		if($oVolume === null) {
+			$oMap = $this->_oMobility->position_get()->map_get();
 			$oTile = $oMap->tile_get_byUnitMetric($oPoint->x, $oPoint->y);
-			if($this->_oMobility->plan_get()->check($oTile)) {
+			if($this->_oMobility->plan_get()->validate($oTile)) {
 				return $oPoint;
 			}
 			return null;
@@ -45,14 +52,45 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 		throw new HException("abnormal case");
 		return null;
 	}
-	public function goal_set($oDestination) {
-		$this->_oGoal = null;
+	public function waypoint_add($oDestination) {
+		$this->_lWaypoint->add($oDestination->hclone());
+		if($this->_lWaypoint->length === 1) {
+			$this->_pathTo();
+		}
+	}
+	public function waypoint_set($oDestination) {
+		$this->_lWaypoint = new HList();
 		if($oDestination === null) {
 			return;
 		}
+		$this->_lWaypoint->add($oDestination->hclone());
+		$this->_pathTo();
+	}
+	public function process() {
+		if($this->_lWaypoint->length !== 0 && $this->_lWaypoint->first()->equal($this->_oMobility->position_get())) {
+			$this->_waypoint_discard();
+		}
+		if($this->_oPathfinder !== null) {
+			$oVector = $this->_vector_get();
+			$this->_oMobility->force_set("Guidance", $oVector->x, $oVector->y, true);
+		} else {
+			$this->_oMobility->force_set("Guidance", 0, 0, true);
+		}
+	}
+	public function _waypoint_discard() {
+		$this->_lWaypoint->pop();
+		$this->_oPathfinder = null;
+		$this->_pathTo();
+	}
+	public function _pathTo() {
+		if($this->_lWaypoint->length === 0) {
+			return;
+		}
+		$oDestination = $this->_lWaypoint->first();
 		$oTileDestination = $this->_oMobility->position_get()->map_get()->tile_get_byUnitMetric($oDestination->x, $oDestination->y);
-		if(!$this->_oPlan->check($oTileDestination)) {
-			haxe_Log::trace("[WARNING]:guidance:invalid destination tile", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 106, "className" => "mygame.game.ability.Guidance", "methodName" => "goal_set")));
+		if(!$this->_oPlan->validate($oTileDestination)) {
+			$this->_waypoint_discard();
+			haxe_Log::trace("[WARNING]:guidance:invalid destination tile", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 168, "className" => "mygame.game.ability.Guidance", "methodName" => "_pathTo")));
 			return;
 		}
 		$lDestination = new HList();
@@ -71,15 +109,14 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 			unset($oTile);
 			$oTile = $__hx__it->next();
 			if($this->_oPathfinder->refTile_get($oTile) === null) {
-				haxe_Log::trace("[ERROR]:Guidance:no path found.", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 137, "className" => "mygame.game.ability.Guidance", "methodName" => "goal_set")));
+				$this->_waypoint_discard();
+				haxe_Log::trace("[ERROR]:Guidance:no path found.", _hx_anonymous(array("fileName" => "Guidance.hx", "lineNumber" => 200, "className" => "mygame.game.ability.Guidance", "methodName" => "_pathTo")));
 				return;
 			}
 		}
-		$this->_oGoal = $oDestination->hclone();
 		if($this->_oVolume !== null) {
-			$this->_oGoal = $this->positionCorrection($this->_oGoal);
-			if(null == $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)) throw new HException('null iterable');
-			$__hx__it = $this->_oVolume->tileListProject_get($this->_oGoal->x, $this->_oGoal->y)->iterator();
+			if(null == $this->_oVolume->tileListProject_get($oDestination->x, $oDestination->y)) throw new HException('null iterable');
+			$__hx__it = $this->_oVolume->tileListProject_get($oDestination->x, $oDestination->y)->iterator();
 			while($__hx__it->hasNext()) {
 				unset($oTile1);
 				$oTile1 = $__hx__it->next();
@@ -87,25 +124,15 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 			}
 		}
 	}
-	public function process() {
-		if($this->_oGoal !== null && $this->_oGoal->equal($this->_oMobility->position_get())) {
-			$this->_oGoal = null;
-		}
-		if($this->_oGoal === null) {
-			$this->_oMobility->force_set("Guidance", 0, 0, true);
-			return;
-		}
-		$oVector = $this->_vector_get();
-		$this->_oMobility->force_set("Guidance", $oVector->x, $oVector->y, true);
-	}
 	public function _vector_get() {
+		$oDestination = $this->_lWaypoint->first();
 		$oTileOrigin = null;
 		$oTileTargeted = null;
 		if($this->_oVolume === null) {
 			$oTilePosition = $this->_oMobility->position_get()->tile_get();
 			$oTileTargeted = $this->_oPathfinder->refTile_get($oTilePosition);
 			if($oTileTargeted === $oTilePosition) {
-				return new space_Vector2i($this->_oGoal->x - $this->_oMobility->position_get()->x, $this->_oGoal->y - $this->_oMobility->position_get()->y);
+				return new space_Vector2i($oDestination->x - $this->_oMobility->position_get()->x, $oDestination->y - $this->_oMobility->position_get()->y);
 			}
 		} else {
 			$lTile = $this->_oVolume->tileList_get();
@@ -121,7 +148,7 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 				}
 			}
 			if($b) {
-				return new space_Vector2i($this->_oGoal->x - $this->_oMobility->position_get()->x, $this->_oGoal->y - $this->_oMobility->position_get()->y);
+				return new space_Vector2i($oDestination->x - $this->_oMobility->position_get()->x, $oDestination->y - $this->_oMobility->position_get()->y);
 			}
 			{
 				$_g = $lTile->length;
@@ -174,7 +201,7 @@ class mygame_game_ability_Guidance extends mygame_game_ability_UnitAbility {
 		$v1 = new space_Vector2i($oTileTargeted->x_get() * 10000 + 5000 - $this->_oMobility->position_get()->x, $oTileTargeted->y_get() * 10000 + 5000 - $this->_oMobility->position_get()->y);
 		$v2 = null;
 		if($oTileTargeted === $oTileTargetedRef) {
-			$v2 = new space_Vector2i($this->_oGoal->x - $this->_oMobility->position_get()->x, $this->_oGoal->y - $this->_oMobility->position_get()->y);
+			$v2 = new space_Vector2i($oDestination->x - $this->_oMobility->position_get()->x, $oDestination->y - $this->_oMobility->position_get()->y);
 		} else {
 			$v2 = new space_Vector2i($oTileTargetedRef->x_get() * 10000 + 5000 - $this->_oMobility->position_get()->x, $oTileTargetedRef->y_get() * 10000 + 5000 - $this->_oMobility->position_get()->y);
 		}

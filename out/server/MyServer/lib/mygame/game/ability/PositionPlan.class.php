@@ -7,7 +7,7 @@ class mygame_game_ability_PositionPlan extends mygame_game_ability_UnitAbility i
 		$this->_iCodePlan = $iCodePlan;
 	}}
 	public $_iCodePlan;
-	public function check($oTile) {
+	public function validate($oTile) {
 		{
 			$_g = $this->_iCodePlan;
 			switch($_g) {
@@ -35,6 +35,9 @@ class mygame_game_ability_PositionPlan extends mygame_game_ability_UnitAbility i
 		else
 			throw new HException('Unable to call <'.$m.'>');
 	}
+	static $AIR = 0;
+	static $VEHICULE = 1;
+	static $INFANTRY = 2;
 	static function isLandWalkable($oTile) {
 		if($oTile === null) {
 			return false;
@@ -61,6 +64,9 @@ class mygame_game_ability_PositionPlan extends mygame_game_ability_UnitAbility i
 			return true;
 		}
 		if($oTile->type_get() === 2) {
+			return true;
+		}
+		if($oTile->type_get() === 3) {
 			return true;
 		}
 		return false;

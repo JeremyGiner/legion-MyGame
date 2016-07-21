@@ -11,7 +11,7 @@ class mygame_game_misc_PositionDistance {
 	public function delta_get($oPosition1, $oPosition2) {
 		$iId1 = $oPosition1->unit_get()->identity_get();
 		$iId2 = $oPosition2->unit_get()->identity_get();
-		if($this->_iLoop !== $oPosition1->unit_get()->mygame_get()->loopId_get()) {
+		if($this->_iLoop !== $oPosition1->unit_get()->game_get()->loopId_get()) {
 			$this->_moDelta = new haxe_ds_IntMap();
 		}
 		if($this->_moDelta->get($iId1) === null) {

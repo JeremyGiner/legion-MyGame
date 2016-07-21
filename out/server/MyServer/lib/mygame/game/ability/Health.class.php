@@ -46,6 +46,9 @@ class mygame_game_ability_Health extends mygame_game_ability_UnitAbility {
 		return $this->_fCurrent / $this->_fMax;
 	}
 	public function damage($fDamage, $eDamageType) {
+		if($this->unit_get()->ability_get(_hx_qtype("mygame.game.ability.DivineShield")) !== null) {
+			return;
+		}
 		if($this->_bArmored && $eDamageType === mygame_game_misc_weapon_EDamageType::$Bullet) {
 			return;
 		}

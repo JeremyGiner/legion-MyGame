@@ -17,9 +17,9 @@ class Ability implements IAbility {
 
 //______________________________________________________________________________
 //	Accessor
-	
+	/*
 	public function mainClassName_get() {
 		return Type.getClassName( Type.getClass( this ) );
-	}
+	}*/
 	
 }

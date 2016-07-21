@@ -14,7 +14,7 @@ class Marker implements IVisual {
 		_oMesh = new Mesh( 
 			new CircleGeometry( 1, 32 ), 
 			new MeshBasicMaterial(
-				{ color: 0xFF5555, wireframe: false, opacity: 0.5, transparent: true }
+				{ color: 0xFF5555, wireframe: false, opacity: 0.5, transparent: true, depthTest: false }
 			) 
 		);
 		_oMesh.scale.set( 0.5, 0.5, 0.5 );

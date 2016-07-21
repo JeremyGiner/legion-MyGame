@@ -4,6 +4,7 @@ import mygame.client.model.Model;
 import mygame.client.model.UnitSelection;
 import js.html.DivElement;
 import js.html.Element;
+import mygame.client.view.html.BlockRoster;
 import mygame.client.view.html.BlockUnitSelection;
 import trigger.*;
 
@@ -23,7 +24,10 @@ class GameMenu implements ITrigger {
 	
 	var _oSelection :UnitSelection;
 	
+	var _oBlockRoster :BlockRoster;
 	var _oBlockUnitSelection :BlockUnitSelection;
+	
+	var _oLabelErrorLog :Element;
 
 //______________________________________________________________________________
 //	Constructor
@@ -39,15 +43,20 @@ class GameMenu implements ITrigger {
 
 		_oSelectionList = js.Browser.document.getElementById('SelectionList');
 		_oBuildList = js.Browser.document.getElementById('BuildList');
+		
+		_oLabelErrorLog = js.Browser.document.getElementById('game-errorlog');
 
 		// Update 
 		credit_update();
-		selectionList_update();
+		//selectionList_update();
 		
 		// Trigger
 		_oSelection = _oModel.GUI_get().unitSelection_get();
 		_oSelection.onUpdate.attach( this );
+		_oModel.game_get().onCreditAnyUpdate.attach( this );
 		//_oModel.playerLocal_get().onUpdate.attach( this );
+		
+		_oBlockRoster = new BlockRoster( _oModel, js.Browser.document.getElementById('roster-wrapper') );
 		
 		_oBlockUnitSelection = new BlockUnitSelection( 
 			_oModel, 
@@ -61,40 +70,16 @@ class GameMenu implements ITrigger {
 
 	public function build_hide() { _oBuildContainer.style.visibility = 'hidden'; }
 	public function build_show() { _oBuildContainer.style.removeProperty('visibility'); }
-
+//______________________________________________________________________________
+//	Modifier
+	
+	public function errorlog_set( sError :String ) {
+		_oLabelErrorLog.innerHTML = '';
+		_oLabelErrorLog.innerHTML = '<span class="fade-out">'+sError+'</span>';
+	}
+	
 //______________________________________________________________________________
 //	
-	
-	function selectionList_update() {
-		return;
-		// Cleaning
-		_oSelectionList.innerHTML = '';
-		
-		// Get html code from unit selection and pattern
-		var s :String = '';
-		var oSelection = _oModel.GUI_get().unitSelection_get().unitSelection_get();
-		for( sUnitType in oSelection.keys() ) {
-			if( oSelection.get( sUnitType ).length > 0 ) {
-			
-				// Get selection button
-				s += pattern_selectButton( 
-					className_get_fromFullName(sUnitType), 
-					oSelection.get( sUnitType ).length 
-				);
-				
-				// Get Builder menu
-				var oBuilder = oSelection.get( sUnitType ).first().ability_get( BuilderFactory );
-				if( oBuilder != null ) {
-					build_show();
-					buildList_update( oBuilder );
-				} else
-					build_hide();
-			}
-		}
-		
-		// Print
-		_oSelectionList.innerHTML = s;
-	}
 	
 	function buildList_update( oBuilder :BuilderFactory ) {
 		
@@ -144,8 +129,11 @@ class GameMenu implements ITrigger {
 //	Trigger
 	
 	public function trigger( oSource :IEventDispatcher ) {
+		if ( oSource == _oModel.game_get().onCreditAnyUpdate ) {
+			this.credit_update();
+		}
 		if( oSource == _oSelection.onUpdate ) {
-			selectionList_update();
+			//selectionList_update();
 		}
 		/*if( oSource == _oModel.playerLocal_get().onUpdate ) {
 			selectionList_update();

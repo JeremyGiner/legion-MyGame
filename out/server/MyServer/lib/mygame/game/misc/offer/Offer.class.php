@@ -4,7 +4,7 @@ class mygame_game_misc_offer_Offer {
 	public function __construct($iCost, $sName, $oData = null) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_sName = $sName;
-		$this->_iCost = 10;
+		$this->_iCost = $iCost;
 		$this->_oData = $oData;
 	}}
 	public $_sName;

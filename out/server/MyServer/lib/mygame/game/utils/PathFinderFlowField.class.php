@@ -76,7 +76,7 @@ class mygame_game_utils_PathFinderFlowField {
 					$oTileChild1 = $_g1[$_g];
 					++$_g;
 					if($oTileChild1 !== null && Std::is($oTileChild1, _hx_qtype("mygame.game.tile.Tile"))) {
-						if($this->_pTest->check($oTileChild1)) {
+						if($this->_pTest->validate($oTileChild1)) {
 							if($this->_aReferenceMap->get($this->_key_get($oTileChild1)) === null) {
 								$this->_aReferenceMap->set($this->_key_get($oTileChild1), $oTileParent);
 								$this->_aHeatMap->set($this->_key_get($oTileChild1), $this->_aHeatMap->get($this->_key_get($oTileParent)) + 1);
@@ -98,7 +98,7 @@ class mygame_game_utils_PathFinderFlowField {
 									continue;
 								}
 								$t = $this->_oWorldMap->tile_get(Math::floor($v->x), Math::floor($v->y));
-								if($t === null || !$this->_pTest->check($t) || $t === $oTileChild1) {
+								if($t === null || !$this->_pTest->validate($t) || $t === $oTileChild1) {
 									continue;
 									throw new HException("NOT OK");
 									throw new HException("NOT OK");

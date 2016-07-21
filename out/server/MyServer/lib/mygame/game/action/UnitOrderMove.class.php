@@ -1,13 +1,20 @@
 <?php
 
 class mygame_game_action_UnitOrderMove implements mygame_game_action_IAction{
-	public function __construct($oUnit, $oDestination) {
+	public function __construct($oUnit, $oDestination, $fAngle, $bStack = null) {
 		if(!php_Boot::$skip_constructor) {
+		if($bStack === null) {
+			$bStack = false;
+		}
 		$this->_oUnit = $oUnit;
+		$this->_fAngle = $fAngle;
 		$this->_oDestination = $oDestination;
+		$this->_bStack = $bStack;
 	}}
 	public $_oDestination;
+	public $_fAngle;
 	public $_oUnit;
+	public $_bStack;
 	public function unit_get() {
 		return $this->_oUnit;
 	}
@@ -20,16 +27,21 @@ class mygame_game_action_UnitOrderMove implements mygame_game_action_IAction{
 		}
 		$oPlatoon = $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
 		if($oPlatoon !== null) {
-			$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"))->goal_set($this->_oDestination);
+			if($this->_bStack) {
+				$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"))->waypoint_add($this->_oDestination, $this->_fAngle);
+			} else {
+				$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon"))->waypoint_set($this->_oDestination, $this->_fAngle);
+			}
 			return;
 		}
-		$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance"))->goal_set($this->_oDestination);
+		if($this->_bStack) {
+			$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance"))->waypoint_add($this->_oDestination);
+		} else {
+			$this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance"))->waypoint_set($this->_oDestination);
+		}
 	}
 	public function check($oGame) {
 		if($this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Guidance")) === null && $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Platoon")) === null) {
-			return false;
-		}
-		if(Std::is($this->_oUnit, _hx_qtype("mygame.game.entity.SubUnit"))) {
 			return false;
 		}
 		return true;

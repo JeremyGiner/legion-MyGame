@@ -8,7 +8,8 @@ import mygame.game.ability.LoyaltyShifter;
 import mygame.game.MyGame;
 import mygame.game.entity.Unit;
 import mygame.game.query.EntityQuery;
-import mygame.game.query.UnitDist;
+import mygame.game.query.EntityDistance;
+import mygame.game.query.ValidatorEntity;
 
 import collider.CollisionEventPrior in CollisionEvent;
 
@@ -29,8 +30,8 @@ class LoyaltyShiftProcess implements ITrigger {
 	public function new( oGame :MyGame ) {
 		_oGame = oGame;
 		
-		_oQueryLoyaltyShift = new EntityQuery( _oGame, [ 'ability' => LoyaltyShift ] );
-		_oQueryLoyaltyShifter = new EntityQuery( _oGame, [ 'ability' => LoyaltyShifter ] );
+		_oQueryLoyaltyShift = new EntityQuery( _oGame, new ValidatorEntity([ 'ability' => LoyaltyShift ]) );
+		_oQueryLoyaltyShifter = new EntityQuery( _oGame, new ValidatorEntity([ 'ability' => LoyaltyShifter ]) );
 		
 		_oGame.onLoop.attach( this );
 	}
@@ -152,7 +153,7 @@ class LoyaltyShiftProcess implements ITrigger {
 				continue;
 			
 			// Filter unit out of range
-			var fDist = _oGame.singleton_get(UnitDist).data_get([ oLoyaltyShift.unit_get(), cast oUnit ]);
+			var fDist = _oGame.singleton_get(EntityDistance).data_get([ oLoyaltyShift.unit_get(), cast oUnit ]).get();
 			if ( fDist == null )
 				continue;
 			if ( fDist > oLoyaltyShift.radius_get() )

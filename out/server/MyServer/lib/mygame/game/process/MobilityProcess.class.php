@@ -42,21 +42,22 @@ class mygame_game_process_MobilityProcess implements trigger_ITrigger{
 			$oUnit2 = $__hx__it->next();
 			$oUnit2->ability_get(_hx_qtype("mygame.game.ability.Mobility"))->move();
 		}
+		$this->_oGame->singleton_get(_hx_qtype("mygame.game.query.EntityDistance"))->queue_process();
 	}
 	public function trigger($oSource) {
 		if($oSource === $this->_oGame->onLoop) {
 			$this->process();
+			return;
 		}
 		if($oSource === $this->_oGame->onEntityNew) {
-			if(Std::is($oSource->event_get(), _hx_qtype("mygame.game.entity.Unit"))) {
-				$oUnit = $oSource->event_get();
-				if($oUnit->ability_get(_hx_qtype("mygame.game.ability.Mobility")) !== null) {
-					$this->_loUnit->add($oUnit);
-				}
+			$oUnit = $oSource->event_get();
+			if($oUnit->ability_get(_hx_qtype("mygame.game.ability.Mobility")) !== null) {
+				$this->_loUnit->add($oUnit);
 			}
 		}
 		if($oSource === $this->_oGame->onEntityDispose) {
 			$this->_loUnit->remove($oSource->event_get());
+			return;
 		}
 	}
 	public function __call($m, $a) {

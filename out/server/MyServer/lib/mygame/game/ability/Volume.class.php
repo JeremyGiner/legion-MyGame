@@ -62,7 +62,7 @@ class mygame_game_ability_Volume extends mygame_game_ability_UnitAbility {
 		while($__hx__it->hasNext()) {
 			unset($oTile);
 			$oTile = $__hx__it->next();
-			if($this->unit_get()->ability_get(_hx_qtype("mygame.game.ability.PositionPlan"))->check($oTile)) {
+			if($this->unit_get()->ability_get(_hx_qtype("mygame.game.ability.PositionPlan"))->validate($oTile)) {
 				continue;
 			}
 			$oTileGeometry = mygame_game_tile_Tile::tileGeometry_get($oTile);

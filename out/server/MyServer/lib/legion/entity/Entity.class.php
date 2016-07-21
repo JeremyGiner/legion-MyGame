@@ -3,9 +3,10 @@
 class legion_entity_Entity {
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
+		$this->_moAbility = new haxe_ds_StringMap();
+		$this->_lBehavour = new HList();
 		$this->_iIdentity = null;
 		$this->_oGame = $oGame;
-		$this->_moAbility = new haxe_ds_StringMap();
 		$this->onAbilityAdd = new trigger_EventDispatcher2();
 		$this->onAbilityRemove = new trigger_EventDispatcher2();
 		$this->onDispose = new trigger_EventDispatcher2();
@@ -13,6 +14,7 @@ class legion_entity_Entity {
 	public $_iIdentity;
 	public $_oGame;
 	public $_moAbility;
+	public $_lBehavour;
 	public $onAbilityAdd;
 	public $onAbilityRemove;
 	public $onDispose;
@@ -25,17 +27,23 @@ class legion_entity_Entity {
 	public function identity_set($i) {
 		$this->_iIdentity = $i;
 	}
-	public function key_get() {
-		return $this->_iIdentity;
-	}
 	public function game_get() {
 		return $this->_oGame;
 	}
 	public function ability_get($oClass) {
+		if($this->_moAbility === null) {
+			throw new HException("sdqsdqs");
+		}
 		return $this->_moAbility->get(Type::getClassName($oClass));
 	}
 	public function abilityMap_get() {
 		return $this->_moAbility;
+	}
+	public function behaviourList_get() {
+		return $this->_lBehavour;
+	}
+	public function behaviour_add($oBeha) {
+		$this->_lBehavour->push($oBeha);
 	}
 	public function ability_add($oAbility) {
 		$this->_ability_add($oAbility);
@@ -46,8 +54,9 @@ class legion_entity_Entity {
 		if(!$this->_moAbility->exists($sClassName)) {
 			return;
 		}
+		$oAbility = $this->_moAbility->get($sClassName);
 		$this->_moAbility->remove($sClassName);
-		$this->onAbilityRemove->dispatch(_hx_anonymous(array("ability" => $this->_moAbility->get($sClassName), "entity" => $this)));
+		$this->onAbilityRemove->dispatch(_hx_anonymous(array("ability" => $oAbility, "entity" => $this)));
 	}
 	public function _ability_add($oAbility) {
 		$this->_moAbility->set(Type::getClassName(Type::getClass($oAbility)), $oAbility);
@@ -61,21 +70,6 @@ class legion_entity_Entity {
 			return $this->__toString();
 		else
 			throw new HException('Unable to call <'.$m.'>');
-	}
-	static function get_byKey($oGame, $iKey) {
-		{
-			$_g = 0;
-			$_g1 = $oGame->entity_get_all();
-			while($_g < $_g1->length) {
-				$oEntity = $_g1[$_g];
-				++$_g;
-				if($oEntity->key_get() === $iKey) {
-					return $oEntity;
-				}
-				unset($oEntity);
-			}
-		}
-		return null;
 	}
 	function __toString() { return 'legion.entity.Entity'; }
 }

@@ -17,6 +17,10 @@ class Process {
 	
 	
 	public function process() {
-		
+		throw('abstrac : override required');
+	}
+	
+	public function name_get() {
+		return Type.getClassName( Type.getClass( this ) );
 	}
 }

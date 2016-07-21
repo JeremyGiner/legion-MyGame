@@ -1,5 +1,6 @@
 package mygame.game.misc.weapon;
 
+import legion.entity.Entity;
 import mygame.game.ability.Weapon;
 import mygame.game.ability.Health;
 import mygame.game.entity.Unit;
@@ -28,20 +29,8 @@ class WeaponTypeSoldier extends WeaponType {
 //______________________________________________________________________________
 //	Utils
 
-	override function target_check( oWeapon :Weapon, oTarget :Unit ) :Bool {
-		
-		// Not null
-		if( oTarget == null ) return false;
-		
-		// Not self
-		if( oTarget == oWeapon.unit_get() ) return false;
-		
-		// Not dead
-		if( oTarget.game_get() == null ) return false;
-		
-		// Check if owned by opponent
-		//trace( ' '+_oUnit.owner_get().alliance_get( oTarget.owner_get() ) );
-		if( oWeapon.unit_get().owner_get().alliance_get( oTarget.owner_get() ) == 'ally' )
+	override function target_check( oWeapon :Weapon, oTarget :Entity ) :Bool {
+		if ( super.target_check( oWeapon, oTarget ) == false )
 			return false;
 		
 		//Health related
@@ -51,9 +40,6 @@ class WeaponTypeSoldier extends WeaponType {
 			
 			// Cannot target unit WITH armor
 			if( oHealth.armored_check() ) return false;
-		
-		// Check if in range
-		if( !_inRange_check( oWeapon, oTarget ) ) return false;
 		
 		return true;
 	}

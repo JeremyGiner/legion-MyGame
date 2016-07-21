@@ -1,11 +1,13 @@
 package mygame.client.view;
 
-
 import js.three.*;
+import js.three.Texture;
 import js.three.Three;
 import js.Browser;
 import haxe.ds.IntMap;
 import haxe.ds.StringMap;
+import mygame.client.view.html.BlockRoster;
+import mygame.client.view.visual.entity.EntityVisualFactory;
 import mygame.client.view.visual.gui.VictoryGauge;
 import ob3updater.Ob3UpdaterManager;
 import ob3updater.Transistion;
@@ -41,6 +43,8 @@ class GameView implements ITrigger {
 	var _oModel :Model;
 	var _oGame :Game;
 	var _oGUI :GUI;
+	
+	var _oGameMenu :GameMenu;
 
 	//___ ThreeJS
 	
@@ -52,8 +56,9 @@ class GameView implements ITrigger {
 	
 	var _oRenderer :WebGLRenderer;
 	
+	var _mTexture :StringMap<Texture>;
 	var _moGeometry :StringMap<Geometry>;
-	var _aoMaterial :StringMap<Material>;
+	var _mMaterial :StringMap<Material>;
 	
 	//var _moDisplay :IntMap<Class<Dynamic>>;
 	var _moVisualEntity :IntMap<IVisual>;
@@ -61,13 +66,13 @@ class GameView implements ITrigger {
 	
 	var _oOb3UpdaterManager :Ob3UpdaterManager;
 	
+	
+	var _oEntityVisualFactory :EntityVisualFactory;
+	
+	
 	//_____ UserInterface
 	var _aPlayerColor :Array<Color>;
 	
-	var _oMenuUnitSelection :MenuUnitSelectionView;
-	var _oMenuCredit :MenuCredit;
-	
-
 	//_____Temp
 	
 	var _oTextureLoader :TextureLoader;
@@ -75,8 +80,10 @@ class GameView implements ITrigger {
 	//____ My
 	
 	var _iLoadProgress :Int = 0;
+
+	public var oArrowDirection :Mesh;
 	
-	public var onFrame :EventDispatcher;
+	public var onFrame :EventDispatcher2<GameView>;
 	
 	static public var WORLDMAP_MESHSIZE :Float = 10;	//TODO : remove
 	
@@ -84,7 +91,10 @@ class GameView implements ITrigger {
 //______________________________________________________________________________
 // Constructor
 
-	public function new( oModel :Model ){
+	public function new( oModel :Model ) {
+	
+		_oEntityVisualFactory = new EntityVisualFactory( this );
+		
 		//TODO : check !=null
 		_oModel = oModel;
 		_oGame = oModel.game_get();
@@ -92,7 +102,7 @@ class GameView implements ITrigger {
 		
 		//TOOD : check game and gui != null
 		
-		onFrame = new EventDispatcher();
+		onFrame = new EventDispatcher2<GameView>();
 		
 		_oOb3UpdaterManager = new Ob3UpdaterManager();
 		
@@ -101,7 +111,7 @@ class GameView implements ITrigger {
 		// Init array
 		
 		_moGeometry = new StringMap<Geometry>();
-		_aoMaterial = new StringMap<Material>();
+		_mMaterial = new StringMap<Material>();
 		
 		_aUnitVisual = new Array<UnitVisual<Dynamic>>();
 		
@@ -235,26 +245,19 @@ class GameView implements ITrigger {
 	//_____________________________
 	//	Res laod
 	
-		_geometry_load();
-		_material_load();
+		_textureFile_load_all();
+		_geometryFile_load_all();
+		_materialFile_load_all();
 		
 		
 		//GUIVisual
 		//new GUIVisual( this, _oGUI);
 		
-	// UserInterface
-	/*
-		_oMenuUnitSelection = new MenuUnitSelectionView( 
-			_oGUI.unitSelection_get(), 
-			cast js.Browser.document.getElementById('UnitSelection')
-		);
-		_oMenuCredit = new MenuCredit( 
-			_oModel, 
-			cast js.Browser.document.getElementById('Credit')
-		);*/
-		
-		
-		new GameMenu( _oModel );
+	//_____________________________
+	// Sub-component
+	
+		_oGameMenu = new GameMenu( _oModel );
+		new HitVisual( this );
 		
 	}	
 
@@ -263,14 +266,19 @@ class GameView implements ITrigger {
 	/**
 	 * Initialise
 	 */
-	public function update(){
+	public function init(){
 		
 		// Check if loading is complete
 		if( _iLoadProgress > 0 ){
 			trace('[ERROR] GameView : update : not done loading yet');
 			return;
 		}
-				
+		
+		_texture_init();
+		_material_init();
+		_geometry_init();
+		
+		
 		// TODO : move that to entityvisual
 		//Draw entities
 		for( oEntity in _oGame.entity_get_all() ){
@@ -282,6 +290,11 @@ class GameView implements ITrigger {
 		new VictoryGauge( this, _oModel );
 		
 		new UnitSelectionPreview( this, _oModel );
+		
+		oArrowDirection = new Mesh( geometry_get('gui_arrow_direction'), material_get('wireframe') );
+		oArrowDirection.visible = false;
+		oArrowDirection.scale.set( 0.2, 0.5, 0.5);
+		scene_get().add( oArrowDirection );
 	}
 	
 	public function entityVisual_add( oEntity :Entity ) :Void {
@@ -291,10 +304,11 @@ class GameView implements ITrigger {
 	}
 	
 	function _entityVisual_create( oEntity :Entity ) :IVisual {
-		// TODO: move to EntityVisualResolver
-		if( Std.is( oEntity, WorldMap ) )
-			return new MapVisual( this, cast oEntity );
 		
+		
+		var oVisual = _oEntityVisualFactory.create( oEntity );
+		if ( oVisual != null )
+			return oVisual;
 
 		if( Std.is( oEntity, Unit ) ) {
 			var oUnit :Unit = cast oEntity;
@@ -310,16 +324,14 @@ class GameView implements ITrigger {
 				oVisual = new CopterVisual( this, cast oEntity );
 			
 			if( Std.is( oEntity, Bazoo ) )
-				oVisual = new BazooVisual( this, cast oEntity );
+				//oVisual = new BazooVisual( this, cast oEntity );
+				oVisual = new SoldierVisual( this, cast oEntity );
 			
 			if( Std.is( oEntity, Tank ) )
 				oVisual = new TankVisual( this, cast oEntity );
 			
 			if( Std.is( oEntity, Soldier ) )
 				oVisual = new SoldierVisual( this, cast oEntity );
-			
-			if( Std.is( oEntity, PlatoonUnit ) )
-				oVisual = new PlatoonVisual( this, cast oEntity );
 			
 			if( Std.is( oEntity, SubUnit ) )
 				oVisual = new SoldierVisual( this, cast oEntity );
@@ -337,33 +349,27 @@ class GameView implements ITrigger {
 		return null;
 	}
 	
-	public function asset_load( sURI :String, sKey :String){
+	public function JSONgeometry_load( sURI :String, sKey :String){
 		_iLoadProgress++;
 	
 		var loader = new js.three.JSONLoader();
 		loader.load(
 			sURI, 
 			function( oGeometry, oMaterials, oDisplayer ) {
-				this._iLoadProgress--;
+				
 				oDisplayer.geometry_add( oGeometry, sKey );
 				
-				if( _iLoadProgress == 0 ) 
-					init();
+				fileLoadEnd( oGeometry );
+				
 			}.bind(_,_,this)
 		);
 	}
 	
-	public function material_load( sURI :String, sPosition :String ){
-		var oTextureTmp = new TextureLoader().load( sURI );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		//oTextureTmp.minFilter = TextureFilter.NearestFilter;
+	public function fileLoadEnd( oSubject :Dynamic ) {
+		_iLoadProgress--;
 		
-		_aoMaterial.set( sPosition, new MeshLambertMaterial({map : oTextureTmp}) );
-	}
-	
-	function init(){
-		update();
+		if ( _iLoadProgress == 0 )
+			init();
 	}
 	
 //______________________________________________________________________________
@@ -379,19 +385,25 @@ class GameView implements ITrigger {
 		
 	public function renderer_get(){return _oRenderer;}
 	
+	public function texture_get( sIndex :String ):Texture { 
+		if ( !_mTexture.exists( sIndex ) )
+			throw('[WARNING]:trying to use unloaded texture:' + sIndex);
+			
+		return _mTexture.get( sIndex ); 
+	}
 	public function geometry_get( sIndex :String ):Geometry { 
 		if ( !_moGeometry.exists( sIndex ) )
-			throw('[WARNING]:trying to use unloaded ressource:'+sIndex);
+			throw('[WARNING]:trying to use unloaded geometry:'+sIndex);
 		return _moGeometry.get( sIndex ); 
 	}
-	//public function material_get( sIndex :String ):Material{ return _aoMaterial.get( sIndex ); }
+	//public function material_get( sIndex :String ):Material{ return _mMaterial.get( sIndex ); }
 	public function material_get( sIndex :String ):Material { 
-		//untyped _aoMaterial.get( sIndex ).wireframe = true;
-		if ( _aoMaterial.get( sIndex ) == null ) 
+		//untyped _mMaterial.get( sIndex ).wireframe = true;
+		if ( _mMaterial.get( sIndex ) == null ) 
 			return new MeshLambertMaterial({/*shading: Shading.FlatShading*/});	//TEST
-		if ( _aoMaterial.get( sIndex ) == null ) 
+		if ( _mMaterial.get( sIndex ) == null ) 
 			throw('!');
-		return _aoMaterial.get( sIndex ); 
+		return _mMaterial.get( sIndex ); 
 	}
 	
 	public function entityVisual_get_byEntity( oEntity :Entity ){
@@ -408,6 +420,10 @@ class GameView implements ITrigger {
 		return _oOb3UpdaterManager;
 	}
 	
+	public function gameMenu_get() {
+		return _oGameMenu;
+	}
+	
 //______________________________________________________________________________
 //	Modifier
 
@@ -416,7 +432,7 @@ class GameView implements ITrigger {
 	}
 	
 	public function material_add( oMaterial :Material, sKey :String ) {
-		_aoMaterial.set( sKey, oMaterial );
+		_mMaterial.set( sKey, oMaterial );
 	}
 
 //______________________________________________________________________________
@@ -439,7 +455,7 @@ class GameView implements ITrigger {
 		// Player null
 		oMaterialTmp = oMaterial.clone();
 		untyped oMaterialTmp.color = _aPlayerColor[ 0 ];
-		_aoMaterial.set(
+		_mMaterial.set(
 			sLabel+'_*', 
 			oMaterialTmp
 		);
@@ -448,7 +464,7 @@ class GameView implements ITrigger {
 		for( i in 1...3 ) {
 			oMaterialTmp = oMaterial.clone();
 			untyped oMaterialTmp.color = _aPlayerColor[ i ];
-			_aoMaterial.set(
+			_mMaterial.set(
 				sLabel+'_'+i, 
 				oMaterialTmp
 			);
@@ -470,238 +486,192 @@ class GameView implements ITrigger {
 	}
 
 //______________________________________________________________________________
+//	Texture loader
 //	TODO: move into file or something
 
-	function _geometry_load() {
-		//_____________________________
-		//	Loading Geometry
+	function _textureFile_load_all() {
 		
-		asset_load( "res/gui/loyalty_gauge.js", 'gui_loyalty');
+		_mTexture = new StringMap<Texture>();
 		
-		asset_load( "res/worldmap/tile_mountain.js", 'mountain');
-		asset_load( "res/worldmap/tile_forest.js", 'forest');
-		/*asset_load( "res/worldmap/tile.js", 'tile');*/
+		_textureFile_load( 'res/texture/tree.png', 'tree' );
+		_textureFile_load( 'res/texture/worldmap.png', 'worldmap_atlas' );
+		_textureFile_load( 'res/texture/soldier.png', 'soldier' );
+		_textureFile_load( 'res/texture/helicopter.png', 'copter' );
+		_textureFile_load( 'res/tank_bottom.png', 'tank_bottom' );
+		_textureFile_load( 'res/building/city.png', 'city' );
+		_textureFile_load( 'res/building/factory.png', 'factory' );
+		_textureFile_load( 'res/texture/bubbleshield.png', 'bubbleshield' );
+		_textureFile_load( 'res/texture/explosion_1.png', 'explosion' );
+		
+		//TODO: why not part of the tileset?
+		_textureFile_load( 'res/texture/tile_grass.png', 'tile_grass' );
+	}
+	
+	function _textureFile_load( sFileName :String, sKey :String ) {
+		
+		_iLoadProgress++;
+		var oTexture = _oTextureLoader.load( sFileName, function( oTexture :Texture ) {			
+			fileLoadEnd( oTexture );
+		});
+		
+		oTexture.magFilter = TextureFilter.NearestFilter;
+		oTexture.minFilter = TextureFilter.NearestFilter;
+		oTexture.needsUpdate = true;
+		
+		_mTexture.set( sKey, oTexture );
+		
+	}
+	
+//_____________________________________
+	
+	function _texture_init() {
+		_mTexture.set( 'tile_sea', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 256, 256, 0, 3 ) );
+		_mTexture.set( 'tile_slope', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 256, 256, 2, 1 ) );
+		
+		// Road
+		_mTexture.set( 'tile_road_cross', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 5, 4 ) );
+		
+		_mTexture.set( 'tile_road_WE', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 4, 4 ) );
+		_mTexture.set( 'tile_road_NS', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 4, 5 ) );
+		
+		_mTexture.set( 'tile_road_NE', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 6, 6 ) );
+		_mTexture.set( 'tile_road_SE', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 6, 7 ) );
+		_mTexture.set( 'tile_road_SW', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 7, 7 ) );
+		_mTexture.set( 'tile_road_NW', _texture_get_fromAtlas( _mTexture.get('worldmap_atlas'), 128, 128, 7, 6 ) );
+	}
+	/**
+	 * 
+	 * @param	oAtlas
+	 * @param	iSizeX	cell size in pixel
+	 * @param	iSizeY	cell size in pixel
+	 * @param	iOffsetX	cell index on the grid (  ( 0, 0 ) is bottom left )
+	 * @param	iOffsetY	cell index on the grid (  ( 0, 0 ) is bottom left )
+	 */
+	function _texture_get_fromAtlas( 
+		oAtlas :Texture, 
+		iSizeX :Int, iSizeY :Int, 
+		iOffsetX :Int, iOffsetY :Int 
+	) {
+		var oTexture = oAtlas.clone(); // reload the file instead of clone() to solve bug where the clone have is black image
+		oTexture.repeat.set( iSizeX / oAtlas.image.width, iSizeY / oAtlas.image.height );
+		oTexture.offset.set( oTexture.repeat.x * iOffsetX, oTexture.repeat.x * iOffsetY );
+		oTexture.needsUpdate = true;
+		return oTexture;
+	}
+//______________________________________________________________________________
+//	Geometry loader
+//	TODO: move into file or something
+
+	function _geometryFile_load_all() {
+		JSONgeometry_load( "res/gui/loyalty_gauge.js", 'gui_loyalty');
+		JSONgeometry_load( "res/gui/direction.js", 'gui_arrow_direction');
+		
+		JSONgeometry_load( "res/worldmap/tile_mountain.js", 'mountain');
+		JSONgeometry_load( "res/worldmap/tile_forest.js", 'forest');
+		/*JSONgeometry_load( "res/worldmap/tile.js", 'tile');*/
+		
+		JSONgeometry_load( 'res/worldmap/wall.js', 'wall');
+		JSONgeometry_load( 'res/worldmap/wall_corner.js', 'wall_corner');
+		
+		JSONgeometry_load( "res/unit/tank_turret.js", 'tank_turret');
+		JSONgeometry_load( "res/unit/tank_bottom.js", 'tank_body');
+		JSONgeometry_load( "res/unit/helicopter.js", 'copter');
+		JSONgeometry_load( "res/building/city.js", 'city');
+		JSONgeometry_load( "res/building/factory.js", 'factory');
+		JSONgeometry_load( "res/unit/soldier.js", 'soldier');
+		JSONgeometry_load( "res/unit/bazooka.js", 'bazoo');
+		JSONgeometry_load( 'res/gui/gauge.js', 'hud_gauge');
+	}
+
+	function _geometry_init() {
+		
+		//geometry_add( new PlaneGeometry( 2, 2 ), 'hud_gauge' );
 		geometry_add( new PlaneGeometry( 1, 1 ), 'tile' );
-		asset_load( 'res/worldmap/wall.js', 'wall');
-		asset_load( 'res/worldmap/wall_corner.js', 'wall_corner');
 		
-		asset_load( "res/unit/tank_turret.js", 'tank_turret');
-		asset_load( "res/unit/tank_bottom.js", 'tank_body');
-		asset_load( "res/unit/helicopter.js", 'copter');
-		asset_load( "res/building/city.js", 'city');
-		asset_load( "res/building/factory.js", 'factory');
-		asset_load( "res/unit/soldier.js", 'soldier');
-		asset_load( "res/unit/bazooka.js", 'bazoo');
-		
-		geometry_add( new PlaneGeometry( 2, 2 ), 'hud_gauge' );
 		geometry_add( new PlaneGeometry( 2, 2, 2, 2 ), 'gui_guidancePreview' );
 		
-		geometry_add( cast new RingGeometry(1,1.1,32,3), 'gui_selection_circle' );
+		geometry_add( cast new RingGeometry(1,1.1,6,1), 'gui_selection_circle' );
 	}
 	
 //______________________________________________________________________________
-	function _material_load() {
+	function _materialFile_load_all() {
+		
+	}
+	function _material_init() {
 		
 	//_____________________________
 	//	Loading Material
 		var o = { color:0x000000, depthTest:false, depthWrite:false, shading: Shading.FlatShading };
-		_aoMaterial.set('hud_gauge_bg', new MeshBasicMaterial(o) );
+		_mMaterial.set('hud_gauge_bg', new MeshBasicMaterial(o) );
 		o.color = 0x11ff44;
-		_aoMaterial.set('hud_gauge', new MeshBasicMaterial(o) );
+		_mMaterial.set('hud_gauge', new MeshBasicMaterial(o) );
 		o.color = 0xff4411;
-		_aoMaterial.set('hud_gauge_red', new MeshBasicMaterial(o) );
+		_mMaterial.set('hud_gauge_red', new MeshBasicMaterial(o) );
 		
+		_mMaterial.set('wireframe', new MeshBasicMaterial({color:0x00FFFF, wireframe: true, shading: Shading.NoShading}) );
+		_mMaterial.set('wireframe_white', new MeshBasicMaterial({color:0xFFFFFF, wireframe: true, shading: Shading.NoShading}) );
+		_mMaterial.set('wireframe_grey', new MeshBasicMaterial({color:0xFFAAAA, wireframe: true, shading: Shading.NoShading}) );
+		_mMaterial.set('wireframe_red', new MeshBasicMaterial({color:0xFF0000, wireframe: true, shading: Shading.NoShading}) );
 		
+		// For montain
+		_mMaterial.set('worldmap', new MeshBasicMaterial({map : texture_get('worldmap_atlas'), shading: Shading.FlatShading}) );
 		
+		var a = [
+			'tile_slope',
+			'tile_grass',
+			'tile_sea',
+			
+			// Road
+			'tile_road_cross', 
+			
+			'tile_road_WE',
+			'tile_road_NS',
+			
+			'tile_road_NE',
+			'tile_road_SE',
+			'tile_road_SW',
+			'tile_road_NW'
+		];
+		for( s in a )
+			_mMaterial.set(s, new MeshLambertMaterial({map : texture_get(s) }) );
 		
-		
-		_aoMaterial.set('wireframe', new MeshBasicMaterial({color:0x00FFFF, wireframe: true, shading: Shading.NoShading}) );
-		_aoMaterial.set('wireframe_white', new MeshBasicMaterial({color:0xFFFFFF, wireframe: true, shading: Shading.NoShading}) );
-		_aoMaterial.set('wireframe_grey', new MeshBasicMaterial({color:0xFFAAAA, wireframe: true, shading: Shading.NoShading}) );
-		_aoMaterial.set('wireframe_red', new MeshBasicMaterial({color:0xFF0000, wireframe: true, shading: Shading.NoShading}) );
-		
-		material_load( 'res/building/factory.png', 'factory' );
-		
-	// Grass
-		//TODO: why not part of the tileset?
-		var oTextureTmp = _oTextureLoader.load( 'res/texture/tile_grass.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set('tile_grass', new MeshLambertMaterial( { map : oTextureTmp } ) );
-		
-		
-		
-	// Main worldmap
-		trace( 'Loading wolad map' );
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
-			'worldmap', 
-			new MeshBasicMaterial({map : oTextureTmp, shading: Shading.FlatShading})
-		);
-		/*
-		while( oTextureTmp.image == null ) {}
-			trace( 'Loading' );*/
-	// Sea
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		oTextureTmp.repeat.set( 0.25, 0.25 );
-		oTextureTmp.offset.set( 0, 0.75 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_sea', new MeshLambertMaterial({map : oTextureTmp}) );
-		
-	// Slope
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.25, 0.25 );
-		oTextureTmp.offset.set( 0.5, 0.25 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_slope', new MeshLambertMaterial({map : oTextureTmp}) );
-		
-	// Road
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.625, 0.5 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_cross', new MeshLambertMaterial({map : oTextureTmp}) ); // carrefour
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.5, 0.5 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_WE', new MeshLambertMaterial({map : oTextureTmp}) ); // WE
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.5, 0.625 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_NS', new MeshLambertMaterial({map : oTextureTmp}) ); // NS
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.75, 0.75 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_NE', new MeshLambertMaterial({map : oTextureTmp}) ); // turn NE
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.75, 0.875 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_SE', new MeshLambertMaterial({map : oTextureTmp}) ); // turn SE
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.875, 0.875 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_SW', new MeshLambertMaterial({map : oTextureTmp}) ); // turn SW
-		
-		oTextureTmp = _oTextureLoader.load( 'res/texture/worldmap.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		oTextureTmp.repeat.set( 0.125, 0.125 );
-		oTextureTmp.offset.set( 0.875, 0.75 );
-		oTextureTmp.needsUpdate = true;
-		
-		_aoMaterial.set('tile_road_NW', new MeshLambertMaterial({map : oTextureTmp}) ); // turn NW
-		
-		//_aoMaterial.set(1] = new ToonMaterial({map : oTextureTmp});
-		//trace( _aoMaterial.set(0] );
-		//trace( _aoMaterial.set(1] );
-		//_oTestMaterial = new ToonMaterial({map : oTextureTmp});
-	
-	// Forest secondary texture
-		oTextureTmp = _oTextureLoader.load( 'res/texture/tree.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'tile_forest', 
 			new MeshFaceMaterial( [
 				material_get('tile_grass'),
-				new MeshBasicMaterial( { map : oTextureTmp, shading: Shading.FlatShading } )
+				new MeshBasicMaterial( { map : texture_get('tree'), shading: Shading.FlatShading } )
 			])
 		);
 	
-	//___
-		var oTextureTmp = _oTextureLoader.load( 'res/soldier.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'soldier', 
-			new MeshLambertMaterial({map : oTextureTmp})
+			new SpriteMaterial({map : texture_get('soldier'),color:0xFF0000})
 		);
 	//___
-		var oTextureTmp = _oTextureLoader.load( 'res/texture/helicopter.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'copter', 
-			new MeshLambertMaterial({map : oTextureTmp})
+			new MeshLambertMaterial({map : texture_get('copter')})
 		);
 	//___
-		var oTextureTmp = _oTextureLoader.load( 'res/tank_bottom.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'tank', 
-			new MeshLambertMaterial({map : oTextureTmp})
+			new MeshLambertMaterial({map : texture_get('tank_bottom')})
 		);
 		
-		var oTextureTmp = _oTextureLoader.load( 'res/building/city.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'city', 
-			new MeshLambertMaterial({map : oTextureTmp})
+			new MeshLambertMaterial({map : texture_get('city')})
 		);
 		
-		var oTextureTmp = _oTextureLoader.load( 'res/building/factory.png' );
-		oTextureTmp.magFilter = TextureFilter.NearestFilter;
-		//oTextureTmp.minFilter = Three.LinearMipMapLinearFilter;
-		oTextureTmp.minFilter = TextureFilter.NearestFilter;
-		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'factory', 
-			new MeshLambertMaterial({map : oTextureTmp, transparent:true, alphaTest:0.1})
+			new MeshLambertMaterial({map : texture_get('factory'), transparent:true, alphaTest:0.1})
 		);
+		
+		_mMaterial.set('bubbleshield', new SpriteMaterial( { map: texture_get('bubbleshield'), color: 0xffffff, depthTest: false}) );
 	//___
 		
-		_aoMaterial.set(
+		_mMaterial.set(
 			'wireframe', 
 			new MeshBasicMaterial({ 
 				wireframe: true, 
@@ -710,19 +680,33 @@ class GameView implements ITrigger {
 				shading: Shading.NoShading
 			}) 
 		);
-		_aoMaterial.set(
+		_mMaterial.set(
 			'gui_guidancePreview', 
 			new MeshBasicMaterial(
 				{ color: 0x00FFFF, wireframe: true, shading: Shading.NoShading }
 			)
 		);
-		_aoMaterial.set('gui_guidancePreviewLine', new LineBasicMaterial( { color: 0x00FFFF } ) );
+		_mMaterial.set('gui_guidancePreviewLine', new LineBasicMaterial( { color: 0x00FFFF } ) );
 		
 	// Player material
 	
 		_aPlayerColor[0] = new Color( 'white' );	// Color of null
 		_aPlayerColor[1] = new Color( 'blue' );	// Color of player.id == 0
 		_aPlayerColor[2] = new Color( 'orange' );
+		
+		_materialPlayer_gen( 
+			'soldier',
+			new SpriteMaterial({map : texture_get('soldier'),color:0xFF0000})
+		);
+		_mMaterial.set(
+			'ghost',
+			new SpriteMaterial({map : texture_get('soldier'),depthTest: false})
+		);
+		
+		_mMaterial.set(
+			'explosion', 
+			new SpriteMaterial({map : texture_get('explosion'),depthTest: false})
+		);
 		
 		_materialPlayer_gen( 
 			'player', 

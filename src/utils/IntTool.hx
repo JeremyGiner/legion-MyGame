@@ -20,4 +20,10 @@ class IntTool {
 			return b;
 		return a;
 	}
+	static public function abs( a :Int ) {
+		//return ( a >  b )? a : b;
+		if ( a <  0 )
+			return -a;
+		return a;
+	}
 }

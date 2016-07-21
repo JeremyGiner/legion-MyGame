@@ -8,6 +8,7 @@ import mygame.game.entity.Unit;
 import mygame.game.entity.Player;
 import mygame.game.ability.LoyaltyShift;
 import mygame.game.query.EntityQuery;
+import mygame.game.query.ValidatorEntity;
 import utils.MapTool;
 
 import trigger.*;
@@ -40,7 +41,7 @@ class VictoryCondition implements ITrigger {
 		for ( oPlayer in _oGame.player_get_all() ) {
 			_mQueryCity.set( 
 				oPlayer.playerId_get(),
-				new EntityQuery( _oGame, [ 'ability' => LoyaltyShift, 'player' => oPlayer.playerId_get() ] )
+				new EntityQuery( _oGame, new ValidatorEntity( [ 'ability' => LoyaltyShift, 'player' => oPlayer ] ) )
 			);
 		}
 		

@@ -3,6 +3,9 @@ package mygame.game.process;
 import legion.entity.Entity;
 import mygame.game.MyGame;
 import mygame.game.entity.Unit;
+import mygame.game.query.EntityDistance;
+import mygame.game.query.EntityDistanceTile;
+import mygame.game.query.EntityDistance;
 
 //import mygame.game.collision.UnitTile in CLayerUnitTile;
 import collider.CollisionEventPrior in CollisionEvent;
@@ -73,6 +76,9 @@ class MobilityProcess implements ITrigger {
 			//_oGame.onUnitMove.dispatch( oUnit );
 		}
 		
+		_oGame.singleton_get(EntityDistance).queue_process();
+		//_oGame.singleton_get(EntityDistance).queue_process();
+		//_oGame.singleton_get(EntityDistanceTile).queue_process();
 	} 
 	
 //______________________________________________________________________________
@@ -81,20 +87,17 @@ class MobilityProcess implements ITrigger {
 	public function trigger( oSource :IEventDispatcher ) :Void { 
 		
 		// on loop
-		if( oSource == _oGame.onLoop )
+		if( oSource == _oGame.onLoop ) {
 			process();
+			return;
+		}
 		
 		// on new mobile entity
 		if( oSource == _oGame.onEntityNew ) {
 			
-			if( Std.is(oSource.event_get(),Unit) ) {
-				var oUnit :Unit = cast oSource.event_get();
-				if( oUnit.ability_get( Mobility ) != null ) {
-					_loUnit.add( oUnit );
-				}/*
-				if( oUnit.ability_get( Volume ) != null ) {
-					_oCLayerUnitTile.add( oUnit );
-				}*/
+			var oUnit :Unit = cast oSource.event_get();
+			if( oUnit.ability_get( Mobility ) != null ) {
+				_loUnit.add( oUnit );
 			}
 		}
 		
@@ -102,6 +105,7 @@ class MobilityProcess implements ITrigger {
 		if( oSource == _oGame.onEntityDispose ) {
 			_loUnit.remove( cast oSource.event_get() );
 			//_oCLayerUnitTile.remove( cast oSource.event_get() );
+			return;
 		}
 	
 	}

@@ -5,5 +5,5 @@ package utils;
  */
 
 interface IValidator<C> {
-	public function check( o :C ) :Bool;
+	public function validate( o :C ) :Bool;
 }

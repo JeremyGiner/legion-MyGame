@@ -12,7 +12,7 @@ class mygame_game_action_UnitDirectControl implements mygame_game_action_IAction
 		return $this->_oDirection;
 	}
 	public function exec($oGame) {
-		$oUnit = $oGame->hero_get($this->_oPlayer);
+		$oUnit = $oGame->entity_get(11);
 		$oUnit->ability_get(_hx_qtype("mygame.game.ability.Mobility"))->force_set("Direct", $this->_oDirection->x, $this->_oDirection->y, true);
 		$oUnit->ability_remove(_hx_qtype("mygame.game.ability.Guidance"));
 	}

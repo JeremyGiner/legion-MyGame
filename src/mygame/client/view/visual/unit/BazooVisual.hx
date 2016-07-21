@@ -2,13 +2,15 @@ package mygame.client.view.visual.unit;
 
 import js.three.*;
 import mygame.client.view.visual.unit.UnitVisual;
-import mygame.game.entity.Soldier in Unit;
+import mygame.game.entity.Bazoo;
+import mygame.game.entity.Bazoo in Unit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
 import mygame.game.ability.Mobility;
 import mygame.game.ability.Volume;
+import mygame.game.ability.Loyalty;
 
-class BazooVisual extends UnitVisual<Unit> {
+class BazooVisual extends SubUnitVisual<Bazoo> {
 	
 	var _oBody :Mesh;
 	
@@ -17,23 +19,19 @@ class BazooVisual extends UnitVisual<Unit> {
 
 	public function new( oDisplayer :GameView, oUnit :Unit ){
 		
-		super( oDisplayer, oUnit );
+		super( oDisplayer, oUnit, 2 );
 	//_____
 
 		_oBody = new Mesh( 
 			oDisplayer.geometry_get( 'bazoo' ), 
 			new MeshFaceMaterial(
 				[
-					oDisplayer.material_get( 'soldier' ),
-					_oGameView.material_get_byPlayer( 'player', unit_get().owner_get() )
+					oDisplayer.material_get( 'wireframe' ),
+					_oGameView.material_get_byPlayer( 'player', owner_get() )
 				]
 			)
 		);
-		var oVolume = oUnit.ability_get(Volume);
-		if( oVolume != null )
-			_oBody.scale.set( oVolume.size_get(), oVolume.size_get(), oVolume.size_get() );
-		else
-			_oBody.scale.set( 0.2, 0.2, 0.2 );
+		_oScene.scale.set( 0.04, 0.04, 0.04 );
 		//_oBody.scale.set( 1, 1, 1 );
 		_oBody.rotation.set( 0, 0, -0.8);
 		_oBody.castShadow = true;
@@ -47,16 +45,15 @@ class BazooVisual extends UnitVisual<Unit> {
 		
 		
 		update();
-
 	}
 	
 //______________________________________________________________________________
 //	Accessor
 
 	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
-	
-	//public function object3d_get() :Object3D { return _oBody; };
+	override public function body_get() {
+		return _oBody;
+	}
 	
 //______________________________________________________________________________
 //	Updater
@@ -72,15 +69,10 @@ class BazooVisual extends UnitVisual<Unit> {
 	}
 //______________________________________________________________________________
 //	Sub-routine
-/*
-	override function _decay_start() {
-		super._decay_start();
-		
-		dispose();
+
+	override function _clickBox_update() {
+		_oClickBox = new Box3();
+		_oClickBox.setFromObject( _oBody );
 	}
-	
-	override function dispose() {
-		_oBody.parent.remove( _oBody ); _oBody = null;
-	}*/
 	
 }

@@ -4,8 +4,8 @@ class mygame_game_process_LoyaltyShiftProcess implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
-		$this->_oQueryLoyaltyShift = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_LoyaltyShiftProcess_0($this, $oGame));
-		$this->_oQueryLoyaltyShifter = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_LoyaltyShiftProcess_1($this, $oGame));
+		$this->_oQueryLoyaltyShift = new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_LoyaltyShiftProcess_0($this, $oGame)), null);
+		$this->_oQueryLoyaltyShifter = new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_LoyaltyShiftProcess_1($this, $oGame)), null);
 		$this->_oGame->onLoop->attach($this);
 	}}
 	public $_oGame;
@@ -90,7 +90,7 @@ class mygame_game_process_LoyaltyShiftProcess implements trigger_ITrigger{
 			if($oPlayer === null) {
 				continue;
 			}
-			$fDist = $this->_oGame->singleton_get(_hx_qtype("mygame.game.query.UnitDist"))->data_get((new _hx_array(array($oLoyaltyShift->unit_get(), $oUnit))));
+			$fDist = $this->_oGame->singleton_get(_hx_qtype("mygame.game.query.EntityDistance"))->data_get((new _hx_array(array($oLoyaltyShift->unit_get(), $oUnit))))->get();
 			if($fDist === null) {
 				continue;
 			}

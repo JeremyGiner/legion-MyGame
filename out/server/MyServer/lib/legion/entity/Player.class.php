@@ -24,9 +24,9 @@ class legion_entity_Player extends legion_entity_Entity {
 	}
 	public function alliance_get($oPlayer) {
 		if($this === $oPlayer) {
-			return "ally";
+			return legion_entity_ALLIANCE::$ally;
 		}
-		return "ennemy";
+		return legion_entity_ALLIANCE::$ennemy;
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

@@ -64,8 +64,9 @@ class Follow implements IOb3Updater {
 			new Quaternion(),
 			new Vector3( 
 				vDelta.x - v.x,
-				Math.max( Math.min( vDelta.y - v.y, 0.01), 0.002 ),
-				1)
+				0.006,//Math.min( Math.max( vDelta.y - v.y, 0.008), 0.008 ),
+				1
+			)
 		);
 		
 		// Update object with updated matrix

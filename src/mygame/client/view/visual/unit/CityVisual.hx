@@ -3,6 +3,7 @@ package mygame.client.view.visual.unit;
 import js.three.*;
 import mygame.client.view.visual.unit.UnitVisual;
 import mygame.game.ability.Loyalty;
+import mygame.game.ability.Position;
 import mygame.game.entity.City in Unit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
@@ -17,13 +18,13 @@ class CityVisual extends UnitVisual<Unit> implements ITrigger {
 
 	public function new( oDisplayer :GameView, oUnit :Unit ){
 		
-		super( oDisplayer, oUnit, 0.5);
+		super( oDisplayer, oUnit, 0.6);
 		
 		//_____
 		var oMaterial = new MeshFaceMaterial(
 			[
 				oDisplayer.material_get( 'city' ),
-				_oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() )
+				_oGameView.material_get_byPlayer( 'player_flat', _oEntity.ability_get(Loyalty).owner_get() )
 			]
 		);
 		_oMesh = new Mesh( 
@@ -37,7 +38,6 @@ class CityVisual extends UnitVisual<Unit> implements ITrigger {
 		//_____
 		
 		update();
-		_position_update();
 		
 		
 		//_____
@@ -47,18 +47,20 @@ class CityVisual extends UnitVisual<Unit> implements ITrigger {
 //______________________________________________________________________________
 //	Accessor
 
-	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
+	public function entity_get() { return _oUnit; }
 	
-	//public function object3d_get() :Object3D { return _oMesh; }
-	
-	
+	override public function body_get() {
+		return _oMesh;
+	}
 	
 //______________________________________________________________________________
 //	Update
 
 	override public function update() {
-		return;
+		super.update();
 	}
 	
+	override function _positionHeight_update( oPosition :Position ) {
+		return;
+	}
 }

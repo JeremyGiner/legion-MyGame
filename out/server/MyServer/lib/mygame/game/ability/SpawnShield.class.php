@@ -27,6 +27,19 @@ class mygame_game_ability_SpawnShield extends mygame_game_ability_UnitAbility {
 		}
 		$oEntity->ability_add(new mygame_game_ability_DivineShield($oEntity, $this));
 	}
+	public function target_check($oEntity) {
+		$oLoyalty = $oEntity->ability_get(_hx_qtype("mygame.game.ability.Loyalty"));
+		if($oLoyalty === null) {
+			return false;
+		}
+		if((is_object($_t = $oLoyalty->owner_get()) && !($_t instanceof Enum) ? $_t !== $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Loyalty"))->owner_get() : $_t != $this->_oUnit->ability_get(_hx_qtype("mygame.game.ability.Loyalty"))->owner_get())) {
+			return false;
+		}
+		if($oEntity->ability_get(_hx_qtype("mygame.game.ability.Health")) === null) {
+			return false;
+		}
+		return true;
+	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))
 			return call_user_func_array($this->$m, $a);

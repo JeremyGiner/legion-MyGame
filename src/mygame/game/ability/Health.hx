@@ -79,7 +79,11 @@ class Health extends UnitAbility {
 	
 //______________________________________________________________________________
 //	
+	//TODO : move to hit process
 	public function damage( fDamage :Float, eDamageType :EDamageType ) {
+		
+		if ( unit_get().ability_get(DivineShield) != null )
+			return;
 		
 		// Cancel bullet damage if armored 
 		if( _bArmored && eDamageType == EDamageType.Bullet )

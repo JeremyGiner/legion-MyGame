@@ -4,10 +4,8 @@ class mygame_game_ability_UnitAbility implements legion_ability_IAbility{
 	public function __construct($oUnit) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oUnit = $oUnit;
-		$this->onDispose = new trigger_eventdispatcher_EventDispatcher();
 	}}
 	public $_oUnit;
-	public $onDispose;
 	public function unit_get() {
 		return $this->_oUnit;
 	}
@@ -15,7 +13,6 @@ class mygame_game_ability_UnitAbility implements legion_ability_IAbility{
 		return Type::getClassName(Type::getClass($this));
 	}
 	public function dispose() {
-		$this->onDispose->dispatch($this);
 		utils_Disposer::dispose($this);
 	}
 	public function __call($m, $a) {

@@ -59,27 +59,27 @@ class UnitDirectControl implements ITrigger {
 		if( oSource == _oKeyboard.onUpdate ) {
 			if( 
 				(
-					_oKeyboard.keyTrigger_get() == _iUp ||
-					_oKeyboard.keyTrigger_get() == _iDown ||
-					_oKeyboard.keyTrigger_get() == _iRight ||
-					_oKeyboard.keyTrigger_get() == _iLeft
+					_oKeyboard.keyTrigger_get() == 'ArrowUp' ||
+					_oKeyboard.keyTrigger_get() == 'ArrowDown' ||
+					_oKeyboard.keyTrigger_get() == 'ArrowRight' ||
+					_oKeyboard.keyTrigger_get() == 'ArrowLeft'
 				)
 			) {
 				
 				// Y axis
-				if( _oKeyboard.keyState_get( _iUp ) == true ) {
+				if( _oKeyboard.keyState_get( 'ArrowUp' ) == true ) {
 					direction_set_Y( 10000 );
 				} else 
-					if( _oKeyboard.keyState_get( _iDown ) == true ) {
+					if( _oKeyboard.keyState_get( 'ArrowDown' ) == true ) {
 						direction_set_Y( -10000 );
 					} else 
 						direction_set_Y( 0 );
 				
 				// X axis
-				if( _oKeyboard.keyState_get( _iRight ) == true ) {
+				if( _oKeyboard.keyState_get( 'ArrowRight' ) == true ) {
 					direction_set_X( 10000 );
 				} else
-					if( _oKeyboard.keyState_get( _iLeft ) == true  ) {
+					if( _oKeyboard.keyState_get( 'ArrowLeft' ) == true  ) {
 						direction_set_X( -10000 );
 					} else
 						direction_set_X( 0 );

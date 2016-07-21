@@ -1,7 +1,9 @@
 package mygame.client.controller.game;
 
 import js.three.Raycaster;
+import mygame.client.view.visual.entity.WorldMapVisual;
 import mygame.client.view.visual.unit.UnitVisual;
+import mygame.game.ability.Platoon;
 import trigger.*;
 
 
@@ -17,7 +19,6 @@ import mygame.game.tile.Tile;
 import mygame.game.entity.Unit;
 import mygame.client.view.GameView;
 import mygame.client.model.Model;
-import mygame.client.view.visual.MapVisual;
 import mygame.client.view.visual.EntityVisual;
 import mygame.client.view.visual.Marker;
 import mygame.client.view.visual.debug.PathfinderVisual;
@@ -81,41 +82,11 @@ class UnitSelection implements ITrigger {
 		_oGameView.scene_get().worldToLocal( oVector );
 		
 		// Get map visual
-		var oMapVisual :MapVisual = cast EntityVisual.get_byEntity( _oGameController.game_get().map_get() );
+		var oMapVisual :WorldMapVisual = cast EntityVisual.get_byEntity( _oGameController.game_get().map_get() );
 		
 		// Get tile
 		return oMapVisual.tile_get_byVector( oVector );
 	}
-	
-	/*
-	static public function unitVisual_get( 
-		x :Int, y :Int, 
-		oGameView :GameView 
-	) :UnitVisual<Dynamic> {
-		
-		// Transform mouse coordonate
-		var oVector = Coordonate.canva_to_eye( 
-			x, y,
-			oGameView.renderer_get() 
-		);
-		
-		// Get raycaster
-		var oRaycaster = new Raycaster();
-		oRaycaster.setFromCamera( oVector, oGameView.camera_get() );
-		
-		// Get first unit visual with a clickbbox that intersect with ray
-		for ( oUnitVisual in oGameView.unitVisual_get_all() ) {
-			var oGeometry = oUnitVisual.clickBox_get();
-			
-			if ( oGeometry == null )
-				continue;
-			
-			var aIntersect = oRaycaster.ray.intersectBox( oGeometry );
-			if ( aIntersect != null )
-				return oUnitVisual;
-		}
-		return null;
-	}*/
 	
 //______________________________________________________________________________
 //	Trigger
@@ -142,16 +113,21 @@ class UnitSelection implements ITrigger {
 			if ( oUnit == null ) 
 				return;
 			
-			// Case subunit
-			if ( Std.is( oUnit, SubUnit ) ) {
+			//
+			var oUnitSelection = _oModel.GUI_get().unitSelection_get();
+			oUnitSelection.remove_all();
+			
+			// Case platoon
+			if ( oUnit.ability_get(Platoon) != null ) {
 				// Select platoon instead
-				oUnit = cast( oUnit, SubUnit ).platoon_get();
+				for ( oUnit in oUnit.ability_get(Platoon).subUnit_get() ) {
+					oUnitSelection.unit_add( oUnit );
+				}
+				return;
 			}
 			
 			// Add unit
-			var oUnitSelection = _oModel.GUI_get().unitSelection_get();
-			oUnitSelection.remove_all();
-			oUnitSelection.unit_add( oUnit );
+			oUnitSelection.unit_add( cast oUnit );
 		}
 	}
 }

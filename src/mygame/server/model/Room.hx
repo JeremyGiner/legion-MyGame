@@ -3,10 +3,10 @@ package mygame.server.model;
 import mygame.game.MyGame;
 import mygame.server.model.Client;
 import haxe.ds.IntMap;
-import trigger.eventdispatcher.EventDispatcher;
 import mygame.connection.message.ResGameStepInput;
 import legion.IAction;
 import mygame.game.process.MobilityProcess;
+import trigger.EventDispatcher2;
 
 
 
@@ -30,7 +30,7 @@ class Room {
 	
 	var _abPause :Array<Bool>;	// indexed by slot id
 	
-	public var onUpdate :EventDispatcher;
+	public var onUpdate :EventDispatcher2<Room>;
 
 //______________________________________________________________________________
 //	Constructor
@@ -45,7 +45,7 @@ class Room {
 			_aoSlot[ i ] = null;
 		_loAction = new List<IAction<MyGame>>();
 		
-		onUpdate = new EventDispatcher();
+		onUpdate = new EventDispatcher2<Room>();
 		
 		_oGame.onLoop.attach( new MobilityProcess( _oGame ) );
 		

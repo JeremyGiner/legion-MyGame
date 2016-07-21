@@ -2,6 +2,7 @@ package mygame.client.controller;
 
 import js.Browser;
 import js.Lib;
+import mygame.ai.Nemesis0;
 import mygame.client.controller.game.GameController;
 import mygame.client.model.RoomInfo;
 import mygame.client.model.UserInfo;
@@ -110,7 +111,13 @@ class Controller implements ITrigger {
 				100	//TODO :put dynamic value, and timeout system
 			) :
 			new GameControllerLocal( 
-				_oModel
+				_oModel,
+				[
+					untyped Browser.document.getElementById('P0_type').value == 'Nemesis0' ?
+						new Nemesis0( _oModel.game_get(), _oModel.game_get().player_get(0) ) : null,
+					untyped Browser.document.getElementById('P1_type').value == 'Nemesis0' ?
+						new Nemesis0( _oModel.game_get(), _oModel.game_get().player_get(1) ) : null
+				]
 			);
 	}
 	
@@ -251,7 +258,7 @@ class Controller implements ITrigger {
 					_oModel.connection_get().send( new ReqGameJoin(iGameId) );
 				default :
 					// Delegate
-					_oGameController.haxeAction( oTarget.dataset.haxeaction );				
+					_oGameController.haxeAction( oTarget );				
 			}
 			return;
 		}
@@ -282,9 +289,6 @@ class Controller implements ITrigger {
 			
 			// Connected
 			if( _oModel.connection_get().open_check() ) {
-			
-				
-				
 				
 				if ( oSource.event_get().target == _oBtShutDown ) {
 					_oModel.connection_get().send( new ReqShutDown() );

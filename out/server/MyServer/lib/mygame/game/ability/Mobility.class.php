@@ -77,6 +77,9 @@ class mygame_game_ability_Mobility extends mygame_game_ability_UnitAbility {
 			$this->_orientation_update($oVectorOrientation);
 		}
 		$this->_collision_process();
+		if($this->_oVelocity->x === 0 && $this->_oVelocity->y === 0) {
+			return;
+		}
 		$this->_position_set($this->_oVelocity->x + $this->_oPosition->x, $this->_oVelocity->y + $this->_oPosition->y);
 	}
 	public function clampAngle($a) {
@@ -176,7 +179,7 @@ class mygame_game_ability_Mobility extends mygame_game_ability_UnitAbility {
 		while($__hx__it->hasNext()) {
 			unset($oTile);
 			$oTile = $__hx__it->next();
-			if(!$this->_oPlan->check($oTile)) {
+			if(!$this->_oPlan->validate($oTile)) {
 				$loTmp->push($oTile);
 			}
 		}

@@ -15,7 +15,6 @@ import mygame.game.tile.Tile;
 import mygame.game.entity.Unit;
 import mygame.client.view.GameView;
 import mygame.client.model.Model;
-import mygame.client.view.visual.MapVisual;
 import mygame.client.view.visual.EntityVisual;
 import mygame.client.view.visual.Marker;
 import mygame.client.view.visual.debug.PathfinderVisual;

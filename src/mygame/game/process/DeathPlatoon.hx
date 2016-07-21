@@ -6,6 +6,7 @@ import mygame.game.ability.Platoon;
 import mygame.game.MyGame;
 import mygame.game.ability.Health;
 import mygame.game.query.EntityQuery;
+import mygame.game.query.ValidatorEntity;
 
 import trigger.*;
 
@@ -20,7 +21,7 @@ class DeathPlatoon implements ITrigger {
 
 	public function new( oGame :MyGame ) {
 		_oGame = oGame;
-		_oQueryPlatoon = new EntityQuery( _oGame, ['ability' => Platoon ] );
+		_oQueryPlatoon = new EntityQuery( _oGame, new ValidatorEntity(['ability' => Platoon ]) );
 		
 		// Trigger
 		_oGame.onLoop.attach( this );	// TODO place after Death process

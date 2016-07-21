@@ -11,32 +11,32 @@ import mygame.game.ability.Volume;
 class SoldierVisual extends SubUnitVisual<SubUnit> {
 	
 	var _oBody :Mesh;
+	var _oSprite :Sprite;
 	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oDisplayer :GameView, oUnit :SubUnit ){
 		
-		super( oDisplayer, oUnit, 0.05 );
+		super( oDisplayer, oUnit, 2 );
 	//_____
-		var oMaterial = new MeshFaceMaterial(
-			[
-				oDisplayer.material_get( 'soldier' ),
-				_oGameView.material_get_byPlayer( 'player', unit_get().owner_get() )
-			]
-		);
 		_oBody = new Mesh( 
 			oDisplayer.geometry_get( 'soldier' ), 
-			oMaterial
+			_oGameView.material_get('wireframe')
 		);
-		_oBody.scale.set( 0.04, 0.04, 0.04 );
+		_oScene.scale.set( 0.04, 0.04, 0.04 );
 		
 		//_oBody.scale.set( 1, 1, 1 );
 		_oBody.rotation.set( 0, 0, -0.8);
 		_oBody.castShadow = true;
+		_oBody.visible = false;
 		_oBody.updateMatrix();
 		_oScene.add( _oBody );
 		
+		_oSprite = new Sprite( _oGameView.material_get_byPlayer( 'soldier', owner_get() ));
+		_oSprite.scale.set( 2,2,2);
+		_oSprite.position.set(0, 0, 0.5);
+		_oScene.add( _oSprite );
 		//Owner's color
 		//_playerColoredMesh_createAdd( _oBody );
 	
@@ -44,16 +44,18 @@ class SoldierVisual extends SubUnitVisual<SubUnit> {
 		
 		
 		update();
+		
+		_animationDeath_play();
 
 	}
 	
 //______________________________________________________________________________
 //	Accessor
 
-	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
-	
-	//public function object3d_get() :Object3D { return _oBody; };
+	public function entity_get() { return _oUnit; }
+	override public function body_get() {
+		return _oBody;
+	}
 	
 //______________________________________________________________________________
 //	Updater
@@ -67,17 +69,12 @@ class SoldierVisual extends SubUnitVisual<SubUnit> {
 			_oBody.rotation.set( 0, 0, oMobility.orientation_get() );
 		}
 	}
+	
 //______________________________________________________________________________
 //	Sub-routine
-/*
-	override function _decay_start() {
-		super._decay_start();
-		
-		dispose();
+	
+	override function _clickBox_update() {
+		_oClickBox = new Box3();
+		_oClickBox.setFromObject( _oBody );
 	}
-	
-	override function dispose() {
-		_oBody.parent.remove( _oBody ); _oBody = null;
-	}*/
-	
 }

@@ -30,8 +30,13 @@ class Player extends Entity {
 		_iPlayerId = iPlayerId;
 	}
 	
-	public function alliance_get( oPlayer :Player ) {
-		if( this == oPlayer ) return 'ally';
-		return 'ennemy';
+	public function alliance_get( oPlayer :Player ) : ALLIANCE {
+		if( this == oPlayer ) return ally;
+		return ennemy;
 	}
+}
+
+enum ALLIANCE {
+	ally;
+	ennemy;
 }

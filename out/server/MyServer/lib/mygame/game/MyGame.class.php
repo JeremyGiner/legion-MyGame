@@ -4,22 +4,25 @@ class mygame_game_MyGame extends legion_Game {
 	public function __construct($oConf) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oMap = null;
-		$this->_iLoop = 0;
 		parent::__construct();
 		$this->onLoop = new trigger_eventdispatcher_EventDispatcher();
 		$this->onLoopEnd = new trigger_eventdispatcher_EventDispatcher();
 		$this->onHealthAnyUpdate = new trigger_EventDispatcher2();
 		$this->onLoyaltyAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
 		$this->onPositionAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
-		$this->_aoHero = new _hx_array(array());
+		$this->onPositionTileAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
+		$this->onCreditAnyUpdate = new trigger_eventdispatcher_EventDispatcherFunel();
 		$this->_aoPlayer = new _hx_array(array());
 		$this->_oPositionDistance = new mygame_game_misc_PositionDistance();
 		$this->_oWinner = null;
 		$this->_aAction = new haxe_ds_IntMap();
 		$this->_singleton_add(new mygame_game_misc_weapon_WeaponTypeBazoo());
 		$this->_singleton_add(new mygame_game_misc_weapon_WeaponTypeSoldier());
+		$this->_singleton_add(new mygame_game_misc_weapon_WeaponTypeTank());
 		$this->_singleton_add(new mygame_game_query_CityTile($this));
-		$this->_singleton_add(new mygame_game_query_UnitDist($this));
+		$this->_singleton_add(new mygame_game_query_EntityDistance($this));
+		$this->_singleton_add(new mygame_game_query_EntityDistance($this));
+		$this->_singleton_add(new mygame_game_query_EntityDistanceTile($this));
 		$this->_singleton_add(new mygame_game_query_UnitQuery($this));
 		$this->_oMap = mygame_game_entity_WorldMap::load(_hx_anonymous(array("iSizeX" => $oConf->map->sizeX, "iSizeY" => $oConf->map->sizeY, "aoTile" => $oConf->map->tileArr)), $this);
 		{
@@ -28,8 +31,10 @@ class mygame_game_MyGame extends legion_Game {
 			while($_g < $_g1->length) {
 				$oConfPlayer = $_g1[$_g];
 				++$_g;
-				$this->player_add(new mygame_game_entity_Player($this, $oConfPlayer->name));
-				unset($oConfPlayer);
+				$oPlayer = new mygame_game_entity_Player($this, $oConfPlayer->name);
+				$oPlayer->ability_add(new mygame_game_ability_Roster($this, $oConfPlayer->roster));
+				$this->player_add($oPlayer);
+				unset($oPlayer,$oConfPlayer);
 			}
 		}
 		$this->entity_add($this->_oMap);
@@ -39,37 +44,44 @@ class mygame_game_MyGame extends legion_Game {
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(9, 18)));
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(13, 7)));
 		$this->entity_add(new mygame_game_entity_City($this, null, $this->_oMap->tile_get(13, 12)));
-		$this->entity_add(new mygame_game_entity_Factory($this, $this->player_get(0), $this->_oMap->tile_get(3, 2)));
-		$this->entity_add(new mygame_game_entity_Factory($this, $this->player_get(1), $this->_oMap->tile_get(3, 17)));
-		$this->_aoHero[0] = $this->_aoEntity[$this->_aoEntity->length - 1];
-		$this->_aoHero[1] = $this->_aoEntity[$this->_aoEntity->length - 1];
+		$oFactory = new mygame_game_entity_Factory($this, $this->player_get(0), $this->_oMap->tile_get(3, 2));
+		$this->entity_add($oFactory);
+		$this->player_get(0)->ability_get(_hx_qtype("mygame.game.ability.Roster"))->factory_set($oFactory);
+		$oFactory = new mygame_game_entity_Factory($this, $this->player_get(1), $this->_oMap->tile_get(3, 17));
+		$this->entity_add($oFactory);
+		$this->player_get(1)->ability_get(_hx_qtype("mygame.game.ability.Roster"))->factory_set($oFactory);
 		new mygame_game_process_VolumeEjection($this);
 		new mygame_game_process_MobilityProcess($this);
-		$this->oWeaponProcess = new mygame_game_process_WeaponProcess($this);
+		$this->_singleton_add(new mygame_game_process_WeaponProcess($this));
 		new mygame_game_process_LoyaltyShiftProcess($this);
 		new mygame_game_process_Death($this);
 		new mygame_game_process_DeathPlatoon($this);
+		new mygame_game_process_CreditIncome($this);
+		new mygame_game_process_AuraProcess($this);
 		$this->oVictoryCondition = new mygame_game_process_VictoryCondition($this);
+		$this->guidance = new legion_LocalBehaviourProcess($this);
+		$this->deploy = new legion_LocalBehaviourProcess($this);
+		$this->_aProcessCallOrder = (new _hx_array(array($this->guidance, $this->deploy)));
 	}}
-	public $_iLoop;
 	public $_oMap;
-	public $_aoHero;
 	public $_aoPlayer;
 	public $_oWinner;
 	public $_oPositionDistance;
 	public $_aAction;
+	public $_aRoster;
+	public $guidance;
+	public $deploy;
 	public $onLoop;
 	public $onLoopEnd;
 	public $onHealthAnyUpdate;
 	public $onLoyaltyAnyUpdate;
 	public $onPositionAnyUpdate;
-	public $oWeaponProcess;
+	public $onPositionTileAnyUpdate;
+	public $onCreditAnyUpdate;
 	public $oVictoryCondition;
 	public function loop() {
-		$this->_iLoop++;
-		$iTime = Date::now()->getTime();
+		$this->process();
 		$this->onLoop->dispatch($this);
-		$iTime = Date::now()->getTime();
 		$this->onLoopEnd->dispatch($this);
 	}
 	public function log_get() {
@@ -81,12 +93,6 @@ class mygame_game_MyGame extends legion_Game {
 	public function map_get() {
 		return $this->_oMap;
 	}
-	public function loopId_get() {
-		return $this->_iLoop;
-	}
-	public function hero_get($oPlayer) {
-		return $this->_aoHero[$oPlayer->playerId_get()];
-	}
 	public function action_run($oAction) {
 		if(!$oAction->check($this)) {
 			return false;
@@ -97,25 +103,6 @@ class mygame_game_MyGame extends legion_Game {
 		$this->_aAction->get($this->_iLoop)->add($oAction);
 		$oAction->exec($this);
 		return true;
-	}
-	public function entity_add($oEntity) {
-		parent::entity_add($oEntity);
-		$oPlatoon = $oEntity->ability_get(_hx_qtype("mygame.game.ability.Platoon"));
-		if($oPlatoon !== null) {
-			$aUnit = $oPlatoon->subUnit_get();
-			{
-				$_g = 0;
-				while($_g < $aUnit->length) {
-					$oSubUnit = $aUnit[$_g];
-					++$_g;
-					$this->entity_add($oSubUnit);
-					unset($oSubUnit);
-				}
-			}
-		}
-	}
-	public function entity_remove($oEntity) {
-		parent::entity_remove($oEntity);
 	}
 	public function player_get($iKey) {
 		return $this->_aoPlayer[$iKey];

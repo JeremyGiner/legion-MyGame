@@ -1,12 +1,17 @@
 package mygame.game;
 
 import haxe.ds.IntMap;
+import haxe.ds.StringMap;
 import legion.Game;
+import legion.LocalBehaviourProcess;
 import mygame.game.misc.PositionDistance;
 import mygame.game.misc.weapon.WeaponTypeSoldier;
 import mygame.game.misc.weapon.WeaponTypeBazoo;
+import mygame.game.misc.weapon.WeaponTypeTank;
 import mygame.game.query.CityTile;
-import mygame.game.query.UnitDist;
+import mygame.game.query.EntityDistance;
+import mygame.game.query.EntityDistanceTile;
+import mygame.game.query.EntityDistance;
 import mygame.game.query.UnitQuery;
 import space.Vector2i;
 import trigger.EventDispatcher2;
@@ -36,11 +41,8 @@ import space.Vector3 in Vector2;
  */
 class MyGame extends Game {
 	
-	var _iLoop :Int = 0;
-	
 	var _oMap :WorldMap = null;
 	
-	var _aoHero :Array<Unit>;
 	var _aoPlayer :Array<Player>;
 	
 	var _oWinner :Player;
@@ -48,6 +50,13 @@ class MyGame extends Game {
 	var _oPositionDistance :PositionDistance;
 	
 	var _aAction :IntMap<List<IAction<Dynamic>>>;	//Logs : list of actions indexed by loop id
+	
+	var _aRoster :Array<Roster>; // indexed by player id
+	
+	//_____
+	
+	public var guidance :LocalBehaviourProcess<MyGame,Guidance>;
+	public var deploy :LocalBehaviourProcess<MyGame,Deploy>;
 	
 	//_____
 	
@@ -57,12 +66,15 @@ class MyGame extends Game {
 	public var onHealthAnyUpdate :EventDispatcher2<Health>;
 	public var onLoyaltyAnyUpdate :EventDispatcherFunel<Loyalty>;
 	public var onPositionAnyUpdate :EventDispatcherFunel<Position>;
+	public var onPositionTileAnyUpdate :EventDispatcherFunel<Position>;
+	public var onCreditAnyUpdate :EventDispatcherFunel<Player>;
 	//public var onUnitMove :EventDispatcher2<Unit>;
 	
 	//_____
 	
-	public var oWeaponProcess :WeaponProcess;	//TODO: remove, it's only for test
 	public var oVictoryCondition :VictoryCondition;
+	
+	//____
 
 //______________________________________________________________________________
 //	Constructor
@@ -78,8 +90,9 @@ class MyGame extends Game {
 		onHealthAnyUpdate = new EventDispatcher2<Health>();
 		onLoyaltyAnyUpdate = new EventDispatcherFunel<Loyalty>();
 		onPositionAnyUpdate = new EventDispatcherFunel<Position>();
+		onPositionTileAnyUpdate = new EventDispatcherFunel<Position>();
+		onCreditAnyUpdate = new EventDispatcherFunel<Player>();
 		
-		_aoHero = new Array<Unit>();
 		_aoPlayer = new Array<Player>();
 		
 		_oPositionDistance = new PositionDistance();
@@ -93,10 +106,13 @@ class MyGame extends Game {
 		// WeaponType
 		_singleton_add( new WeaponTypeBazoo() );
 		_singleton_add( new WeaponTypeSoldier() );
+		_singleton_add( new WeaponTypeTank() );
 		
 		// Query
 		_singleton_add( new CityTile( this ) );
-		_singleton_add( new UnitDist( this ) );
+		_singleton_add( new EntityDistance( this ) );
+		_singleton_add( new EntityDistance( this ) );
+		_singleton_add( new EntityDistanceTile( this ) );
 		_singleton_add( new UnitQuery( this ) );
 	
 		
@@ -110,9 +126,11 @@ class MyGame extends Game {
 			},
 			this
 		);
-		for( oConfPlayer in oConf.playerArr )
-			player_add( new Player( this, oConfPlayer.name ) );
-		//player_add( new Player( this, 'Yellow' ) );
+		for ( oConfPlayer in oConf.playerArr ) {
+			var oPlayer = new Player( this, oConfPlayer.name );
+			oPlayer.ability_add( new Roster( this, oConfPlayer.roster ) );
+			player_add( oPlayer );
+		}
 		
 		entity_add( _oMap );
 		
@@ -125,8 +143,13 @@ class MyGame extends Game {
 		entity_add( new City( this, null, _oMap.tile_get( 13, 7 ) ) );
 		entity_add( new City( this, null, _oMap.tile_get( 13, 12 ) ) );
 		
-		entity_add( new Factory( this, player_get(0), _oMap.tile_get( 3, 2 ) ) );
-		entity_add( new Factory( this, player_get(1), _oMap.tile_get( 3, 17 ) ) );
+		var oFactory = new Factory( this, player_get(0), _oMap.tile_get( 3, 2 ) );
+		entity_add( oFactory );
+		player_get( 0 ).ability_get(Roster).factory_set( oFactory );
+		
+		oFactory = new Factory( this, player_get(1), _oMap.tile_get( 3, 17 ) );
+		entity_add( oFactory );
+		player_get( 1 ).ability_get(Roster).factory_set( oFactory );
 		
 		//entity_add( new Bazoo( this, player_get(0), new Vector2( 2.5, 2.5) ) );
 		//entity_add( new Tank( this, player_get(1), new Vector2i( 35000, 35000) ) );
@@ -134,35 +157,36 @@ class MyGame extends Game {
 		//entity_add( new PlatoonUnit( this, player_get(1), new Vector2( 3.5, 3.5) ) );
 		
 		
-		_aoHero[ 0 ] = cast _aoEntity[_aoEntity.length-1];
-		
-		_aoHero[ 1 ] = cast _aoEntity[_aoEntity.length - 1];
-		
-		
 	//__________________
 	// Loading rules(process)
 		
 		new VolumeEjection( this );
 		new MobilityProcess( this );	
-		oWeaponProcess = new WeaponProcess( this );
+		_singleton_add( new WeaponProcess( this ) );
 		new LoyaltyShiftProcess( this );
 		new Death( this );
 		new DeathPlatoon( this );
+		new CreditIncome( this );
+		new AuraProcess( this );
 		oVictoryCondition = new VictoryCondition( this );
-	
+		
+		guidance = new LocalBehaviourProcess<MyGame,Guidance>( this );
+		deploy = new LocalBehaviourProcess<MyGame,Deploy>( this );
+		_aProcessCallOrder = [
+			guidance,
+			deploy
+		];
 	}
 
 //______________________________________________________________________________
 // Process
 
 	public function loop(){
-		_iLoop++;
+		process();
 		
-		var iTime = Date.now().getTime();
 		onLoop.dispatch( this );
 		//trace( 'Pre-loop :' + (Date.now().getTime() - iTime) );
 		
-		iTime = Date.now().getTime();
 		onLoopEnd.dispatch( this );
 		//trace( 'Post-loop :'+(Date.now().getTime() - iTime) );
 	}
@@ -183,12 +207,6 @@ class MyGame extends Game {
 		return _oMap;
 	}
 	
-	public function loopId_get(){ return _iLoop; }
-	
-	public function hero_get( oPlayer :Player ) {
-		return _aoHero[ oPlayer.playerId_get() ];
-	}
-	
 	override public function action_run( oAction :IAction<Dynamic> ) :Bool {  
 		//TODO : check if compatible with this class of game
 		if( !oAction.check( this ) ) 
@@ -202,20 +220,6 @@ class MyGame extends Game {
 		// Execute
 		oAction.exec( this );
 		return true;
-	}
-	
-	override public function entity_add( oEntity ) {
-		super.entity_add( oEntity );
-		var oPlatoon = oEntity.ability_get( Platoon );
-		if ( oPlatoon != null ) {
-			var aUnit = oPlatoon.subUnit_get();
-			for ( oSubUnit in aUnit ) {
-				entity_add( oSubUnit );
-			}
-		}
-	}
-	override public function entity_remove( oEntity ) {
-		super.entity_remove( oEntity );
 	}
 	
 	public function player_get( iKey:Int ) { return _aoPlayer[ iKey ]; }

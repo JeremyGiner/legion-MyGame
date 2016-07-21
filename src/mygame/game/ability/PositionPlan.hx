@@ -13,6 +13,10 @@ class PositionPlan extends UnitAbility implements IValidatorTile {
 
 	var _iCodePlan :Int;
 	
+	static public var AIR = 0;
+	static public var VEHICULE = 1;
+	static public var INFANTRY = 2;
+	
 	public function new( oUnit :Unit, iCodePlan :Int ) {
 		super( oUnit );
 		
@@ -24,7 +28,7 @@ class PositionPlan extends UnitAbility implements IValidatorTile {
 	 * @param	oTile
 	 * @return	Bool true if walkable
 	 */
-	public function check( oTile :Tile ) :Bool {
+	public function validate( oTile :Tile ) :Bool {
 		
 		switch( _iCodePlan ) {
 			case 0 :
@@ -49,11 +53,12 @@ class PositionPlan extends UnitAbility implements IValidatorTile {
 		return true;
 	}
 	
-	public static function isFootWalkable( oTile :Tile ):Bool{
+	public static function isFootWalkable( oTile :Tile ):Bool {
 		if( oTile == null ) return false;
 		if( oTile.type_get() == WorldMap.TILETYPE_GRASS ) return true;
 		if( oTile.type_get() == WorldMap.TILETYPE_ROAD ) return true;
 		if( oTile.type_get() == WorldMap.TILETYPE_FOREST ) return true;
+		if( oTile.type_get() == WorldMap.TILETYPE_MOUNTAIN ) return true;
 		
 		return false;
 	}

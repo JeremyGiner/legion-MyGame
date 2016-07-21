@@ -1,7 +1,9 @@
 package mygame.client.view.visual.unit;
 
 import js.three.*;
+import legion.entity.Entity;
 import mygame.client.view.visual.unit.UnitVisual;
+import mygame.game.ability.Loyalty;
 import mygame.game.entity.PlatoonUnit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
@@ -10,7 +12,7 @@ import mygame.game.ability.Volume;
 import mygame.game.ability.Platoon in PlatoonAbility;
 import mygame.game.ability.Position;
 
-class PlatoonVisual extends UnitVisual<PlatoonUnit> {
+class PlatoonVisual extends EntityVisual<PlatoonUnit> {
 	
 	var _oBody :Mesh;
 //______________________________________________________________________________
@@ -22,7 +24,7 @@ class PlatoonVisual extends UnitVisual<PlatoonUnit> {
 	//_____
 		_oBody = new Mesh( 
 			oDisplayer.geometry_get( 'city' ), 
-			_oGameView.material_get_byPlayer( 'player', unit_get().owner_get() )
+			_oGameView.material_get_byPlayer( 'player', oUnit.ability_get(Loyalty).owner_get() )
 		);
 		
 		_oBody.scale.set( 0.3, 0.3, 0.3 );
@@ -44,7 +46,7 @@ class PlatoonVisual extends UnitVisual<PlatoonUnit> {
 //______________________________________________________________________________
 //	Accessor
 
-	public function entity_get(){ return _oUnit; }
+	public function entity_get(){ return _oEntity; }
 	//public function unit_get() :Unit { return _oUnit; }
 	
 	//public function object3d_get() :Object3D { return _oBody; };
@@ -60,7 +62,7 @@ class PlatoonVisual extends UnitVisual<PlatoonUnit> {
 		_oScene.position.setY( v.y/10000 );
 		
 		// trigger event
-		onUpdateEnd.dispatch( this );
+		//onUpdateEnd.dispatch( this );
 	}
 //______________________________________________________________________________
 //	Sub-routine
@@ -70,7 +72,7 @@ class PlatoonVisual extends UnitVisual<PlatoonUnit> {
 	 */
 	function _subUnitPositionAvr_get() {
 		var oPos = new Vector2();
-		var aUnit = _oUnit.ability_get(PlatoonAbility).subUnit_get();
+		var aUnit = _oEntity.ability_get(PlatoonAbility).subUnit_get();
 		for ( oUnit in aUnit ) {
 			oPos.x += oUnit.ability_get(Position).x;
 			oPos.y += oUnit.ability_get(Position).y;

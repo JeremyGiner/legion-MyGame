@@ -35,6 +35,10 @@ class Vector2i {
 		return distance( this, oVector );
 	}
 
+	public function distanceSqed_get( oVector :Vector2i ) {
+		return distanceSqed( this, oVector );
+	}
+	
 //_____________________________________________________________________________
 //	Modifier
 
@@ -114,5 +118,22 @@ class Vector2i {
 		var dy = v1.y - v2.y;
 			
 		return Math.sqrt( dx * dx + dy * dy );
+	}
+	public static function distanceSqed( v1 :Vector2i, v2 :Vector2i ) {
+		var dx = v1.x - v2.x;
+		var dy = v1.y - v2.y;
+			
+		return dx * dx + dy * dy;
+	}
+	/**
+	 * @source http://gamedev.stackexchange.com/questions/69241/how-to-optimize-the-distance-function
+	 * @param	v1
+	 * @param	v2
+	 */
+	public static function distanceOcto( v1 :Vector2i, v2 :Vector2i ) {
+		var dx = Math.abs(v1.x - v2.x);
+		var dy = Math.abs(v1.y - v2.y);
+			
+		return (dx + dy + Math.max( dx, dy )) * 0.5;
 	}
 }

@@ -32,7 +32,7 @@ class UnitDirectControl implements IAction {
 	
 	public function exec( oGame :MyGame ) {
 		
-		var oUnit = oGame.hero_get( cast _oPlayer );	//TODO : create shortcut
+		var oUnit = oGame.entity_get( 11 );	//TODO : create shortcut
 		oUnit.ability_get( Mobility ).force_set(
 			'Direct',
 			_oDirection.x,

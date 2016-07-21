@@ -21,7 +21,7 @@ typedef GameConfMap = {
 typedef GameConfPlayer = {
 	var name :String;
 	//TODO: color
-	//var roster :List<>;
+	var roster :Array<String>;
 }
 
 enum GameConfMapModifier {
@@ -38,8 +38,22 @@ class GameConfFactory {
 	static public function gameConfDefault_get() :GameConf {
 		return {
 			playerArr: [
-				{ name: 'Player 0 (blue)' },
-				{ name: 'Player 1 (yellow)' }
+				{ 
+					name: 'Player 0 (blue)', 
+					roster: [
+						'mygame.game.entity.Soldier',
+						'mygame.game.entity.Bazoo',
+						'mygame.game.entity.Tank',
+					] 
+				},
+				{ 
+					name: 'Player 1 (yellow)',
+					roster: [
+						'mygame.game.entity.Soldier',
+						'mygame.game.entity.Bazoo',
+						'mygame.game.entity.Tank',
+					]
+				}
 			],
 			map: {
 				sizeX: 15,

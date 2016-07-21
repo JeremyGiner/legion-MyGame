@@ -23,6 +23,12 @@ class Math {
 			return Math::$NaN;
 		}
 	}
+	static function sin($v) {
+		return sin($v);
+	}
+	static function cos($v) {
+		return cos($v);
+	}
 	static function atan2($y, $x) {
 		return atan2($y, $x);
 	}

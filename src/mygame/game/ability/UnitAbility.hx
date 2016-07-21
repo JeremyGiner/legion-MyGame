@@ -12,14 +12,11 @@ class UnitAbility implements IAbility {
 
 	var _oUnit :Unit;
 	
-	public var onDispose :EventDispatcher;
-	
 //______________________________________________________________________________
 //	Constructor
 
 	public function new( oUnit :Unit ) {
 		_oUnit = oUnit;
-		onDispose = new EventDispatcher();
 	}
 	
 //______________________________________________________________________________
@@ -35,9 +32,6 @@ class UnitAbility implements IAbility {
 //	Disposer
 	
 	public function dispose() {
-		
-		// Dispatch event
-		onDispose.dispatch( this );
 		
 		// Wipe all
 		Disposer.dispose( this );

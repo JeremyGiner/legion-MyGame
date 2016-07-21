@@ -115,7 +115,7 @@ class Volume extends UnitAbility {
 		var oTileGeometry :AlignedAxisBoxAlti;
 		for ( oTile in lTile ) {
 			// Filter walkable and non colling tile
-			if ( this.unit_get().ability_get(PositionPlan).check( oTile ) ) 
+			if ( this.unit_get().ability_get(PositionPlan).validate( oTile ) ) 
 				continue;
 			
 			// Build up tile geometry

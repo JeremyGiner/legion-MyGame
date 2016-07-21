@@ -29,19 +29,21 @@ class GameControllerLocal extends GameController {
 	
 	var _oGameSpeed :GameSpeed;
 	var _iIntervalKey :Int;
-	var _oNemesis :Nemesis0;
+	
+	var _aAIPlayer :Array<Nemesis0>;
+	
 	var _bPaused :Bool;
 	
 //______________________________________________________________________________
 	
-	public function new( oModel :Model ){
+	public function new( oModel :Model, aAIPlayer :Array<Nemesis0> ){
 		super( oModel );
 		
 		_iIntervalKey = Browser.window.setTimeout( _game_process, 45 );
 		
 		_bPaused = false;
 		
-		_oNemesis = new Nemesis0( oModel.game_get(), _oGame.player_get(1) );
+		_aAIPlayer = aAIPlayer;
 		
 		//_oGameSpeed = new GameSpeed( _oGame, 45 );	//TODO : change into timer
 		//js.Browser.window.setInterval( _oGame.loop, 250 );
@@ -73,7 +75,7 @@ class GameControllerLocal extends GameController {
 		// On press
 		if( oSource == _oKeyboard.onUpdate ){
 			//KEY "L"
-			if( _oKeyboard.keyTrigger_get() == 0x4C ) {
+			if( _oKeyboard.keyTrigger_get() == 'l' ) {
 				//trace( _oGame.log_get()  );
 				Serializer.USE_CACHE = true;
 				MySerializer._bUSE_RELATIVE = true;
@@ -89,20 +91,28 @@ class GameControllerLocal extends GameController {
 			if ( _bPaused )
 				return;
 			
+			var iTime = Date.now().getTime();
+			
 			// Process game
 			_oGame.loop();
 			
+			iTime = Date.now().getTime() - iTime;
 			
-			
+			if ( iTime > 45 && _oGame.loopId_get() % 44 == 0 )
+				trace('overtime'+iTime);
 			
 			// Process AI
-			/*
-			var aAction = _oNemesis.action_get();
-			
-			for ( oAction in aAction ) {
-				_oGame.action_run( oAction );
+			for ( oNemesis in _aAIPlayer ) {
+				if ( oNemesis == null )
+					continue;
+				
+				var aAction = oNemesis.action_get();
+				
+				for ( oAction in aAction ) {
+					_oGame.action_run( oAction );
+				}
 			}
-			*/
+			
 			
 			// Check end of game			
 			var oWinner = _oGame.winner_get();

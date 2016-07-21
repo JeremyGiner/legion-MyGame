@@ -15,5 +15,11 @@ class utils_IntTool {
 		}
 		return $a;
 	}
+	static function abs($a) {
+		if($a < 0) {
+			return -$a;
+		}
+		return $a;
+	}
 	function __toString() { return 'utils.IntTool'; }
 }

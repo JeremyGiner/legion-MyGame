@@ -34,7 +34,15 @@ class mygame_game_misc_weapon_WeaponType implements mygame_game_misc_weapon_IWea
 		if($oTarget->game_get() === null) {
 			return false;
 		}
-		if($oWeapon->unit_get()->owner_get()->alliance_get($oTarget->owner_get()) === "ally") {
+		$oWeaponLoyalty = $oWeapon->unit_get()->abilityMap_get()->get("mygame.game.ability.Loyalty");
+		if($oWeaponLoyalty === null) {
+			return false;
+		}
+		$oTargetLoyalty = $oTarget->abilityMap_get()->get("mygame.game.ability.Loyalty");
+		if($oTargetLoyalty === null) {
+			return false;
+		}
+		if((is_object($_t = $oWeaponLoyalty->owner_get()->alliance_get($oTargetLoyalty->owner_get())) && !($_t instanceof Enum) ? $_t === legion_entity_ALLIANCE::$ally : $_t == legion_entity_ALLIANCE::$ally)) {
 			return false;
 		}
 		if($oTarget->ability_get(_hx_qtype("mygame.game.ability.Health")) === null) {
@@ -46,7 +54,7 @@ class mygame_game_misc_weapon_WeaponType implements mygame_game_misc_weapon_IWea
 		return true;
 	}
 	public function _inRange_check($oWeapon, $oUnit) {
-		return space_Vector2i::distance($oWeapon->unit_get()->ability_get(_hx_qtype("mygame.game.ability.Position")), $oUnit->ability_get(_hx_qtype("mygame.game.ability.Position"))) <= $this->_fRangeMax;
+		return $oUnit->game_get()->singleton_get(_hx_qtype("mygame.game.query.EntityDistance"))->distanceSqed_get($oWeapon->unit_get(), $oUnit)->get() <= $this->_fRangeMax * $this->_fRangeMax;
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

@@ -13,17 +13,20 @@ import space.Vector3 in Vector2;
 
 import mygame.game.ability.*;
 
-class Bazoo extends Unit {
+/**
+ * @author GINER Jérémy
+ */
+class Bazoo extends SubUnit {
 
 	
 //______________________________________________________________________________
 //	Constructor
 
-	public function new( oGame :Game, oPlayer :Player, oPosition :Vector2i ){
-		super( oGame, oPlayer, oPosition );
+	public function new( oGame :Game, oPlayer :Player, oPosition :Vector2i, oPlatoon :Platoon = null ){
+		super( oGame, oPlayer, oPosition, oPlatoon );
 		
 		_ability_add( new PositionPlan( this, 2 ) );
-		_ability_add( new Mobility( this, 0.05 ) );
+		_ability_add( new Mobility( this, 200 ) );
 		_ability_add( new Guidance( this ) );
 		_ability_add( new Weapon( this, oGame.singleton_get( WeaponTypeBazoo ) ) );
 		_ability_add( new Health( this ) );

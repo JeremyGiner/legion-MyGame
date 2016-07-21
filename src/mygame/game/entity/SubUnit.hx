@@ -1,7 +1,8 @@
 package mygame.game.entity;
 import legion.entity.Entity;
+import mygame.game.ability.Loyalty;
 import mygame.game.ability.LoyaltyShifter;
-import mygame.game.entity.PlatoonUnit;
+import mygame.game.ability.Platoon;
 import mygame.game.MyGame;
 import space.Vector2i;
 import space.Vector3 in Vector2;
@@ -17,30 +18,21 @@ import mygame.game.misc.weapon.WeaponTypeSoldier;
  * @author GINER Jérémy
  */
 class SubUnit extends Unit {
-
-	var _oPlatoon :Unit;
 	
-	public function new( oParent :Unit, oPosition :Vector2i ) {
-		_oPlatoon = oParent;
+	function new( oGame :MyGame, oPlayer :Player, oPosition :Vector2i, oPlatoon :Platoon = null ) {
 		
-		var oGame :MyGame =  cast _oPlatoon.game_get();
 		super( 
 			oGame, 
-			_oPlatoon.owner_get(),
+			oPlayer,
 			oPosition
 		);
 		
-		_ability_add( new Health( this ) );
-		_ability_add( new PositionPlan( this, 2 ) );
-		_ability_add( new Mobility( this, 1000 ) );
-		_ability_add( new Guidance( this ) );
-		_ability_add( new Weapon( this, oGame.singleton_get( WeaponTypeSoldier ) ) );
-		_ability_add( new LoyaltyShifter( this ) );
+		if ( oPlatoon == null ) {
+			_ability_add( new Platoon( this ) );
+		} else {
+			_ability_add( oPlatoon );
+		}
 	
 	}
 	
-	
-	public function platoon_get() {
-		return _oPlatoon;
-	}
 }

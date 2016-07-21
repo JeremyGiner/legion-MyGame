@@ -1,7 +1,10 @@
 package mygame.client.controller.game;
 
 import js.Browser;
+import js.html.Element;
+import mygame.game.action.RosterOrderBuy;
 import trigger.*;
+import trigger.eventdispatcher.EventDispatcherJS;
 import utils.Disposer;
 import utils.IDisposable;
 
@@ -47,12 +50,12 @@ class GameController implements ITrigger implements IDisposable {
 	//var _oUnitSelector :UnitSelector;
 	var _oUnitPilot :UnitPilot;
 	
-	
 //______________________________________________________________________________
 	
 	function new( 
 		oModel :Model
-	){
+	) {
+		
 		_oModel = oModel;
 		_oGame = oModel.game_get();
 		_oGUI = oModel.GUI_get();
@@ -64,16 +67,10 @@ class GameController implements ITrigger implements IDisposable {
 		_oKeyboard = _oModel.keyboard_get();
 	
 	//___
-		//_oShipControl = new ShipManualControl();
 		_oStrategicZoom = new StrategicZoom( _oGameView, _oMouse );
 		
 		//_oUnitSelector = new UnitSelector( _oGame, _oGameView, _oMouse );
 		_oUnitPilot = new UnitPilot( this, _oGameView, _oModel, _oMouse, _oKeyboard );
-		
-		
-		//new MouseTester( _oDisplayer, _oMouse );
-		
-		//new TestGeneric().oDisplayer = _oDisplayer;
 
 		new UnitDirectControl( 
 			this,
@@ -135,35 +132,48 @@ class GameController implements ITrigger implements IDisposable {
 // Trigger
 
 
-	public function haxeAction( sAction :String ) {
-		switch( sAction ) {
+	public function haxeAction( oTarget :Element ) {
+		switch( oTarget.dataset.haxeaction ) {
 			case 'pause' :
 				pause_toggle();
 			case 'unpause' :
 				pause_toggle();
+			case 'unit-select' :
+				// Select unit
+				var oUnitSelection = _oModel.GUI_get().unitSelection_get();
+				oUnitSelection.remove_all();
+				oUnitSelection.unit_add( cast _oGame.entity_get( Std.parseInt( oTarget.dataset.unit_id ) ) );
+			case 'roster-buy' :
+				var oAction = new RosterOrderBuy( _oModel.playerLocal_get(), Std.parseInt( oTarget.dataset.roster_id ) );
+				
+				if ( !oAction.check( _oModel.game_get() ) ) {
+					_oGameView.gameMenu_get().errorlog_set('Insufficient credit.');
+					return;
+				}
+				action_add( oAction );
 			default :
 				trace('[WARNING]:invalid haxeAction');
 		}
-		return true;
+		return;
 	}
 
 	public function trigger( oSource :IEventDispatcher ) {
-	
+		
 		// SCR : https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
-		//https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent.code
+		//https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
 		
 		// On press
 		if( oSource == _oKeyboard.onPress ){
 		
 			//SHIFT
-			if( _oKeyboard.keyTrigger_get() == 0x10 )
+			if( _oKeyboard.keyTrigger_get() ==  "Shift" )
 				_oGUI.mode_set( 1 );
 		}
 		
 		// On release
 		if( oSource == _oKeyboard.onRelease ){
 			//SHIFT
-			if( _oKeyboard.keyTrigger_get() == 0x10 )
+			if( _oKeyboard.keyTrigger_get() ==  "Shift" )
 				_oGUI.mode_set( 0 );
 		}
 	}

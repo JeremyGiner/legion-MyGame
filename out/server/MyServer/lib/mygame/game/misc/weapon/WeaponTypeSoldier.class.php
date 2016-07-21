@@ -5,16 +5,7 @@ class mygame_game_misc_weapon_WeaponTypeSoldier extends mygame_game_misc_weapon_
 		parent::__construct(mygame_game_misc_weapon_EDamageType::$Bullet,5,10,5000);
 	}}
 	public function target_check($oWeapon, $oTarget) {
-		if($oTarget === null) {
-			return false;
-		}
-		if($oTarget === $oWeapon->unit_get()) {
-			return false;
-		}
-		if($oTarget->game_get() === null) {
-			return false;
-		}
-		if($oWeapon->unit_get()->owner_get()->alliance_get($oTarget->owner_get()) === "ally") {
+		if(parent::target_check($oWeapon,$oTarget) === false) {
 			return false;
 		}
 		$oHealth = $oTarget->ability_get(_hx_qtype("mygame.game.ability.Health"));
@@ -22,9 +13,6 @@ class mygame_game_misc_weapon_WeaponTypeSoldier extends mygame_game_misc_weapon_
 			return false;
 		}
 		if($oHealth->armored_check()) {
-			return false;
-		}
-		if(!$this->_inRange_check($oWeapon, $oTarget)) {
 			return false;
 		}
 		return true;

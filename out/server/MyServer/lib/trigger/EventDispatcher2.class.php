@@ -19,6 +19,9 @@ class trigger_EventDispatcher2 implements trigger_IEventDispatcher{
 	public function event_get() {
 		return $this->_oEventCurrent;
 	}
+	public function triggerListLenght_get() {
+		return $this->_lTrigger->length;
+	}
 	public function dispatch($oEvent = null) {
 		$this->_oEventCurrent = $oEvent;
 		if(null == $this->_lTrigger) throw new HException('null iterable');

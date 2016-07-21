@@ -33,9 +33,11 @@ class GuidanceVisual extends Object3D implements ITrigger {
 		
 		add( this.object3d_get() );
 		
+		
+		_oUnit =  cast _oUnitVisual.unit_get();
+		
 		_update();
 		
-		_oUnit = _oUnitVisual.unit_get();
 		_oUnit.mygame_get().onLoopEnd.attach( this );
 		_oUnit.onDispose.attach( this );
 	}
@@ -50,39 +52,135 @@ class GuidanceVisual extends Object3D implements ITrigger {
 	
 	function _update() {
 		
-		if ( _oGuidance.goal_get() == null )
+		// Case : platoon
+		var oPlatoon = _oUnit.ability_get(Platoon);
+		if ( oPlatoon != null ) {
+			_update_platoon( oPlatoon );
+			return;
+		}
+		
+		//__________________________
+		
+		var lWaypoint = _oGuidance.waypointList_get();
+		if ( lWaypoint.length == 0 )
 			if ( _oLine == null )
 				return;
 			else
 				_oLine.visible = false;
 		
-		var destination = _oGuidance.goal_get();
+		var destination = _oGuidance.waypointList_get().first();
 		
 		// Case no destination
-		if ( destination == null )
+		if ( lWaypoint.length == 0 )
 			return;
 		
 		var oPosition = _oGuidance.mobility_get().position_get();
 		
 		var geometry = new Geometry();
-		geometry.vertices = [ 
+		var aVector = [
 			new Vector3( 
 				_oUnitVisual.object3d_get().position.x, 
 				_oUnitVisual.object3d_get().position.y, 
 				0.251 
-			),
-			new Vector3( 
-				Position.metric_unit_to_map( destination.x ), 
-				Position.metric_unit_to_map( destination.y ), 
-				0.251 
 			)
 		];
+		for( oWaypoint in lWaypoint ) {
+			aVector.push( 
+				new Vector3( 
+					Position.metric_unit_to_map( oWaypoint.x ), 
+					Position.metric_unit_to_map( oWaypoint.y ), 
+					0.251 
+				)
+			);
+		}
+		geometry.vertices = aVector;
 		
 		// Update geometry
 		var scene = _oLine.parent;
 		scene.remove(_oLine);
 		_oLine = new Line( geometry, untyped _oMaterial );
 		scene.add(_oLine);
+	}
+	
+	function _update_platoon( oPlatoon :Platoon ) {
+		
+		// Make sure line is drawed once (only the commander's is drawed )
+		if ( _oUnit != oPlatoon.commander_get() )
+			return;
+		
+		
+		var lWaypoint = _oGuidance.waypointList_get();
+		if ( lWaypoint.length == 0 )
+			if ( _oLine == null )
+				return;
+			else
+				_oLine.visible = false;
+		
+		var destination = _oGuidance.waypointList_get().first();
+		
+		// Case no destination
+		if ( lWaypoint.length == 0 )
+			return;
+		
+		var oPosition = _oGuidance.mobility_get().position_get();
+		
+		
+		var aVector = [
+			_subUnitPositionAvr_get(oPlatoon)
+		];
+		for( oWaypoint in lWaypoint ) {
+			aVector.push( 
+				new Vector3( 
+					Position.metric_unit_to_map( oWaypoint.x ), 
+					Position.metric_unit_to_map( oWaypoint.y ), 
+					0.251 
+				)
+			);
+		}
+		//__________
+		var a = oPlatoon.subUnit_get();
+		var oUnitLast = a[ a.length-1 ];
+		
+		var oGuidanceLast = oUnitLast.ability_get(Guidance);
+		
+		for( oWaypoint in oGuidanceLast.waypointList_get() ) {
+			aVector.push( 
+				new Vector3( 
+					Position.metric_unit_to_map( oWaypoint.x ), 
+					Position.metric_unit_to_map( oWaypoint.y ), 
+					0.251 
+				)
+			);
+		}
+		
+		// Update geometry
+		var geometry = new Geometry();
+		geometry.vertices = aVector;
+		var scene = _oLine.parent;
+		scene.remove(_oLine);
+		_oLine = new Line( geometry, untyped _oMaterial );
+		scene.add(_oLine);
+	}
+//______________________________________________________________________________
+//	Sub-routine
+	
+	/**
+	 * @return average of SubUnits position
+	 */
+	function _subUnitPositionAvr_get( oPlatoon :Platoon ) {
+		var oPos = new Vector3();
+		var aUnit = oPlatoon.subUnit_get();
+		for ( oUnit in aUnit ) {
+			oPos.x += oUnit.ability_get(Position).x;
+			oPos.y += oUnit.ability_get(Position).y;
+		}
+		oPos.divideScalar( aUnit.length );
+		
+		oPos.x = Position.metric_unit_to_map( Std.int( oPos.x ) );
+		oPos.y = Position.metric_unit_to_map( Std.int( oPos.y ) );
+		oPos.z = 0.251;
+		
+		return oPos;
 	}
 	
 //______________________________________________________________________________

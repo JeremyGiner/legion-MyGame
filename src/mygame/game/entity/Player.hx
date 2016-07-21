@@ -20,7 +20,11 @@ class Player extends PlayerBase {
 	
 	public function credit_get() { return _iCredit; }
 	public function credit_add( iDelta :Int ) { 
+		
 		_iCredit += iDelta;
+		
+		cast(_oGame, MyGame).onCreditAnyUpdate.dispatch( this );
+		
 		return credit_get();
 	}
 }

@@ -1,13 +1,15 @@
 package mygame.client.view.visual.unit;
 
 import haxe.ds.StringMap;
+import js.Boot;
 import js.three.*;
 import legion.ability.IAbility;
+import legion.entity.Entity;
 import Math;
 import mygame.client.view.ob3updater.Follow;
 import mygame.client.view.visual.ability.GuidanceVisual;
+import mygame.client.view.visual.gui.DeployGauge;
 import mygame.client.view.visual.gui.WeaponGauge;
-import mygame.client.view.visual.MapVisual;
 import mygame.game.entity.Player;
 import mygame.game.entity.SubUnit;
 import mygame.game.entity.Unit;
@@ -18,6 +20,7 @@ import mygame.game.ability.Weapon;
 import mygame.client.view.visual.gui.HealthGauge;
 import mygame.client.view.visual.gui.LoyaltyGauge;
 import mygame.client.view.visual.ability.WeaponVisual;
+import ob3updater.Animation;
 import trigger.eventdispatcher.EventDispatcher;
 import mygame.client.view.visual.gui.IUnitGauge;
 import utils.IDisposable;
@@ -27,11 +30,9 @@ import mygame.game.ability.*;
 
 import trigger.*;
 
-class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
+class UnitVisual<CUnit:Entity> extends EntityVisual<CUnit> {
 
-	var _oGameView :GameView;
-	var _oUnit :CUnit;
-	var _oScene :Group;
+	var _oUnit :Unit;
 	var _oInfoAnchor :Object3D;
 	var _oGaugeHolder :Object3D;
 	var _oSelection :Mesh = null;
@@ -50,7 +51,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 	var _mAbilityVisual :StringMap<Array<VisualInfo>>;
 	var _mNode :StringMap<Object3D>;
 	
-	public var onUpdateEnd :EventDispatcher;
+	public var onUpdate :EventDispatcher2<UnitVisual<Dynamic>>;
 	
 	
 	// Cache
@@ -66,17 +67,19 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		oUnit :CUnit, 
 		fSelectionScale :Float = 0.2 
 	) {
+		super( oGameView, oUnit );
+		
 		_oGameView = oGameView;
-		_oUnit = oUnit;
+		_oUnit = cast oUnit;
 		_fSelectionScale = fSelectionScale;
 		
 		_oClickBox = null;
 		_aGauge = new Array<IUnitGauge>();
 		
-		_oScene = new Group();
+		//_oScene = new Group();
 		//_oScene.scale.multiplyScalar(10000);
 		//_oScene.position.setZ( 5000 );
-		_oScene.position.setZ( MapVisual.LANDHEIGHT );
+		//_oScene.position.setZ( MapVisual.LANDHEIGHT );
 		
 		
 		_oWeaponRange = null;
@@ -85,10 +88,6 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		_mNode = new StringMap<Object3D>();
 		_mNode.set('root',_oScene);
 		_mNode.set('world',_oGameView.scene_get());
-		
-		//____
-		
-		super( _oUnit );
 		
 		//_____
 		
@@ -104,7 +103,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		_oScene.add( _oSelection );
 		
 		//_____
-		
+		/*
 		_oSelectionPreview = new Mesh( 
 			_oGameView.geometry_get('gui_selection_circle'), 
 			_oGameView.material_get('wireframe_grey')
@@ -115,7 +114,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		_oSelectionPreview.castShadow = true;
 		
 		_oScene.add( _oSelectionPreview );
-		
+		*/
 		//_____
 		
 		
@@ -142,7 +141,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		//_oGaugeHolder.scale.set(0.01, 0.01, 0.01);
 		_oGameView.sceneOrtho_get().add( _oGaugeHolder );
 		_oGameView.ob3UpdaterManager_get().add( new  Follow( _oGameView, _oGaugeHolder, _oInfoAnchor ) );
-		onUpdateEnd = new EventDispatcher();
+		onUpdate = new EventDispatcher2<UnitVisual<Dynamic>>();
 		
 		//________________
 		// Ability
@@ -150,7 +149,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 			_abilityVisual_add( oAbility );
 		
 		// Trigger
-		_oUnit.mygame_get().onLoopEnd.attach( this );
+		untyped _oUnit.game_get().onLoopEnd.attach( this );
 		unit_get().ability_get(Loyalty).onUpdate.attach( this );
 		unit_get().onAbilityAdd.attach( this );
 		unit_get().onAbilityRemove.attach( this );
@@ -168,7 +167,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		return _fSelectionScale;
 	}
 
-	public function unit_get() :Unit { return _oUnit; }
+	public function unit_get() :Entity { return cast _oUnit; }
 	
 	public function gameView_get() { return _oGameView; }
 	
@@ -178,6 +177,10 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 	
 	public function gaugeHolder_get() {
 		return _oGaugeHolder;
+	}
+	
+	public function owner_get() {
+		return untyped _oEntity.ability_get(Loyalty).owner_get();
 	}
 	
 	public function clickBox_get() {
@@ -193,28 +196,23 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		return _oClickBox;
 	}
 	
+	public function body_get() :Object3D {
+		return null;
+	}
+	
 //______________________________________________________________________________
 //	Updater
 
 	override public function update() {
+		super.update();
 		
 		_oClickBox = null;
 	
-		// Update mesh' position
-		if( _oPosition != null ) {
-			_position_update();
-			
-			// get map visual
-			var oMapVisual :MapVisual = cast _oGameView.entityVisual_get_byEntity( _oPosition.map_get() );
-			
-			_oScene.position.setZ( oMapVisual.height_get( _oPosition.x, _oPosition.y ) );
-			_oScene.updateMatrix();
-		}
 		// Update gauge holder
 		//_gaugeHolder_update();
 		
 		// trigger event
-		onUpdateEnd.dispatch( this );
+		onUpdate.dispatch( this );
 	}
 
 
@@ -243,11 +241,9 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 		var oObj = _oScene.children[_oScene.children.length - 1];
 		_oClickBox = new Box3();
 		_oClickBox.setFromObject( oObj );
-	}
-
-	function _position_update() {
-		_oScene.position.setX( _oPosition.x/10000 );
-		_oScene.position.setY( _oPosition.y/10000 );
+		
+		//DEBUG
+		//_oScene.add( new BoundingBoxHelper( oObj, 0xff0000 ) );
 	}
 	
 	function _decay_start() {
@@ -256,9 +252,12 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 	
 	function banner_update() {
 		
+		if ( body_get() == null )
+			return;
+		
 		// Update player banner
 		//_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
-		cast(untyped _oScene.children[_oScene.children.length - 1].material,MeshFaceMaterial).materials[1] = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
+		cast(untyped body_get().material,MeshFaceMaterial).materials[1] = _oGameView.material_get_byPlayer( 'player_flat', owner_get() );
 	}
 
 //_____________________________________
@@ -342,15 +341,61 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 						obj3d: new LoyaltyGauge( this, cast oAbility )
 					}
 				];
-			case Guidance, Platoon : 
+			case Guidance : 
 				return [
 					{
 						nodeName: 'world', 
 						obj3d: new GuidanceVisual( this, cast oAbility )
 					}
 				];
+			case DivineShield :
+				var oSprite = new Sprite( _oGameView.material_get('bubbleshield') );
+				oSprite.renderOrder = 10;
+				return [
+					{
+						nodeName: 'root', 
+						obj3d: oSprite
+					}
+				];
+			case Deploy :
+				return [
+					{ 
+						nodeName: 'gauge', 
+						obj3d: new DeployGauge( this, cast oAbility, _oGaugeHolder.children.length ) 
+					}
+				];
 		}
 		return null;
+	}
+	
+	function _animationDeath_play() {
+		
+		var oDelta = new Matrix4();
+		oDelta.makeTranslation(0, 0, 5);
+		oDelta.multiply( (new Matrix4()).makeScale(3, 3, 3) );
+		
+		_oScene.updateMatrix();
+		var aKeyFrame0 = new StringMap<Dynamic>();
+		aKeyFrame0.set('matrix', _oScene.matrix.clone());
+		aKeyFrame0.set('material.opacity', 1);
+		
+		var aKeyFrame1 = new StringMap<Dynamic>();
+		aKeyFrame1.set('matrix',cast(_oScene.matrix.clone(), Matrix4).multiply(oDelta) );
+		aKeyFrame1.set('material.opacity', 0.0);
+		
+		var oSprite = new Sprite( _oGameView.material_get('ghost').clone() );
+		
+		_oGameView.ob3UpdaterManager_get().add( 
+			new Animation( 
+				oSprite, 
+				5000, 
+				[
+					{ fKey: 0.0, mField: aKeyFrame0 },
+					{ fKey: 1.0, mField: aKeyFrame1 }
+				]
+			)
+		);
+		_oScene.parent.add( oSprite );
 	}
 	
 //______________________________________________________________________________
@@ -362,9 +407,9 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 			var oMesh :Mesh;
 			var oMaterial = null;
 			if ( bFlat )
-				oMaterial = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
+				oMaterial = _oGameView.material_get_byPlayer( 'player_flat', owner_get() );
 			else 
-				oMaterial = _oGameView.material_get_byPlayer( 'player', unit_get().owner_get() );
+				oMaterial = _oGameView.material_get_byPlayer( 'player', owner_get() );
 			
 			oMesh = new Mesh( untyped oParent.geometry.clone(), oMaterial );
 			
@@ -410,6 +455,17 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 
 	override public function trigger( oSource :IEventDispatcher ) :Void { 
 		
+		
+		if( oSource == _oEntity.onDispose ) {
+			
+			// Starting death effect
+			_animationDeath_play();
+			dispose();
+			return;
+		}
+		
+		super.trigger( oSource );
+		
 		if ( oSource == unit_get().onAbilityAdd ) {
 			_abilityVisual_add( 
 				unit_get().onAbilityAdd.event_get().ability
@@ -425,14 +481,7 @@ class UnitVisual<CUnit:Unit> extends EntityVisual<CUnit> {
 			_info_update();
 			return;
 		}
-		
-		if( oSource == _oEntity.onDispose ) {
-			
-			// Starting death effect
-			_decay_start();
-			return;
-		}
-		
+
 		// Owner update
 		if( oSource == unit_get().ability_get(Loyalty).onUpdate ) {
 			banner_update();

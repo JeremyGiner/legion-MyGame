@@ -2,6 +2,7 @@ package mygame.game.ability;
 
 import collider.CollisionCheckerPost;
 import legion.ability.IAbility;
+import legion.IBehaviour;
 import math.Limit;
 import mygame.game.entity.WorldMap;
 import mygame.game.entity.Unit;
@@ -21,14 +22,14 @@ import utils.ListTool;
  * @author GINER Jérémy
  */
 
-class Guidance extends UnitAbility {
+class Guidance extends UnitAbility implements IBehaviour {
 	
 	var _oMobility :Mobility;
 	var _oVolume :Volume;
 	var _oPlan :PositionPlan;
 	
 	var _oPathfinder :Pathfinder;
-	var _oGoal :Vector2i;	// End of the path
+	var _lWaypoint :List<Vector2i>;
 	
 //______________________________________________________________________________
 //	Constructor
@@ -43,17 +44,19 @@ class Guidance extends UnitAbility {
 		_oPlan = oUnit.ability_get( PositionPlan );
 		
 		_oPathfinder = null;
-		_oGoal = null;
+		_lWaypoint = new List<Vector2i>();
 	}
 
 //______________________________________________________________________________
 //	Accessor
 
-	public function goal_get() { return _oGoal; }
+	public function waypointList_get() { return _lWaypoint; }
 	
 	public function mobility_get() { return _oMobility; }
 	
 	public function pathfinder_get() { return _oPathfinder; }
+	
+	public function processName_get() { return 'guidance'; }
 	
 	public function positionCorrection( oPoint :Vector2i ) {
 		
@@ -61,15 +64,18 @@ class Guidance extends UnitAbility {
 		if ( _oMobility.plan_get() == null )
 			return oPoint;
 		
-		// Get map
-		var oMap = _oMobility.position_get().map_get();
+		// Case platoon
+		var oPlatoon = unit_get().ability_get(Platoon);
+		if( oPlatoon != null )
+			return oPlatoon.positionCorrection( oPoint );
 		
 		// Case no volume
 		var oVolume = _oVolume;
 		if ( oVolume == null ) {
 			
+			var oMap = _oMobility.position_get().map_get();
 			var oTile = oMap.tile_get_byUnitMetric( oPoint.x, oPoint.y );
-			if( _oMobility.plan_get().check( oTile ) )
+			if( _oMobility.plan_get().validate( oTile ) )
 				return oPoint;
 			
 			return null;
@@ -85,15 +91,69 @@ class Guidance extends UnitAbility {
 //______________________________________________________________________________
 //	Modifier
 	
-	public function goal_set( oDestination :Vector2i ) {
+	public function waypoint_add( oDestination :Vector2i ) {
+		_lWaypoint.add( oDestination.clone() );
 		
-		// Reset
-		_oGoal = null;
+		// If no other waypoint -> path immediately
+		if ( _lWaypoint.length == 1 )
+			_pathTo();
+	}
+	public function waypoint_set( oDestination :Vector2i ) {
 		
-		// Case : explicite reset
-		if ( oDestination == null )
+		_lWaypoint = new List<Vector2i>();
+		
+		// Case : explicit reset
+		if ( oDestination == null ) 
 			return;
 		
+		// Apply change
+		_lWaypoint.add( oDestination.clone() );
+		_pathTo();
+	}
+	
+//______________________________________________________________________________
+//	Process
+
+	public function process() :Void {
+		
+		// Reset if is on current destination
+		if (
+			_lWaypoint.length != 0 && 
+			_lWaypoint.first().equal( _oMobility.position_get() ) 
+		)
+			_waypoint_discard();
+		
+		// Set mobility direction
+		if( _oPathfinder != null ) {
+			var oVector = _vector_get();
+			_oMobility.force_set( 'Guidance', oVector.x, oVector.y, true );
+		} else {
+			_oMobility.force_set( 'Guidance', 0, 0, true );
+		}
+	}
+	
+	
+//______________________________________________________________________________
+//	Sub-routine
+	
+	function _waypoint_discard() {
+		_lWaypoint.pop();
+		_oPathfinder = null;
+		_pathTo();
+	}
+	
+	/**
+	 * Process pathfinding for current destination ( after validating it )
+	 * Must be called everytime _lWaypoint change his first element
+	 */
+	function _pathTo() {
+		
+		// Case : nothing to path
+		if ( _lWaypoint.length == 0 ) 
+			return;
+		
+		// Get some destination and his tile
+		var oDestination = _lWaypoint.first();
 		var oTileDestination = _oMobility.position_get().map_get().tile_get_byUnitMetric( 
 			oDestination.x,
 			oDestination.y
@@ -101,8 +161,10 @@ class Guidance extends UnitAbility {
 		
 		// Check destination tile validity
 		if ( 
-			!_oPlan.check( oTileDestination )
+			!_oPlan.validate( oTileDestination )
 		) {
+			// Discard destination
+			_waypoint_discard();
 			trace('[WARNING]:guidance:invalid destination tile');
 			return;
 		}
@@ -131,53 +193,24 @@ class Guidance extends UnitAbility {
 			_oPlan
 		);
 		
-		// Check pathfincder succcess
+		// Check pathfinder succcess
 		for ( oTile in lPosition ) {
 			if ( _oPathfinder.refTile_get( oTile ) == null ) {
+				_waypoint_discard();
 				trace( '[ERROR]:Guidance:no path found.' );
 				return;
 			}
-		}		
-		/*if ( !_oPathfinder.success_check() ) {
-			trace( '[ERROR]:Guidance:no path found.' );
-			return;
-		}*/
+		}
 		
-		// Apply new destination
-		_oGoal = oDestination.clone();
-		
+		// Volume fix
 		if( _oVolume != null ) {
-			_oGoal = positionCorrection( _oGoal );
 			
+			//TODO : make it work with lDestination
 			// Settup tile occupied by the end position volume as end tile
-			for( oTile in _oVolume.tileListProject_get( _oGoal.x, _oGoal.y ) )
+			for( oTile in _oVolume.tileListProject_get( oDestination.x, oDestination.y ) )
 				_oPathfinder.refTile_set( oTile, oTile );
 		}
 	}
-	
-//______________________________________________________________________________
-//	Process
-
-	public function process() :Void {
-		
-		// Reset if on destination
-		if ( _oGoal != null && _oGoal.equal(_oMobility.position_get()) )
-			_oGoal = null;
-		
-		// Case : no goal
-		if( _oGoal == null ) {
-			_oMobility.force_set( 'Guidance', 0, 0, true ); 
-			return;
-		}
-		
-		// Set mobility direction
-		var oVector = _vector_get();
-		_oMobility.force_set( 'Guidance', oVector.x, oVector.y, true );
-	}
-	
-	
-//______________________________________________________________________________
-//	Sub-routine
 
 	public function _vector_get() :Vector2i {
 		/*
@@ -192,6 +225,8 @@ class Guidance extends UnitAbility {
 		
 		// WARNING: position, refTile.center and refrefTile.center must be different
 		
+		var oDestination = _lWaypoint.first();
+		
 		// Get target tile
 		var oTileOrigin = null;
 		var oTileTargeted = null;
@@ -204,8 +239,8 @@ class Guidance extends UnitAbility {
 			// Check if end tile
 			if( oTileTargeted == oTilePosition )
 				return new Vector2i(
-					_oGoal.x - _oMobility.position_get().x, 
-					_oGoal.y - _oMobility.position_get().y
+					oDestination.x - _oMobility.position_get().x, 
+					oDestination.y - _oMobility.position_get().y
 				);
 		} else {
 		// Case : Volume
@@ -222,8 +257,8 @@ class Guidance extends UnitAbility {
 			
 			if( b )
 				return new Vector2i(
-					_oGoal.x - _oMobility.position_get().x, 
-					_oGoal.y - _oMobility.position_get().y
+					oDestination.x - _oMobility.position_get().x, 
+					oDestination.y - _oMobility.position_get().y
 				);
 			
 			// Case : Unit only on a unique tile
@@ -275,10 +310,10 @@ class Guidance extends UnitAbility {
 		}
 		
 		// Case : End of path
-		/*if( oTileTargeted == _oGoalTile )
+		/*if( oTileTargeted == oDestinationTile )
 			return new Vector3(
-				_oGoal.x - _oMobility.position_get().x, 
-				_oGoal.y - _oMobility.position_get().y
+				oDestination.x - _oMobility.position_get().x, 
+				oDestination.y - _oMobility.position_get().y
 			);*/
 		
 		// Get ref ref tile
@@ -298,8 +333,8 @@ class Guidance extends UnitAbility {
 			// Case : end of path
 			// -> use goal for v2
 			v2 = new Vector2i( 
-				_oGoal.x - _oMobility.position_get().x, 
-				_oGoal.y - _oMobility.position_get().y 
+				oDestination.x - _oMobility.position_get().x, 
+				oDestination.y - _oMobility.position_get().y 
 			);
 		} else {
 			// Case : NOT end of path
@@ -385,14 +420,6 @@ class Guidance extends UnitAbility {
 		
 		return i >= (lTile.length - 1);
 	}
-	
-//______________________________________________________________________________
-//	Disposer
-	
-	/*override public function dispose() {
-		super.dispose();
-		
-	}*/
 
 
 }

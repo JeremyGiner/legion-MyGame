@@ -28,6 +28,9 @@ class space_Vector2i {
 	public function distance_get($oVector) {
 		return space_Vector2i::distance($this, $oVector);
 	}
+	public function distanceSqed_get($oVector) {
+		return space_Vector2i::distanceSqed($this, $oVector);
+	}
 	public function set($x_, $y_ = null) {
 		if($y_ === null) {
 			$y_ = 0;
@@ -102,6 +105,16 @@ class space_Vector2i {
 		$dx = $v1->x - $v2->x;
 		$dy = $v1->y - $v2->y;
 		return Math::sqrt($dx * $dx + $dy * $dy);
+	}
+	static function distanceSqed($v1, $v2) {
+		$dx = $v1->x - $v2->x;
+		$dy = $v1->y - $v2->y;
+		return $dx * $dx + $dy * $dy;
+	}
+	static function distanceOcto($v1, $v2) {
+		$dx = Math::abs($v1->x - $v2->x);
+		$dy = Math::abs($v1->y - $v2->y);
+		return ($dx + $dy + Math::max($dx, $dy)) * 0.5;
 	}
 	function __toString() { return 'space.Vector2i'; }
 }

@@ -128,6 +128,8 @@ class Mobility extends UnitAbility {
 		_collision_process();
 		
 	// Update position
+		if( _oVelocity.x == 0 && _oVelocity.y == 0 )
+			return;
 		_position_set( _oVelocity.x + _oPosition.x, _oVelocity.y + _oPosition.y );
 		//trace( _oPosition.x + ';' + _oPosition.y );
 	}
@@ -256,7 +258,7 @@ class Mobility extends UnitAbility {
 			// Filter to get only non-walkable tiles
 			var loTmp = new List<Tile>();
 			for ( oTile in loTile ) {
-				if ( !_oPlan.check( oTile ) ) 
+				if ( !_oPlan.validate( oTile ) ) 
 					loTmp.push( oTile );
 			}
 			loTile = loTmp;

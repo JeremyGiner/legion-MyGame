@@ -8,7 +8,7 @@ import js.three.Object3D;
 interface IOb3Updater {
 
 	/**
-	 * @return associated object3d, cannot be null
+	 * @return associated object3d, not null
 	 */
 	public function object3d_get() :Object3D;
 	

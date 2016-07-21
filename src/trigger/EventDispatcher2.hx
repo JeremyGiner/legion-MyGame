@@ -35,6 +35,10 @@ class EventDispatcher2<CEvent> implements IEventDispatcher {
 	}
 	
 	public function event_get() :CEvent { return _oEventCurrent; }
+	
+	public function triggerListLenght_get() {
+		return _lTrigger.length;
+	}
 
 //______________________________________________________________________________
 
@@ -55,3 +59,4 @@ class EventDispatcher2<CEvent> implements IEventDispatcher {
 		return false;
 	}
 }
+

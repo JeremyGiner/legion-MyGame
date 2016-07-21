@@ -15,6 +15,7 @@ class mygame_game_entity_Player extends legion_entity_Player {
 	}
 	public function credit_add($iDelta) {
 		$this->_iCredit += $iDelta;
+		_hx_deref(($this->_oGame))->onCreditAnyUpdate->dispatch($this);
 		return $this->credit_get();
 	}
 	public function __call($m, $a) {

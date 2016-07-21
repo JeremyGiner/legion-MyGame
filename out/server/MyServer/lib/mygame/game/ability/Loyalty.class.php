@@ -1,12 +1,12 @@
 <?php
 
-class mygame_game_ability_Loyalty extends mygame_game_ability_UnitAbility {
-	public function __construct($oUnit, $oPlayer) {
+class mygame_game_ability_Loyalty extends mygame_game_ability_EntityAbility {
+	public function __construct($oEntity, $oPlayer) {
 		if(!php_Boot::$skip_constructor) {
-		parent::__construct($oUnit);
+		parent::__construct($oEntity);
 		$this->_oOwner = $oPlayer;
 		$this->onUpdate = new trigger_EventDispatcher2();
-		$this->onUpdate->attach($this->_oUnit->mygame_get()->onLoyaltyAnyUpdate);
+		$this->onUpdate->attach($this->_oEntity->game_get()->onLoyaltyAnyUpdate);
 	}}
 	public $_oOwner;
 	public $onUpdate;

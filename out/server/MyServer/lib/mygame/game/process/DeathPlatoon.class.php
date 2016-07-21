@@ -4,7 +4,7 @@ class mygame_game_process_DeathPlatoon implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
-		$this->_oQueryPlatoon = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_DeathPlatoon_0($this, $oGame));
+		$this->_oQueryPlatoon = new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_DeathPlatoon_0($this, $oGame)), null);
 		$this->_oGame->onLoop->attach($this);
 	}}
 	public $_oGame;

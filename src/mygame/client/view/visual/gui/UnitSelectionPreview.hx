@@ -15,6 +15,10 @@ import space.Vector3 in Vector;
 
 import mygame.client.view.visual.unit.UnitVisual;
 
+/**
+ * 
+ * @author GINER Jérémy
+ */
 class UnitSelectionPreview implements IVisual implements ITrigger {
 	
 	var _oGameView :GameView;

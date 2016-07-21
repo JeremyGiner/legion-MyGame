@@ -42,7 +42,7 @@ class TankVisual extends UnitVisual<Unit> {
 			oDisplayer.geometry_get( 'tank_body' ), 
 			new MeshFaceMaterial([
 				oDisplayer.material_get( 'tank' ),
-				_oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() )
+				_oGameView.material_get_byPlayer( 'player_flat', owner_get() )
 			])
 		);
 		
@@ -61,7 +61,7 @@ class TankVisual extends UnitVisual<Unit> {
 			oDisplayer.geometry_get( 'tank_turret' ), 
 			new MeshFaceMaterial([
 				oDisplayer.material_get( 'tank' ),
-				_oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() )
+				_oGameView.material_get_byPlayer( 'player_flat', owner_get() )
 			])
 		);
 		_oTurret.position.set(0,0,0.5);
@@ -79,9 +79,9 @@ class TankVisual extends UnitVisual<Unit> {
 //	Accessor
 
 	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
-	
-	//public function object3d_get() :Object3D { return _oBody; }
+	override public function body_get() {
+		return _oBody;
+	}
 	
 	override public function update() {
 		super.update();

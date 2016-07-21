@@ -39,4 +39,16 @@ class SpawnShield extends UnitAbility {
 		
 		oEntity.ability_add(new DivineShield(cast oEntity,this));
 	}
+	
+	public function target_check( oEntity :Entity ) {
+		var oLoyalty = oEntity.ability_get(Loyalty);
+		if ( oLoyalty == null )
+			return false;
+		if ( oLoyalty.owner_get() != _oUnit.ability_get(Loyalty).owner_get() )
+			return false;
+		if ( oEntity.ability_get(Health) == null )
+			return false;
+		
+		return true;
+	}
 }

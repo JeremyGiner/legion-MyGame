@@ -1,5 +1,6 @@
 package mygame.game.ability;
 
+import legion.entity.Entity;
 import mygame.game.entity.Unit;
 import mygame.game.entity.Player;
 import trigger.EventDispatcher2;
@@ -8,7 +9,7 @@ import trigger.EventDispatcher2;
  * ...
  * @author GINER Jérémy
  */
-class Loyalty extends UnitAbility {
+class Loyalty extends EntityAbility {
 	
 	var _oOwner :Player;
 	
@@ -17,13 +18,13 @@ class Loyalty extends UnitAbility {
 //______________________________________________________________________________
 //	Constructor
 
-	public function new( oUnit :Unit, oPlayer :Player ) {
+	public function new( oEntity :Entity, oPlayer :Player ) {
 		
-		super( oUnit );
+		super( oEntity );
 		_oOwner = oPlayer;
 		
 		onUpdate = new EventDispatcher2<Loyalty>();
-		onUpdate.attach( _oUnit.mygame_get().onLoyaltyAnyUpdate );
+		onUpdate.attach( untyped _oEntity.game_get().onLoyaltyAnyUpdate );
 	}
 
 //______________________________________________________________________________

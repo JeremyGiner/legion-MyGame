@@ -2,6 +2,7 @@ package mygame.client.view.visual.unit;
 
 import js.three.*;
 import mygame.client.view.visual.unit.UnitVisual;
+import mygame.game.ability.Loyalty;
 import mygame.game.entity.Soldier in Unit;
 import mygame.client.view.GameView;
 import mygame.client.view.visual.IEntityVisual;
@@ -27,7 +28,7 @@ class CopterVisual extends UnitVisual<Unit> {
 	//_____
 		var oMaterial = new MeshFaceMaterial(
 			[
-				_oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() ),
+				_oGameView.material_get_byPlayer( 'player_flat', _oEntity.ability_get(Loyalty).owner_get() ),
 				oDisplayer.material_get( 'copter' )
 			]
 		);
@@ -73,9 +74,9 @@ class CopterVisual extends UnitVisual<Unit> {
 //	Accessor
 
 	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
-	
-	//public function object3d_get() :Object3D { return _oBody; };
+	override public function body_get() {
+		return _oBody;
+	}
 	
 //______________________________________________________________________________
 //	Updater

@@ -11,8 +11,9 @@ class mygame_game_ability_DivineShield extends mygame_game_ability_UnitAbility {
 		return $this->_oSource;
 	}
 	public function expired_check() {
-		$fDistance = $this->_oUnit->mygame_get()->singleton_get(_hx_qtype("mygame.game.query.UnitDist"))->data_get((new _hx_array(array($this->_oUnit, $this->_oSource->unit_get()))));
-		return $fDistance > $this->_oSource->radius_get();
+		$fDistance = $this->_oUnit->mygame_get()->singleton_get(_hx_qtype("mygame.game.query.EntityDistance"))->data_get((new _hx_array(array($this->_oUnit, $this->_oSource->unit_get()))))->get();
+		$fRadius = $this->_oSource->radius_get();
+		return $fDistance > $fRadius * $fRadius;
 	}
 	public function __call($m, $a) {
 		if(isset($this->$m) && is_callable($this->$m))

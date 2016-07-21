@@ -16,7 +16,7 @@ interface IAbility {
 	
 	//public function error_get():IError;
 	
-	public function dispose() :Void;
+	//public function dispose() :Void;
 	
 	//public function mainClassName_get() :String;
 }

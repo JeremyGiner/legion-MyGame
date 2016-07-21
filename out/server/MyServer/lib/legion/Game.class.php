@@ -4,37 +4,32 @@ class legion_Game {
 	public function __construct() {
 		if(!php_Boot::$skip_constructor) {
 		$this->_iIdAutoIncrement = 0;
-		$this->_aoEntity = new _hx_array(array());
+		$this->_iLoop = 0;
+		$this->_mEntity = new haxe_ds_IntMap();
 		$this->_mSingleton = new haxe_ds_StringMap();
+		$this->_aProcessCallOrder = new _hx_array(array());
 		$this->onEntityNew = new trigger_EventDispatcher2();
 		$this->onEntityDispose = new trigger_eventdispatcher_EventDispatcherFunel();
 		$this->onEntityAbilityAdd = new trigger_eventdispatcher_EventDispatcherFunel();
 		$this->onEntityAbilityRemove = new trigger_eventdispatcher_EventDispatcherFunel();
 	}}
-	public $_aoEntity;
+	public $_iLoop;
+	public $_mEntity;
 	public $_iIdAutoIncrement;
 	public $_mSingleton;
+	public $_aProcessCallOrder;
 	public $onEntityNew;
 	public $onEntityDispose;
 	public $onEntityAbilityAdd;
 	public $onEntityAbilityRemove;
+	public function loopId_get() {
+		return $this->_iLoop;
+	}
 	public function entity_get($i) {
-		{
-			$_g = 0;
-			$_g1 = $this->_aoEntity;
-			while($_g < $_g1->length) {
-				$oEntity = $_g1[$_g];
-				++$_g;
-				if($oEntity->identity_get() === $i) {
-					return $oEntity;
-				}
-				unset($oEntity);
-			}
-		}
-		return null;
+		return $this->_mEntity->get($i);
 	}
 	public function entity_get_all() {
-		return $this->_aoEntity;
+		return $this->_mEntity;
 	}
 	public function query_get($oClass) {
 		return $this->_mSingleton->get(Type::getClassName($oClass));
@@ -48,7 +43,7 @@ class legion_Game {
 	}
 	public function entity_add($oEntity) {
 		$oEntity->identity_set($this->_iIdAutoIncrement);
-		$this->_aoEntity->push($oEntity);
+		$this->_mEntity->set($this->_iIdAutoIncrement, $oEntity);
 		$this->_iIdAutoIncrement++;
 		$this->onEntityNew->dispatch($oEntity);
 		$oEntity->onAbilityAdd->attach($this->onEntityAbilityAdd);
@@ -56,12 +51,22 @@ class legion_Game {
 		$oEntity->onDispose->attach($this->onEntityDispose);
 	}
 	public function entity_remove($oEntity) {
-		$this->_aoEntity->remove($oEntity);
+		$this->_mEntity->remove($oEntity->identity_get());
 		$oEntity->onDispose->dispatch($oEntity);
 		utils_Disposer::dispose($oEntity);
 	}
-	public function _start() {
-		legion_Game::$onAnyStart->dispatch($this);
+	public function process() {
+		$this->_iLoop++;
+		{
+			$_g = 0;
+			$_g1 = $this->_aProcessCallOrder;
+			while($_g < $_g1->length) {
+				$oProcess = $_g1[$_g];
+				++$_g;
+				$oProcess->process();
+				unset($oProcess);
+			}
+		}
 	}
 	public function _singleton_add($o) {
 		$this->_mSingleton->set(Type::getClassName(Type::getClass($o)), $o);
@@ -76,7 +81,5 @@ class legion_Game {
 		else
 			throw new HException('Unable to call <'.$m.'>');
 	}
-	static $onAnyStart;
 	function __toString() { return 'legion.Game'; }
 }
-legion_Game::$onAnyStart = new trigger_eventdispatcher_EventDispatcher();

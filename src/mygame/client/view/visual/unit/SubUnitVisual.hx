@@ -3,6 +3,7 @@ package mygame.client.view.visual.unit;
 import js.three.Mesh;
 import legion.ability.IAbility;
 import mygame.client.view.visual.ability.WeaponVisual;
+import mygame.client.view.visual.gui.HealthGaugePlatoon;
 import mygame.game.ability.Weapon;
 import mygame.game.entity.SubUnit;
 import mygame.game.entity.Unit;
@@ -35,10 +36,18 @@ class SubUnitVisual<CUnit:SubUnit> extends UnitVisual<CUnit> {
 //	Ability related
 	
 	override function _abilityVisual_resolve( oAbility :IAbility ) :Array<VisualInfo> {
-		// No visual for following ability
+		
 		switch( Type.getClass( oAbility ) ) {
-			case Health, Guidance, Platoon :
+			// No visual for following ability
+			case Health :
 				return [];
+			case Platoon :
+				return [
+					{ 
+						nodeName: 'gauge', 
+						obj3d: new HealthGaugePlatoon( this, cast oAbility, _oGaugeHolder.children.length ) 
+					}
+				];
 			case Weapon :
 				var oAbilityW = cast(oAbility, Weapon);
 				_oWeaponRange = new Mesh( 

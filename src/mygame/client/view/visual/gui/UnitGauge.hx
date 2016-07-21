@@ -13,7 +13,6 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 	var _iIndex :Int;
 	var _oUnitVisual :UnitVisual<Dynamic>;
 	
-	var _oBackground :Mesh;
 	var _oGauge :Mesh;
 	
 //______________________________________________________________________________
@@ -29,6 +28,7 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 			_oUnitVisual.gameView_get().material_get('hud_gauge_bg')
 		);
 		this.renderOrder = 10;
+		position.setX( -1 );
 		position.setY( _iIndex*2 );
 		
 		// Init Gauge
@@ -37,6 +37,7 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 			_oUnitVisual.gameView_get().geometry_get('hud_gauge'), 
 			_oUnitVisual.gameView_get().material_get(sMaterialKey) 
 		);
+		//_oGauge.position.setX( -0.5 );
 		_oGauge.renderOrder = 11;
 		//_oGauge.renderDepth = 11;
 		
@@ -45,7 +46,7 @@ class UnitGauge extends Mesh implements IUnitGauge implements ITrigger {
 		
 		
 		// Init trigger
-		_oUnitVisual.onUpdateEnd.attach( this );
+		_oUnitVisual.onUpdate.attach( this );
 	}
 	
 //______________________________________________________________________________

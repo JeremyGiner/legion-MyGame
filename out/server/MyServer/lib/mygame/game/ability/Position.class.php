@@ -4,23 +4,30 @@ class mygame_game_ability_Position extends space_Vector2i implements legion_abil
 	public function __construct($oUnit, $oWorldMap, $x_, $y_) {
 		if(!php_Boot::$skip_constructor) {
 		$this->onUpdate = new trigger_EventDispatcher2();
+		$this->onUpdateTile = new trigger_EventDispatcher2();
 		$this->_oUnit = $oUnit;
 		$this->_oWorldMap = $oWorldMap;
 		parent::__construct($x_,$y_);
-		$this->onUpdate->attach($this->_oUnit->mygame_get()->onPositionAnyUpdate);
+		$this->onUpdate->attach($this->_oUnit->game_get()->onPositionAnyUpdate);
+		$this->onUpdateTile->attach($this->_oUnit->game_get()->onPositionTileAnyUpdate);
 	}}
 	public $_oWorldMap;
 	public $_oUnit;
 	public $_oTile;
 	public $onUpdate;
+	public $onUpdateTile;
 	public function set($x_, $y_ = null) {
 		if($y_ === null) {
 			$y_ = 0;
 		}
 		$this->x = $x_;
 		$this->y = $y_;
+		$oTileOld = $this->_oTile;
 		$this->_oTile = $this->_oWorldMap->tile_get_byUnitMetric($this->x, $this->y);
 		$this->onUpdate->dispatch($this);
+		if($oTileOld !== $this->_oTile) {
+			$this->onUpdateTile->dispatch($this);
+		}
 		return $this;
 	}
 	public function tile_get() {

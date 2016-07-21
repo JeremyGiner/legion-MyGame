@@ -1,5 +1,5 @@
 <?php
 
 interface utils_IValidator {
-	function check($o);
+	function validate($o);
 }

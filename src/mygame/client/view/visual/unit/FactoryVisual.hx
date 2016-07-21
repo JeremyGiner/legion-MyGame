@@ -51,22 +51,11 @@ class FactoryVisual extends UnitVisual<Unit> implements ITrigger {
 //	Accessor
 
 	public function entity_get(){ return _oUnit; }
-	//public function unit_get() :Unit { return _oUnit; }
-	
-	//public function object3d_get() :Object3D { return _oMesh; }
-	/*
-	override public function update(){
-		_oMesh.position.set(
-			_oUnit.tile_get().x_get() * GameView.WORLDMAP_MESHSIZE*2,
-			_oUnit.tile_get().y_get() * GameView.WORLDMAP_MESHSIZE*2,				
-			_oUnit.tile_get().z_get() * GameView.WORLDMAP_MESHSIZE/4+0.7
-		);
-	}*/
 	
 	override function banner_update() {
 		
 		// Update player banner
-		_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', unit_get().owner_get() );
+		_oBanner.material = _oGameView.material_get_byPlayer( 'player_flat', owner_get() );
 	}
 	
 //______________________________________________________________________________

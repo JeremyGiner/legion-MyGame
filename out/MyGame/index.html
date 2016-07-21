@@ -43,6 +43,10 @@
 		/*______________________________________________________________________
 			 */
 		
+		#game-errorlog {
+			color: red;
+		}
+		
 		#GameList {
 			padding: 1em;
 			border: 1px inset black;
@@ -217,6 +221,13 @@
 			display: inline-block;
 		}
 		
+		.fade-out {
+			animation: 0.5s fade-out 5s forwards;
+		}
+		@keyframes fade-out{
+			from{opacity:1} to{opacity:0}
+		}
+		
 	</style>
 </head>
 <body>
@@ -229,6 +240,10 @@
 				<legend>Local</legend>
 				<ul>
 					<li>
+						<ul>
+							<li><span>P0</span><select id="P0_type"><option value="0">DEV</option><option value="Nemesis0">Nemesis0</option></select></li>
+							<li><span>P1</span><select id="P1_type"><option value="0">DEV</option><option value="Nemesis0">Nemesis0</option></select></li>
+						</ul>
 						<button id="BtLocalNew" data-haxeaction="solo-newgame">New game</button>
 					</li>
 					<li>
@@ -261,22 +276,13 @@
 	<canvas id="MyCanvas"></canvas>
 	
 	<div id="GameMenu" class="row" style="display: none;">
+		<div id="game-errorlog"></div>
 		<div id="Credit" class="col">
 			<span>1200 C</span>&euro;
 		</div>
 		<div id="selection-wrapper" class="col">
-			<div id="Selection" class="menu-block col">
-				<header>Selection</header>
-				<div id="SelectionList">
-					<button class="btn-icon">Soldier<span>5</span></button>
-					<button class="btn-icon">Tank<span>2</span></button>
-				</div>
-			</div
-			><div id="Build" class="menu-block col">
-				<header>Build unit</header>
-				<div id="BuildList">
-				</div>
-			</div>
+		</div>
+		<div id="roster-wrapper" class="col">
 		</div>
 		<div class="col">
 			<button type="button" 

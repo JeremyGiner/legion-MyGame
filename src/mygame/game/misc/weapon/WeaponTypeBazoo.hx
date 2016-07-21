@@ -15,9 +15,9 @@ class WeaponTypeBazoo extends WeaponType {
 	public function new() {
 		super( 
 			EDamageType.Shell,
+			50,
 			20,
-			20,
-			30000
+			10000
 		);
 	}
 	

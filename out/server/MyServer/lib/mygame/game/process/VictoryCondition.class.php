@@ -13,7 +13,7 @@ class mygame_game_process_VictoryCondition implements trigger_ITrigger{
 			while($_g < $_g1->length) {
 				$oPlayer = $_g1[$_g];
 				++$_g;
-				$this->_mQueryCity->set($oPlayer->playerId_get(), new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_VictoryCondition_0($this, $_g, $_g1, $oGame, $oPlayer)));
+				$this->_mQueryCity->set($oPlayer->playerId_get(), new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_VictoryCondition_0($this, $_g, $_g1, $oGame, $oPlayer)), null));
 				unset($oPlayer);
 			}
 		}
@@ -101,10 +101,7 @@ function mygame_game_process_VictoryCondition_0(&$__hx__this, &$_g, &$_g1, &$oGa
 	{
 		$_g2 = new haxe_ds_StringMap();
 		$_g2->set("ability", _hx_qtype("mygame.game.ability.LoyaltyShift"));
-		{
-			$value = $oPlayer->playerId_get();
-			$_g2->set("player", $value);
-		}
+		$_g2->set("player", $oPlayer);
 		return $_g2;
 	}
 }

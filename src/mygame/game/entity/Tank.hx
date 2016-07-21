@@ -3,7 +3,7 @@ package mygame.game.entity;
 
 import math.Limit;
 import mygame.game.entity.Player;
-import mygame.game.misc.weapon.WeaponTypeBazoo;
+import mygame.game.misc.weapon.WeaponTypeTank;
 import mygame.game.MyGame in Game;
 import space.Vector2i;
 
@@ -28,10 +28,19 @@ class Tank extends Unit {
 		
 		_ability_add( new PositionPlan( this, 1 ) );
 		_ability_add( new Volume( this, 2000, 0.45 ) );
-		_ability_add( new Mobility( this, 200 ) );
+		_ability_add( new Mobility( this, 500 ) );
 		_ability_add( new Guidance( this ) );	//May require volume
-		_ability_add( new Weapon( this, oGame.singleton_get( WeaponTypeBazoo ) ) );
-		_ability_add( new Health( this, true ) );
+		_ability_add( new Weapon( this, oGame.singleton_get( WeaponTypeTank ) ) );
+		_ability_add( new Health( this, true, 500, 500 ) );
+		/*var oDeploy = new Deploy( this );
+		_ability_add( oDeploy );*/
+		
+	}
+	
+	override public function identity_set(i:Int) {
+		super.identity_set(i);
+		
+		//untyped _oGame.deploy.add( this, ability_get(Deploy) );
 	}
 
 //______________________________________________________________________________

@@ -30,7 +30,7 @@ class mygame_game_ability_BuilderFactory extends mygame_game_ability_Builder {
 		if($oGuidance === null) {
 			throw new HException("[ERROR]:buy:product must have Guidance ability.");
 		}
-		$oGuidance->goal_set($this->_oRallyPoint);
+		$oGuidance->waypoint_set($this->_oRallyPoint);
 	}
 	public function unit_create($oOffer) {
 		$oUnit = Type::createInstance(Type::resolveClass($oOffer->data_get()), (new _hx_array(array($this->_oUnit->game_get(), $this->_oUnit->owner_get(), $this->_oPosition))));
@@ -50,4 +50,4 @@ class mygame_game_ability_BuilderFactory extends mygame_game_ability_Builder {
 	static $_aOffer;
 	function __toString() { return 'mygame.game.ability.BuilderFactory'; }
 }
-mygame_game_ability_BuilderFactory::$_aOffer = (new _hx_array(array(new mygame_game_misc_offer_Offer(15, "Build a Solier 2", "mygame.game.entity.PlatoonUnit"), new mygame_game_misc_offer_Offer(15, "Build a Tank", "mygame.game.entity.Tank"))));
+mygame_game_ability_BuilderFactory::$_aOffer = (new _hx_array(array(new mygame_game_misc_offer_Offer(10, "Build a Solier", "mygame.game.entity.Soldier"), new mygame_game_misc_offer_Offer(15, "Build a Bazoo", "mygame.game.entity.Bazoo"), new mygame_game_misc_offer_Offer(35, "Build a Tank", "mygame.game.entity.Tank"))));

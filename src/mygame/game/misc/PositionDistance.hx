@@ -32,7 +32,7 @@ class PositionDistance {
 			//return distance_get( oPosition2, oPosition1 );	//swap direction
 			
 		// Clean up ( reset on new loop )
-		if ( _iLoop != oPosition1.unit_get().mygame_get().loopId_get() )
+		if ( _iLoop != untyped oPosition1.unit_get().game_get().loopId_get() )
 			_moDelta = new IntMap<IntMap<Vector2i>>();
 		
 		// Update first dimension

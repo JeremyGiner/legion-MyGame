@@ -144,7 +144,7 @@ class PathFinderFlowField {
 			// Create reference for each valid child tile
 			for( oTileChild in _tileChild_get( oTileParent ) ) {
 				if( oTileChild != null && Std.is(oTileChild,Tile ))	// Necessary?
-				if( _pTest.check( oTileChild ) )
+				if( _pTest.validate( oTileChild ) )
 				if( _aReferenceMap.get( _key_get( oTileChild ) ) == null ) {
 				
 					_aReferenceMap.set( _key_get(oTileChild), oTileParent );
@@ -205,7 +205,7 @@ class PathFinderFlowField {
 					// Debug case
 					if ( 
 						t == null ||
-						!_pTest.check( t ) ||
+						!_pTest.validate( t ) ||
 						t == oTileChild	//TODO: debug purpose only, should not occur
 					) {
 						continue;

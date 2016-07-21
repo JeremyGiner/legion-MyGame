@@ -1,10 +1,11 @@
 <?php
 
-class mygame_game_entity_PlatoonUnit extends mygame_game_entity_Unit {
+class mygame_game_entity_PlatoonUnit extends legion_entity_Entity {
 	public function __construct($oGame, $oOwner, $oPosition) {
 		if(!php_Boot::$skip_constructor) {
-		parent::__construct($oGame,$oOwner,$oPosition);
-		$oAbility = new mygame_game_ability_Platoon($this, $oPosition);
+		parent::__construct($oGame);
+		$this->_ability_add(new mygame_game_ability_Loyalty($this, $oOwner));
+		$oAbility = new mygame_game_ability_Platoon($this);
 		$this->_ability_add($oAbility);
 		$this->_moAbility->set(Type::getClassName(_hx_qtype("mygame.game.ability.Guidance")), $oAbility);
 	}}

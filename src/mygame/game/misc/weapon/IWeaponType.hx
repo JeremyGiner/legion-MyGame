@@ -1,7 +1,9 @@
 package mygame.game.misc.weapon;
 
+import legion.entity.Entity;
 import mygame.game.ability.Weapon;
 import mygame.game.entity.Unit;
+import mygame.game.utils.IValidatorEntity;
 
 /**
  * Interface of a class defining most of the behavior of the weapon Ability
@@ -23,5 +25,5 @@ interface IWeaponType {
 //______________________________________________________________________________
 //	Utils
 
-	public function target_check( oWeapon :Weapon, oTarget :Unit ) :Bool;
+	public function target_check( oWeapon :Weapon, oTarget :Entity ) :Bool;
 }

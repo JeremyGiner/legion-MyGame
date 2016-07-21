@@ -14,21 +14,18 @@ class mygame_game_query_UnitQuery implements legion_IQuery{
 	public function data_get($aUnit) {
 		$this->_oFilter = $aUnit;
 		$lUnit = new HList();
-		{
-			$_g = 0;
-			$_g1 = $this->_oGame->entity_get_all();
-			while($_g < $_g1->length) {
-				$oUnit = $_g1[$_g];
-				++$_g;
-				if(!Std::is($oUnit, _hx_qtype("mygame.game.entity.Unit"))) {
-					continue;
-				}
-				if(!$this->_test($oUnit)) {
-					continue;
-				}
-				$lUnit->add($oUnit);
-				unset($oUnit);
+		if(null == $this->_oGame->entity_get_all()) throw new HException('null iterable');
+		$__hx__it = $this->_oGame->entity_get_all()->iterator();
+		while($__hx__it->hasNext()) {
+			unset($oUnit);
+			$oUnit = $__hx__it->next();
+			if(!Std::is($oUnit, _hx_qtype("mygame.game.entity.Unit"))) {
+				continue;
 			}
+			if(!$this->_test($oUnit)) {
+				continue;
+			}
+			$lUnit->add($oUnit);
 		}
 		return $lUnit;
 	}

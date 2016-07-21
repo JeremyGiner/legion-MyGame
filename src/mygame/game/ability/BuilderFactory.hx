@@ -22,8 +22,9 @@ class BuilderFactory extends Builder {
 	//var _oCost :Array<Int>;
 	static var _aOffer :Array<Offer<String>> = 
 		[
-			new Offer<String>( 15, 'Build a Solier 2', 'mygame.game.entity.PlatoonUnit' ),
-			new Offer<String>( 15, 'Build a Tank', 'mygame.game.entity.Tank' ),
+			new Offer<String>( 10, 'Build a Solier', 'mygame.game.entity.Soldier' ),
+			new Offer<String>( 15, 'Build a Bazoo', 'mygame.game.entity.Bazoo' ),
+			new Offer<String>( 35, 'Build a Tank', 'mygame.game.entity.Tank' ),
 		];
 	
 //______________________________________________________________________________
@@ -66,7 +67,7 @@ class BuilderFactory extends Builder {
 		
 		var oGuidance = oProduct.ability_get( Guidance );
 		if ( oGuidance == null ) throw('[ERROR]:buy:product must have Guidance ability.');
-		oGuidance.goal_set( _oRallyPoint );
+		oGuidance.waypoint_set( _oRallyPoint );
 		
 	}
 	
@@ -85,52 +86,7 @@ class BuilderFactory extends Builder {
 			oUnit
 		);
 		return cast oUnit;
-		/*
-		switch( i ) {
-			case 99 : 
-				var u = new Soldier( 
-						cast _oUnit.game_get(), 
-						_oUnit.owner_get(), 
-						_oPosition 
-					);
-				_oUnit.game_get().entity_add(
-					u
-				);
-				return u;
-			case 98 : 
-				var u = new Bazoo( 
-						cast _oUnit.game_get(), 
-						_oUnit.owner_get(), 
-						_oPosition 
-					);
-				_oUnit.game_get().entity_add(
-					u
-				);
-				return u;
-			case 1 : 
-				var u = new Tank( 
-						cast _oUnit.game_get(), 
-						_oUnit.owner_get(), 
-						_oPosition 
-					);
-				_oUnit.game_get().entity_add(
-					u
-				);
-				return u;
-			case 0 : 
-				var u = new PlatoonUnit( 
-						cast _oUnit.game_get(), 
-						_oUnit.owner_get(), 
-						_oPosition 
-					);
-				_oUnit.game_get().entity_add(
-					u
-				);
-				return u;
-			
-			default: throw('wooops');
-		}
-		return null;*/
+		
 	}
 
 }

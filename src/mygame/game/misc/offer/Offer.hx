@@ -15,7 +15,7 @@ class Offer<CData> {
 
 	public function new( iCost :Int, sName :String, oData :CData = null ) {
 		_sName = sName;
-		_iCost = 10;
+		_iCost = iCost;
 		_oData = oData;
 	}
 

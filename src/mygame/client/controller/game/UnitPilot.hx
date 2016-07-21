@@ -2,6 +2,8 @@ package mygame.client.controller.game;
 
 import js.Browser;
 import mygame.client.view.visual.debug.Boxy;
+import mygame.client.view.visual.entity.WorldMapVisual;
+import mygame.game.ability.Platoon;
 import space.Vector2i;
 import trigger.*;
 
@@ -17,7 +19,6 @@ import mygame.game.MyGame in Game;
 import mygame.game.tile.Tile;
 import mygame.client.model.Model;
 import mygame.client.view.GameView;
-import mygame.client.view.visual.MapVisual;
 import mygame.client.view.visual.EntityVisual;
 import mygame.client.view.visual.Marker;
 import mygame.client.view.visual.debug.PathfinderVisual;
@@ -44,6 +45,9 @@ class UnitPilot implements ITrigger {
 	var _oKeyboard :Keyboard;
 	
 	var _oMarker :Marker;
+	
+	// cache
+	var _oDragDrop :Vector2i;
 
 	// Debug
 	//var _oPathfinderVisual :PathfinderVisual = null;
@@ -57,7 +61,9 @@ class UnitPilot implements ITrigger {
 		oModel :Model,
 		oMouse :Mouse,
 		oKeyboard :Keyboard
-	){
+	) {
+		_oDragDrop = null;
+		
 		_oGameController = oGameController;
 		_oModel = oModel;
 		_oGameView = oGameView;
@@ -69,6 +75,7 @@ class UnitPilot implements ITrigger {
 		
 		// Trigger
 		_oMouse.onPressRight.attach( this );
+		_oMouse.onReleaseRight.attach( this );
 		_oMouse.onMove.attach( this );
 	}
 	
@@ -107,7 +114,7 @@ class UnitPilot implements ITrigger {
 		_oGameView.scene_get().worldToLocal( oVector );
 		
 		// Get map visual
-		var oMapVisual :MapVisual = cast EntityVisual.get_byEntity( _oGameController.game_get().map_get() );
+		var oMapVisual :WorldMapVisual = cast EntityVisual.get_byEntity( _oGameController.game_get().map_get() );
 		
 		// Get tile
 		return oMapVisual.tile_get_byVector( oVector );
@@ -129,7 +136,7 @@ class UnitPilot implements ITrigger {
 	}
 	
 	
-	function unit_move( oVector :Vector2i ){
+	function unit_move( oVector :Vector2i, fAngle :Float ){
 	
 		
 		//TODO : multiple unit at once ?
@@ -146,11 +153,15 @@ class UnitPilot implements ITrigger {
 		}
 		
 		// Check guidance
-		if ( oUnit.ability_get(Guidance) == null )
+		if ( oUnit.ability_get(Guidance) == null && oUnit.ability_get(Platoon) == null )
 			return;
 		
+		var oMovingAbility = oUnit.ability_get(Guidance) != null ? 
+			oUnit.ability_get(Guidance) :
+			oUnit.ability_get(Platoon);
 		// POsition corection
-		oVector = oUnit.ability_get(Guidance).positionCorrection( oVector );
+		oVector = untyped oMovingAbility.positionCorrection( oVector );
+			
 		
 		// Create action
 		trace('Order unit to move!');
@@ -161,14 +172,17 @@ class UnitPilot implements ITrigger {
 		_oGameController.action_add(
 			new UnitOrderMove( 
 				oUnit,
-				oVector 
+				oVector,
+				fAngle,
+				( _oKeyboard.keyState_get('Control') == true )
 			)
 		);
 		
 		// PathFind debug
+		/*
 		var oGuidance = oUnit.ability_get(Guidance);
 		if ( PathfinderVisual.oInstance == null ) new PathfinderVisual( _oGameView, oGuidance.pathfinder_get() );
-		else PathfinderVisual.oInstance.pathfinder_set( oGuidance.pathfinder_get() );
+		else PathfinderVisual.oInstance.pathfinder_set( oGuidance.pathfinder_get() );*/
 	}
 	
 	function test( oMouse :Mouse ){
@@ -196,9 +210,30 @@ class UnitPilot implements ITrigger {
 		
 		// Mouse right button
 		if ( oSource == _oMouse.onPressRight ) {
+			_oDragDrop = vector_get( cast oSource.event_get() );
+			_oGameView.oArrowDirection.visible = true;
+			_oGameView.oArrowDirection.position.set( 
+				Position.metric_unit_to_map(_oDragDrop.x), 
+				Position.metric_unit_to_map(_oDragDrop.y), 
+				WorldMapVisual.LANDHEIGHT 
+			);
+			return;
+		}
+		if ( oSource == _oMouse.onReleaseRight ) {
+			if ( _oDragDrop == null )
+				return;
+			
 			var oVector = vector_get( cast oSource.event_get() );
-			if( oVector != null )
-				unit_move( oVector );
+			if ( oVector == null )
+				return;
+			
+			// Get delta
+			oVector.vector_add( _oDragDrop.clone().mult( -1 ) );
+			
+			unit_move( _oDragDrop, oVector.length_get() < 1000 ? 0 : oVector.angleAxisXY() );
+			_oDragDrop = null;
+			_oGameView.oArrowDirection.visible = false;
+			return;
 		}
 		
 		// Mouse cursor
@@ -217,10 +252,16 @@ class UnitPilot implements ITrigger {
 			// Change cursor
 			var oVector = vector_get( _oMouse.onMove.event_get() );
 			var oTile = _oModel.game_get().map_get().tile_get_byUnitMetric( oVector.x, oVector.y );
-			if ( oPlan.check(oTile) )
+			if ( oPlan.validate(oTile) )
 				Browser.document.body.style.cursor = 'default';
 			else
 				Browser.document.body.style.cursor = 'not-allowed';
+			
+			if ( _oDragDrop != null ) {
+				oVector.vector_add( _oDragDrop.clone().mult( -1 ) );
+				_oGameView.oArrowDirection.rotation.z = oVector.angleAxisXY();
+			}
+			return;
 		}
 	}
 }

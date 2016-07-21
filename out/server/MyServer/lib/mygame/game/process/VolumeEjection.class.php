@@ -4,8 +4,8 @@ class mygame_game_process_VolumeEjection implements trigger_ITrigger{
 	public function __construct($oGame) {
 		if(!php_Boot::$skip_constructor) {
 		$this->_oGame = $oGame;
-		$this->_oQueryVolume = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_VolumeEjection_0($this, $oGame));
-		$this->_oQueryMobility = new mygame_game_query_EntityQuery($this->_oGame, mygame_game_process_VolumeEjection_1($this, $oGame));
+		$this->_oQueryVolume = new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_VolumeEjection_0($this, $oGame)), null);
+		$this->_oQueryMobility = new mygame_game_query_EntityQuery($this->_oGame, new mygame_game_query_ValidatorEntity(mygame_game_process_VolumeEjection_1($this, $oGame)), null);
 		$this->_oGame->onLoop->attach($this);
 	}}
 	public $_oGame;
@@ -19,6 +19,9 @@ class mygame_game_process_VolumeEjection implements trigger_ITrigger{
 			$oUnit = $__hx__it->next();
 			$oMobility = $oUnit->ability_get(_hx_qtype("mygame.game.ability.Mobility"));
 			if($oMobility === null) {
+				continue;
+			}
+			if($oUnit->ability_get(_hx_qtype("mygame.game.ability.PositionPlan")) === null) {
 				continue;
 			}
 			$oMobility->force_set("volume", 0, 0, false);

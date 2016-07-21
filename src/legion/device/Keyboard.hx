@@ -1,5 +1,6 @@
 package legion.device;
 
+import haxe.ds.StringMap;
 import js.html.KeyboardEvent;
 
 import trigger.*;
@@ -13,17 +14,18 @@ class Keyboard implements ITrigger {
 	public var onPress :EventDispatcherTree;
 	public var onRelease :EventDispatcherTree;
 	
-	private var _abKeyState :Array<Bool>;
-	private var _lastModifiedKey :Int;
+	private var _abKeyState :StringMap<Bool>;
+	private var _lastModifiedKey :String;
 	
 	// TODO : clipboard?
 	
 //_____________________________________________________________________________
+//	Constructor
 	
 	public function new(){
 	
 		//super();
-		_abKeyState = new Array<Bool>();
+		_abKeyState = new StringMap<Bool>();
 		
 		// Init event listener
 		onUpdate = new EventDispatcherTree(Device.onUpdate);
@@ -42,7 +44,7 @@ class Keyboard implements ITrigger {
 //_____________________________________________________________________________
 //	Accessor
 	
-	public function keyState_get( i :Int ){ return _abKeyState[i]; }
+	public function keyState_get( s :String ){ return _abKeyState.get(s); }
 	public function keyTrigger_get(){ return _lastModifiedKey; }
 	
 //_____________________________________________________________________________
@@ -52,17 +54,17 @@ class Keyboard implements ITrigger {
 		
 		// SCR : https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
 		//TODO : use event.key
-		_lastModifiedKey = untyped{oEvent.keyCode || oEvent.which;};
+		_lastModifiedKey = oEvent.key;
 
 		// Update and dispatch
 		switch( oEvent.type ) {
 			case 'keydown' :
-				if( _abKeyState[ _lastModifiedKey ] != true ) {
-					_abKeyState[ _lastModifiedKey ] = true;
+				if( _abKeyState.get( _lastModifiedKey ) != true ) {
+					_abKeyState.set( _lastModifiedKey, true );
 					onPress.dispatch( this );
 				} //else it's a repeat
 			case 'keyup' :
-				_abKeyState[ _lastModifiedKey ] = false;
+				_abKeyState.set( _lastModifiedKey, false );
 				onRelease.dispatch( this );
 		}
 		
